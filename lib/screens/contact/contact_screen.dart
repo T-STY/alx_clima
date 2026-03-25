@@ -48,6 +48,21 @@ class _ContactScreenState extends State<ContactScreen> {
     }
   }
 
+  Future<void> _launch(Uri uri, {LaunchMode mode = LaunchMode.platformDefault}) async {
+    try {
+      await launchUrl(uri, mode: mode);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo abrir la aplicación'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,12 +137,9 @@ class _ContactScreenState extends State<ContactScreen> {
                     title: 'Llamar',
                     subtitle: _phone,
                     color: AppTheme.primaryColor,
-                    onTap: () async {
-                      final uri = Uri.parse('tel:$_phone');
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri);
-                      }
-                    },
+                    onTap: () => _launch(
+                      Uri(scheme: 'tel', path: _phone),
+                    ),
                   )
                       .animate()
                       .fadeIn(duration: 400.ms, delay: 150.ms)
@@ -138,16 +150,15 @@ class _ContactScreenState extends State<ContactScreen> {
                     title: 'WhatsApp',
                     subtitle: 'Escríbenos por WhatsApp',
                     color: const Color(0xFF25D366),
-                    onTap: () async {
-                      final uri = Uri.parse(
-                        'https://wa.me/$_whatsApp?text=Hola%2C%20me%20comunico%20desde%20la%20app%20ALX-Clima.',
+                    onTap: () {
+                      final cleanNumber =
+                          _whatsApp.replaceAll(RegExp(r'[^0-9]'), '');
+                      _launch(
+                        Uri.parse(
+                          'https://wa.me/$cleanNumber?text=Hola%2C%20me%20comunico%20desde%20la%20app%20ALX-Clima.',
+                        ),
+                        mode: LaunchMode.externalApplication,
                       );
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(
-                          uri,
-                          mode: LaunchMode.externalApplication,
-                        );
-                      }
                     },
                   )
                       .animate()
@@ -159,14 +170,15 @@ class _ContactScreenState extends State<ContactScreen> {
                     title: 'Correo Electrónico',
                     subtitle: _email,
                     color: AppTheme.secondaryColor,
-                    onTap: () async {
-                      final uri = Uri.parse(
-                        'mailto:$_email?subject=Contacto%20desde%20ALX-Clima',
-                      );
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri);
-                      }
-                    },
+                    onTap: () => _launch(
+                      Uri(
+                        scheme: 'mailto',
+                        path: _email,
+                        queryParameters: {
+                          'subject': 'Contacto desde ALX-Clima',
+                        },
+                      ),
+                    ),
                   )
                       .animate()
                       .fadeIn(duration: 400.ms, delay: 310.ms)
@@ -211,7 +223,8 @@ class _ContactScreenState extends State<ContactScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                            color:
+                                AppTheme.primaryColor.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
@@ -240,42 +253,6 @@ class _ContactScreenState extends State<ContactScreen> {
                   )
                       .animate()
                       .fadeIn(duration: 400.ms, delay: 400.ms),
-                  const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.dividerColor),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Iconsax.location,
-                          size: 36,
-                          color:
-                              AppTheme.primaryColor.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Ubicación',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppTheme.textSecondary,
-                                  ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Mapa próximamente',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  )
-                      .animate()
-                      .fadeIn(duration: 400.ms, delay: 500.ms),
                   const SizedBox(height: 24),
                 ],
               ),

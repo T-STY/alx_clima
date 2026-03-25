@@ -33,6 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isEditingAddress = false;
   int _equipmentCount = 0;
   int _servicesCount = 0;
   DateTime? _memberSince;
@@ -88,6 +89,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  String get _displayAddress {
+    final profile = CustomerProfile(
+      name: '',
+      phone: '',
+      street: _streetController.text.trim(),
+      exteriorNumber: _exteriorController.text.trim(),
+      interiorNumber: _interiorController.text.trim(),
+      colonia: _coloniaController.text.trim(),
+      city: _cityController.text.trim(),
+      postalCode: _postalCodeController.text.trim(),
+      state: _stateController.text.trim(),
+    );
+    return profile.displayAddress;
+  }
+
+  bool get _hasAddress => _displayAddress.isNotEmpty;
+
   Future<void> _saveProfile() async {
     setState(() => _isSaving = true);
     try {
@@ -109,6 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context.read<DashboardProvider>().updateProfile(updated);
 
       if (mounted) {
+        setState(() => _isEditingAddress = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Perfil actualizado correctamente'),
@@ -234,80 +253,156 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Row(
             children: [
-              const Icon(Iconsax.location, color: AppTheme.primaryColor, size: 20),
+              const Icon(
+                Iconsax.location,
+                color: AppTheme.primaryColor,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text(
-                'Dirección',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: AppTheme.textPrimary,
-                      fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  'Dirección',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () =>
+                    setState(() => _isEditingAddress = !_isEditingAddress),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _isEditingAddress ? Iconsax.arrow_up_2 : Iconsax.edit_2,
+                        size: 14,
+                        color: AppTheme.primaryColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _isEditingAddress ? 'Colapsar' : 'Editar',
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_isEditingAddress)
+            _buildAddressFields()
+          else
+            GestureDetector(
+              onTap: () => setState(() => _isEditingAddress = true),
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppTheme.backgroundColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Iconsax.location, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _hasAddress
+                            ? _displayAddress
+                            : 'Toca para agregar tu dirección',
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: _hasAddress
+                                      ? AppTheme.textPrimary
+                                      : AppTheme.textSecondary,
+                                ),
+                      ),
                     ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            controller: _streetController,
-            label: 'Calle',
-            icon: Iconsax.routing,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  controller: _exteriorController,
-                  label: 'No. Exterior',
-                  icon: Iconsax.home_2,
-                  keyboardType: TextInputType.text,
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildTextField(
-                  controller: _interiorController,
-                  label: 'No. Interior',
-                  icon: Iconsax.home_1,
-                  keyboardType: TextInputType.text,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildTextField(
-            controller: _coloniaController,
-            label: 'Colonia',
-            icon: Iconsax.building,
-          ),
-          const SizedBox(height: 12),
-          _buildTextField(
-            controller: _cityController,
-            label: 'Ciudad / Municipio',
-            icon: Iconsax.buildings,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  controller: _postalCodeController,
-                  label: 'Código Postal',
-                  icon: Iconsax.hashtag,
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildTextField(
-                  controller: _stateController,
-                  label: 'Estado',
-                  icon: Iconsax.map,
-                ),
-              ),
-            ],
-          ),
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAddressFields() {
+    return Column(
+      children: [
+        _buildTextField(
+          controller: _streetController,
+          label: 'Calle',
+          icon: Iconsax.routing,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _exteriorController,
+                label: 'No. Exterior',
+                icon: Iconsax.home_2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTextField(
+                controller: _interiorController,
+                label: 'No. Interior',
+                icon: Iconsax.home_1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(
+          controller: _coloniaController,
+          label: 'Colonia',
+          icon: Iconsax.building,
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(
+          controller: _cityController,
+          label: 'Ciudad / Municipio',
+          icon: Iconsax.buildings,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _postalCodeController,
+                label: 'Código Postal',
+                icon: Iconsax.hashtag,
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTextField(
+                controller: _stateController,
+                label: 'Estado',
+                icon: Iconsax.map,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

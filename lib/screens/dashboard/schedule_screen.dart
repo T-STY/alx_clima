@@ -7,6 +7,9 @@ import 'package:provider/provider.dart';
 
 import 'package:alx_clima/config/theme.dart';
 import 'package:alx_clima/models/appointment.dart';
+import 'package:alx_clima/models/customer_equipment.dart';
+import 'package:alx_clima/models/equipment.dart';
+import 'package:alx_clima/models/installation.dart';
 import 'package:alx_clima/models/service_record.dart';
 import 'package:alx_clima/providers/appointment_provider.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
@@ -25,6 +28,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   DateTime? _selectedDate;
   TimeSlot _selectedTimeSlot = TimeSlot.morning;
   final _notesController = TextEditingController();
+
+  static const String _addNewValue = '__add_new__';
 
   @override
   void dispose() {
@@ -86,9 +91,33 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                   ),
                                 ),
                               ),
+                              DropdownMenuItem<String>(
+                                value: _addNewValue,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Iconsax.add_circle,
+                                      size: 18,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Agregar nuevo equipo',
+                                      style: TextStyle(
+                                        color: AppTheme.primaryColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                             onChanged: (value) {
-                              setState(() => _selectedEquipmentId = value);
+                              if (value == _addNewValue) {
+                                _showAddEquipmentSheet(context, dashboard);
+                              } else {
+                                setState(() => _selectedEquipmentId = value);
+                              }
                             },
                           ),
                         ),
@@ -227,10 +256,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                            color:
+                                AppTheme.primaryColor.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                              color: AppTheme.primaryColor
+                                  .withValues(alpha: 0.15),
                             ),
                           ),
                           child: Column(
@@ -303,14 +334,122 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 child: FuturisticButton(
                   text: 'Confirmar Cita',
                   icon: Iconsax.tick_circle,
-                  onPressed:
-                      _selectedDate != null ? () => _confirmAppointment() : null,
+                  onPressed: _selectedDate != null
+                      ? () => _confirmAppointment()
+                      : null,
                 ),
               ),
             ],
           );
         },
       ),
+    );
+  }
+
+  void _showAddEquipmentSheet(
+      BuildContext context, DashboardProvider dashboard) {
+    final nameCtrl = TextEditingController();
+    final brandCtrl = TextEditingController();
+    final locationCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Agregar Equipo',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre del equipo',
+                  prefixIcon: Icon(Iconsax.cpu_setting, size: 20),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: brandCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Marca',
+                  prefixIcon: Icon(Iconsax.tag, size: 20),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: locationCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Ubicación (ej. Sala, Recámara)',
+                  prefixIcon: Icon(Iconsax.location, size: 20),
+                ),
+              ),
+              const SizedBox(height: 20),
+              FuturisticButton(
+                text: 'Agregar',
+                icon: Iconsax.add_circle,
+                onPressed: () {
+                  if (nameCtrl.text.trim().isEmpty) return;
+
+                  final now = DateTime.now();
+                  final newEquipment = CustomerEquipment(
+                    id: 'ce-${now.millisecondsSinceEpoch}',
+                    equipmentName: nameCtrl.text.trim(),
+                    brand: brandCtrl.text.trim(),
+                    type: EquipmentType.miniSplit,
+                    btuCapacity: 12000,
+                    installDate: now,
+                    nextServiceDate: DateTime(
+                      now.year,
+                      now.month + 6,
+                      now.day,
+                    ),
+                    installationType: InstallationType.fullPackage,
+                    location: locationCtrl.text.trim(),
+                  );
+
+                  dashboard.addEquipment(newEquipment);
+                  Navigator.of(ctx).pop();
+
+                  setState(
+                      () => _selectedEquipmentId = newEquipment.id);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Equipo agregado'),
+                      backgroundColor: AppTheme.successColor,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
