@@ -13,6 +13,7 @@ class CustomerEquipment {
   final InstallationType installationType;
   final String? notes;
   final String? location;
+  final bool isUserAdded;
 
   const CustomerEquipment({
     required this.id,
@@ -26,6 +27,7 @@ class CustomerEquipment {
     required this.installationType,
     this.notes,
     this.location,
+    this.isUserAdded = false,
   });
 
   bool get needsService => DateTime.now().isAfter(nextServiceDate);
@@ -42,6 +44,7 @@ class CustomerEquipment {
     InstallationType? installationType,
     String? notes,
     String? location,
+    bool? isUserAdded,
   }) {
     return CustomerEquipment(
       id: id ?? this.id,
@@ -55,6 +58,7 @@ class CustomerEquipment {
       installationType: installationType ?? this.installationType,
       notes: notes ?? this.notes,
       location: location ?? this.location,
+      isUserAdded: isUserAdded ?? this.isUserAdded,
     );
   }
 }

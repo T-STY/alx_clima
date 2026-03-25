@@ -171,12 +171,8 @@ class _ContactScreenState extends State<ContactScreen> {
                     subtitle: _email,
                     color: AppTheme.secondaryColor,
                     onTap: () => _launch(
-                      Uri(
-                        scheme: 'mailto',
-                        path: _email,
-                        queryParameters: {
-                          'subject': 'Contacto desde ALX-Clima',
-                        },
+                      Uri.parse(
+                        'mailto:$_email?subject=${Uri.encodeComponent('Contacto desde ALX-Clima')}',
                       ),
                     ),
                   )

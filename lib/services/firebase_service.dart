@@ -52,6 +52,18 @@ class FirebaseService {
     return result;
   }
 
+  Future<List<Map<String, dynamic>>> getEquipmentBrands() async {
+    final snap = await _firestore
+        .collection('equipmentCatalog')
+        .orderBy('order')
+        .get();
+    return snap.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return data;
+    }).toList();
+  }
+
   Future<Map<String, dynamic>> getUserStats() async {
     if (_uid == null) return {};
     final equipmentSnap =

@@ -115,6 +115,14 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateEquipment(CustomerEquipment updated) {
+    _equipment = _equipment.map((e) {
+      if (e.id == updated.id) return updated;
+      return e;
+    }).toList();
+    notifyListeners();
+  }
+
   void removeEquipment(String equipmentId) {
     _equipment = _equipment.where((e) => e.id != equipmentId).toList();
     _serviceHistory =
@@ -145,6 +153,7 @@ class DashboardProvider extends ChangeNotifier {
       installationType: _parseInstallationType(data['installationType']),
       notes: data['notes'] ?? '',
       location: data['location'] ?? '',
+      isUserAdded: data['isUserAdded'] ?? false,
     );
   }
 

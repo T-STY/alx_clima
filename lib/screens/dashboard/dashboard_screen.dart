@@ -24,7 +24,21 @@ class DashboardScreen extends StatelessWidget {
           builder: (context, dashboard, appointments, _) {
             final upcoming = appointments.upcomingAppointments;
             final needingService = dashboard.equipmentNeedingService;
-            final nextDate = dashboard.nextServiceDate;
+
+            final nextAppointmentDate = upcoming.isNotEmpty
+                ? upcoming.first.preferredDate
+                : null;
+
+            String nextServiceValue;
+            Color nextServiceColor;
+            if (nextAppointmentDate != null) {
+              nextServiceValue =
+                  DateFormat('dd/MM').format(nextAppointmentDate);
+              nextServiceColor = AppTheme.secondaryColor;
+            } else {
+              nextServiceValue = 'Agendar';
+              nextServiceColor = AppTheme.warningColor;
+            }
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -55,20 +69,24 @@ class DashboardScreen extends StatelessWidget {
                       Expanded(
                         child: _DashStatCard(
                           icon: Iconsax.cpu_setting,
-                          label: 'Equipos\nInstalados',
+                          label: 'Equipos\nRegistrados',
                           value: '${dashboard.totalEquipment}',
                           color: AppTheme.primaryColor,
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: _DashStatCard(
-                          icon: Iconsax.calendar_1,
-                          label: 'Próximo\nServicio',
-                          value: nextDate != null
-                              ? DateFormat('dd/MM').format(nextDate)
-                              : 'Al día',
-                          color: AppTheme.secondaryColor,
+                        child: GestureDetector(
+                          onTap: nextAppointmentDate == null
+                              ? () =>
+                                  context.push('/dashboard/schedule')
+                              : null,
+                          child: _DashStatCard(
+                            icon: Iconsax.calendar_1,
+                            label: 'Próxima\nCita',
+                            value: nextServiceValue,
+                            color: nextServiceColor,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),

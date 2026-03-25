@@ -35,6 +35,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Map<String, List<String>> _availableSlots = {};
   bool _isLoadingSlots = true;
 
+  final _serviceTypes = <ServiceType>[
+    ServiceType.maintenance,
+    ServiceType.removal,
+    ServiceType.relocation,
+  ];
+
   DateTime _calendarMonth = DateTime(
     DateTime.now().year,
     DateTime.now().month,
@@ -91,6 +97,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       _selectedDate != null &&
       _selectedTimeSlot != null;
 
+  void _selectServiceType(ServiceType type) {
+    setState(() {
+      _selectedServiceType = type;
+      _serviceTypes.remove(type);
+      _serviceTypes.insert(0, type);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,17 +141,40 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildServiceTypeChip(
-                              'Mantenimiento', ServiceType.maintenance),
-                          _buildServiceTypeChip(
-                              'Retiro', ServiceType.removal),
-                          _buildServiceTypeChip(
-                              'Reubicación', ServiceType.relocation),
-                        ],
+                      SizedBox(
+                        height: 40,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _serviceTypes.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final type = _serviceTypes[index];
+                            final isSelected =
+                                _selectedServiceType == type;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                              child: FilterChip(
+                                label: Text(type.displayName),
+                                selected: isSelected,
+                                onSelected: (_) =>
+                                    _selectServiceType(type),
+                                selectedColor: AppTheme.primaryColor
+                                    .withValues(alpha: 0.12),
+                                checkmarkColor: AppTheme.primaryColor,
+                                labelStyle: TextStyle(
+                                  color: isSelected
+                                      ? AppTheme.primaryColor
+                                      : AppTheme.textSecondary,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       )
                           .animate()
                           .fadeIn(duration: 400.ms, delay: 100.ms),
@@ -199,7 +236,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   color: AppTheme.backgroundColor,
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                      color:
+                          AppTheme.primaryColor.withValues(alpha: 0.06),
                       blurRadius: 16,
                       offset: const Offset(0, -4),
                     ),
@@ -208,7 +246,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 child: FuturisticButton(
                   text: 'Confirmar Cita',
                   icon: Iconsax.tick_circle,
-                  onPressed: _canConfirm ? () => _confirmAppointment() : null,
+                  onPressed:
+                      _canConfirm ? () => _confirmAppointment() : null,
                 ),
               ),
             ],
@@ -225,9 +264,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(12),
-        border: _selectedEquipmentId == null
-            ? null
-            : Border.all(color: AppTheme.primaryColor),
+        border: _selectedEquipmentId != null
+            ? Border.all(color: AppTheme.primaryColor)
+            : null,
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -239,9 +278,23 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ...dashboard.equipment.map(
               (e) => DropdownMenuItem(
                 value: e.id,
-                child: Text(
-                  e.equipmentName,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      e.equipmentName,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (e.location != null && e.location!.isNotEmpty)
+                      Text(
+                        e.location!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -323,14 +376,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
 
     final now = DateTime.now();
-    final firstDay = DateTime(_calendarMonth.year, _calendarMonth.month, 1);
-    final lastDay = DateTime(_calendarMonth.year, _calendarMonth.month + 1, 0);
+    final firstDay =
+        DateTime(_calendarMonth.year, _calendarMonth.month, 1);
+    final lastDay =
+        DateTime(_calendarMonth.year, _calendarMonth.month + 1, 0);
     final startWeekday = firstDay.weekday;
     final daysInMonth = lastDay.day;
 
-    final canGoPrev = _calendarMonth.isAfter(DateTime(now.year, now.month));
-    final canGoNext = _calendarMonth
-        .isBefore(DateTime(now.year, now.month + 3));
+    final canGoPrev =
+        _calendarMonth.isAfter(DateTime(now.year, now.month));
+    final canGoNext =
+        _calendarMonth.isBefore(DateTime(now.year, now.month + 3));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -362,10 +418,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
               Text(
                 DateFormat('MMMM yyyy', 'es').format(_calendarMonth),
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
+                style:
+                    Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
               ),
               IconButton(
                 onPressed: canGoNext
@@ -393,11 +450,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       child: Center(
                         child: Text(
                           d,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.textSecondary,
-                                  ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textSecondary,
+                              ),
                         ),
                       ),
                     ))
@@ -407,7 +466,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
               mainAxisSpacing: 4,
               crossAxisSpacing: 4,
@@ -445,7 +505,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     color: isSelected
                         ? AppTheme.primaryColor
                         : isAvailable && !isPast
-                            ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                            ? AppTheme.primaryColor
+                                .withValues(alpha: 0.1)
                             : null,
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -485,9 +546,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               const SizedBox(width: 6),
               Text(
                 'Disponible',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontSize: 11,
-                    ),
+                style:
+                    Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                        ),
               ),
               const SizedBox(width: 16),
               Container(
@@ -501,9 +563,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               const SizedBox(width: 6),
               Text(
                 'Seleccionado',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontSize: 11,
-                    ),
+                style:
+                    Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                        ),
               ),
             ],
           ),
@@ -541,7 +604,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         return GestureDetector(
           onTap: () => setState(() => _selectedTimeSlot = slot),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: isSelected
                   ? AppTheme.primaryColor.withValues(alpha: 0.12)
@@ -571,7 +635,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     color: isSelected
                         ? AppTheme.primaryColor
                         : AppTheme.textPrimary,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.w500,
                     fontSize: 14,
                   ),
                 ),
@@ -583,7 +649,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Widget _buildSummary(BuildContext context, DashboardProvider dashboard) {
+  Widget _buildSummary(
+      BuildContext context, DashboardProvider dashboard) {
     final dateFormat = DateFormat('dd/MM/yyyy');
     return Container(
       width: double.infinity,
@@ -605,10 +672,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               const SizedBox(width: 8),
               Text(
                 'Resumen de tu cita',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w600,
-                    ),
+                style:
+                    Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: AppTheme.primaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
               ),
             ],
           ),
@@ -639,10 +707,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   void _showAddEquipmentSheet(
       BuildContext context, DashboardProvider dashboard) {
-    final nameCtrl = TextEditingController();
-    final brandCtrl = TextEditingController();
-    final locationCtrl = TextEditingController();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -650,111 +714,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            12,
-            20,
-            MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.dividerColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Agregar Equipo',
-                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre del equipo',
-                  prefixIcon: Icon(Iconsax.cpu_setting, size: 20),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: brandCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Marca',
-                  prefixIcon: Icon(Iconsax.tag, size: 20),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: locationCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Ubicación (ej. Sala, Recámara)',
-                  prefixIcon: Icon(Iconsax.location, size: 20),
-                ),
-              ),
-              const SizedBox(height: 20),
-              FuturisticButton(
-                text: 'Agregar',
-                icon: Iconsax.add_circle,
-                onPressed: () {
-                  if (nameCtrl.text.trim().isEmpty) return;
-
-                  final now = DateTime.now();
-                  final newEquipment = CustomerEquipment(
-                    id: 'ce-${now.millisecondsSinceEpoch}',
-                    equipmentName: nameCtrl.text.trim(),
-                    brand: brandCtrl.text.trim(),
-                    type: EquipmentType.miniSplit,
-                    btuCapacity: 12000,
-                    installDate: now,
-                    nextServiceDate: DateTime(
-                      now.year,
-                      now.month + 6,
-                      now.day,
-                    ),
-                    installationType: InstallationType.fullPackage,
-                    location: locationCtrl.text.trim(),
-                  );
-
-                  dashboard.addEquipment(newEquipment);
-                  Navigator.of(ctx).pop();
-
-                  setState(() => _selectedEquipmentId = newEquipment.id);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Equipo agregado'),
-                      backgroundColor: AppTheme.successColor,
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
+        return _AddEquipmentSheet(
+          dashboard: dashboard,
+          onAdded: (equipment) {
+            setState(() => _selectedEquipmentId = equipment.id);
+          },
         );
       },
-    );
-  }
-
-  Widget _buildServiceTypeChip(String label, ServiceType type) {
-    final isSelected = _selectedServiceType == type;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => setState(() => _selectedServiceType = type),
-      selectedColor: AppTheme.primaryColor.withValues(alpha: 0.12),
-      checkmarkColor: AppTheme.primaryColor,
-      labelStyle: TextStyle(
-        color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-      ),
     );
   }
 
@@ -772,13 +738,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       status: AppointmentStatus.pending,
     );
 
-    context.read<AppointmentProvider>().scheduleAppointment(appointment);
+    context
+        .read<AppointmentProvider>()
+        .scheduleAppointment(appointment);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            const Icon(Iconsax.tick_circle, color: Colors.white, size: 20),
+            const Icon(Iconsax.tick_circle,
+                color: Colors.white, size: 20),
             const SizedBox(width: 10),
             const Expanded(
               child: Text('Cita agendada exitosamente'),
@@ -790,5 +759,309 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
 
     context.pop();
+  }
+}
+
+class _AddEquipmentSheet extends StatefulWidget {
+  final DashboardProvider dashboard;
+  final ValueChanged<CustomerEquipment> onAdded;
+
+  const _AddEquipmentSheet({
+    required this.dashboard,
+    required this.onAdded,
+  });
+
+  @override
+  State<_AddEquipmentSheet> createState() => _AddEquipmentSheetState();
+}
+
+class _AddEquipmentSheetState extends State<_AddEquipmentSheet> {
+  final FirebaseService _firebaseService = FirebaseService();
+  final _locationCtrl = TextEditingController();
+
+  List<Map<String, dynamic>> _brands = [];
+  bool _isLoadingBrands = true;
+
+  String? _selectedBrand;
+  List<String> _modelsForBrand = [];
+  String? _selectedModel;
+  int? _selectedBtu;
+
+  static const List<int> _btuOptions = [
+    12000,
+    18000,
+    24000,
+    36000,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBrands();
+  }
+
+  @override
+  void dispose() {
+    _locationCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadBrands() async {
+    try {
+      final brands = await _firebaseService.getEquipmentBrands();
+      if (mounted) {
+        setState(() {
+          _brands = brands;
+          _isLoadingBrands = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingBrands = false);
+    }
+  }
+
+  void _onBrandSelected(String? brand) {
+    setState(() {
+      _selectedBrand = brand;
+      _selectedModel = null;
+      _modelsForBrand = [];
+    });
+    if (brand != null) {
+      final brandData = _brands.firstWhere(
+        (b) => b['name'] == brand,
+        orElse: () => <String, dynamic>{},
+      );
+      final models = brandData['models'];
+      if (models is List) {
+        setState(() {
+          _modelsForBrand = models.cast<String>();
+        });
+      }
+    }
+  }
+
+  void _addEquipment() {
+    if (_selectedBrand == null || _selectedModel == null || _selectedBtu == null) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final newEquipment = CustomerEquipment(
+      id: 'ce-${now.millisecondsSinceEpoch}',
+      equipmentName: _selectedModel!,
+      brand: _selectedBrand!,
+      type: EquipmentType.miniSplit,
+      btuCapacity: _selectedBtu!,
+      installDate: now,
+      nextServiceDate: DateTime(now.year, now.month + 6, now.day),
+      installationType: InstallationType.installOnly,
+      location: _locationCtrl.text.trim(),
+      isUserAdded: true,
+    );
+
+    widget.dashboard.addEquipment(newEquipment);
+    Navigator.of(context).pop();
+    widget.onAdded(newEquipment);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Equipo agregado'),
+        backgroundColor: AppTheme.successColor,
+      ),
+    );
+  }
+
+  bool get _canAdd =>
+      _selectedBrand != null &&
+      _selectedModel != null &&
+      _selectedBtu != null;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.dividerColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Agregar Equipo',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 20),
+
+            if (_isLoadingBrands)
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(),
+              )
+            else ...[
+              _buildDropdown(
+                label: 'Marca',
+                icon: Iconsax.tag,
+                value: _selectedBrand,
+                hint: 'Seleccionar marca',
+                items: _brands.map((b) {
+                  final name = b['name'] as String;
+                  return DropdownMenuItem(
+                    value: name,
+                    child: Text(name),
+                  );
+                }).toList(),
+                onChanged: _onBrandSelected,
+              ),
+
+              const SizedBox(height: 12),
+
+              _buildDropdown(
+                label: 'Modelo',
+                icon: Iconsax.cpu_setting,
+                value: _selectedModel,
+                hint: _selectedBrand == null
+                    ? 'Selecciona una marca primero'
+                    : 'Seleccionar modelo',
+                items: _modelsForBrand
+                    .map((m) => DropdownMenuItem(
+                          value: m,
+                          child: Text(m),
+                        ))
+                    .toList(),
+                onChanged: _selectedBrand == null
+                    ? null
+                    : (val) =>
+                        setState(() => _selectedModel = val),
+              ),
+
+              const SizedBox(height: 16),
+
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Capacidad (BTU)',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _btuOptions.map((btu) {
+                  final isSelected = _selectedBtu == btu;
+                  final label =
+                      '${(btu / 1000).toStringAsFixed(0)}K BTU';
+                  return GestureDetector(
+                    onTap: () =>
+                        setState(() => _selectedBtu = btu),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppTheme.primaryColor
+                                .withValues(alpha: 0.12)
+                            : AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppTheme.primaryColor
+                              : AppTheme.dividerColor,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: isSelected
+                              ? AppTheme.primaryColor
+                              : AppTheme.textPrimary,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 12),
+
+              TextField(
+                controller: _locationCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Ubicación (ej. Sala, Recámara)',
+                  prefixIcon: Icon(Iconsax.location, size: 20),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              FuturisticButton(
+                text: 'Agregar',
+                icon: Iconsax.add_circle,
+                onPressed: _canAdd ? _addEquipment : null,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required IconData icon,
+    required String? value,
+    required String hint,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?>? onChanged,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          hint: Row(
+            children: [
+              Icon(icon, size: 20, color: AppTheme.textSecondary),
+              const SizedBox(width: 10),
+              Text(hint),
+            ],
+          ),
+          isExpanded: true,
+          icon: const Icon(Iconsax.arrow_down_1),
+          items: items,
+          onChanged: onChanged,
+        ),
+      ),
+    );
   }
 }

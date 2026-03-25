@@ -40,19 +40,29 @@ class EquipmentTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: needsService
                     ? AppTheme.warningColor.withValues(alpha: 0.1)
                     : AppTheme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                Iconsax.cpu_setting,
-                color: needsService
-                    ? AppTheme.warningColor
-                    : AppTheme.primaryColor,
-                size: 24,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  'https://img.icons8.com/fluency/96/air-conditioner.png',
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Iconsax.cpu_setting,
+                    color: needsService
+                        ? AppTheme.warningColor
+                        : AppTheme.primaryColor,
+                    size: 24,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 14),
