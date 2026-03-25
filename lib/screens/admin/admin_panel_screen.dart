@@ -791,9 +791,38 @@ class _PricingTabState extends State<_PricingTab> {
   }
 }
 
-class _CatalogTab extends StatelessWidget {
+class _CatalogTab extends StatefulWidget {
   final FirebaseFirestore firestore;
   const _CatalogTab({required this.firestore});
+
+  @override
+  State<_CatalogTab> createState() => _CatalogTabState();
+}
+
+class _CatalogTabState extends State<_CatalogTab> {
+  List<Map<String, dynamic>> _brands = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBrands();
+  }
+
+  Future<void> _loadBrands() async {
+    final snap = await widget.firestore
+        .collection('equipmentCatalog')
+        .orderBy('order')
+        .get();
+    if (mounted) {
+      setState(() {
+        _brands = snap.docs.map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          return data;
+        }).toList();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -820,9 +849,9 @@ class _CatalogTab extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           StreamBuilder<QuerySnapshot>(
-            stream: firestore
+            stream: widget.firestore
                 .collection('quoteCatalog')
-                .orderBy('order')
+                .orderBy('brand')
                 .snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
@@ -891,8 +920,16 @@ class _CatalogTab extends StatelessWidget {
                   .textTheme
                   .titleMedium
                   ?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text(
+            'Agrega marcas y sus modelos. Se usan en los selectores del cliente y del catálogo.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 12),
-          _BrandManager(firestore: firestore),
+          _BrandManager(
+            firestore: widget.firestore,
+            onBrandsChanged: _loadBrands,
+          ),
           const SizedBox(height: 24),
           Text('Tipos de Equipo',
               style: Theme.of(context)
@@ -900,21 +937,13 @@ class _CatalogTab extends StatelessWidget {
                   .titleMedium
                   ?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          _EquipmentTypesManager(firestore: firestore),
+          _EquipmentTypesManager(firestore: widget.firestore),
         ],
       ),
     );
   }
 
   void _showAddEquipmentDialog(BuildContext context) {
-    final nc = TextEditingController();
-    final bc = TextEditingController();
-    final btuc = TextEditingController();
-    final pc = TextEditingController();
-    final dc = TextEditingController();
-    final wc = TextEditingController();
-    final oc = TextEditingController(text: '10');
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -923,107 +952,295 @@ class _CatalogTab extends StatelessWidget {
             BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 12, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.dividerColor,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text('Agregar al Catálogo',
-                    style: Theme.of(ctx)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 16),
-                TextField(
-                    controller: bc,
-                    decoration:
-                        const InputDecoration(labelText: 'Marca')),
-                const SizedBox(height: 10),
-                TextField(
-                    controller: nc,
-                    decoration: const InputDecoration(
-                        labelText: 'Nombre / Modelo')),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(
-                      child: TextField(
-                          controller: btuc,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                              labelText: 'BTU'))),
-                  const SizedBox(width: 10),
-                  Expanded(
-                      child: TextField(
-                          controller: pc,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                              labelText: 'Precio'))),
-                  const SizedBox(width: 10),
-                  Expanded(
-                      child: TextField(
-                          controller: oc,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                              labelText: 'Orden'))),
-                ]),
-                const SizedBox(height: 10),
-                TextField(
-                    controller: dc,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                        labelText: 'Descripción')),
-                const SizedBox(height: 10),
-                TextField(
-                    controller: wc,
-                    decoration: const InputDecoration(
-                        labelText: 'Garantía')),
-                const SizedBox(height: 16),
-                FuturisticButton(
-                  text: 'Agregar',
-                  icon: Iconsax.add_circle,
-                  onPressed: () async {
-                    await firestore
-                        .collection('quoteCatalog')
-                        .add({
-                      'name': nc.text.trim(),
-                      'brand': bc.text.trim(),
-                      'type': 'miniSplit',
-                      'btuCapacity':
-                          int.tryParse(btuc.text) ?? 12000,
-                      'price':
-                          double.tryParse(pc.text) ?? 0,
-                      'description': dc.text.trim(),
-                      'manufacturerWarrantyDetails':
-                          wc.text.trim(),
-                      'order':
-                          int.tryParse(oc.text) ?? 10,
-                    });
-                    if (ctx.mounted) Navigator.of(ctx).pop();
-                  },
-                ),
-              ],
-            ),
-          ),
+        return _AddCatalogEquipmentSheet(
+          firestore: widget.firestore,
+          brands: _brands,
         );
       },
     );
   }
 }
 
+class _AddCatalogEquipmentSheet extends StatefulWidget {
+  final FirebaseFirestore firestore;
+  final List<Map<String, dynamic>> brands;
+
+  const _AddCatalogEquipmentSheet({
+    required this.firestore,
+    required this.brands,
+  });
+
+  @override
+  State<_AddCatalogEquipmentSheet> createState() =>
+      _AddCatalogEquipmentSheetState();
+}
+
+class _AddCatalogEquipmentSheetState
+    extends State<_AddCatalogEquipmentSheet> {
+  String? _selectedBrand;
+  String? _selectedModel;
+  int? _selectedBtu;
+  List<String> _modelsForBrand = [];
+  final _priceCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  final _warrantyCtrl = TextEditingController(
+    text: '5 años en compresor, 1 año en partes y accesorios.',
+  );
+
+  static const List<int> _btuOptions = [12000, 18000, 24000, 36000];
+  static const Map<int, String> _btuLabels = {
+    12000: '12K',
+    18000: '18K',
+    24000: '24K',
+    36000: '36K',
+  };
+
+  @override
+  void dispose() {
+    _priceCtrl.dispose();
+    _descCtrl.dispose();
+    _warrantyCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onBrandSelected(String? brand) {
+    setState(() {
+      _selectedBrand = brand;
+      _selectedModel = null;
+      _modelsForBrand = [];
+    });
+    if (brand != null) {
+      final brandData = widget.brands.firstWhere(
+        (b) => b['name'] == brand,
+        orElse: () => <String, dynamic>{},
+      );
+      final models = brandData['models'];
+      if (models is List) {
+        setState(() => _modelsForBrand = models.cast<String>());
+      }
+    }
+  }
+
+  bool get _canSave =>
+      _selectedBrand != null &&
+      _selectedModel != null &&
+      _selectedBtu != null &&
+      _priceCtrl.text.trim().isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: Text('Agregar al Catálogo',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+            ),
+            const SizedBox(height: 20),
+
+            Text('Marca',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    )),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedBrand,
+                  hint: const Text('Seleccionar marca'),
+                  isExpanded: true,
+                  icon: const Icon(Iconsax.arrow_down_1),
+                  items: widget.brands
+                      .map((b) => DropdownMenuItem(
+                            value: b['name'] as String,
+                            child: Text(b['name'] as String),
+                          ))
+                      .toList(),
+                  onChanged: _onBrandSelected,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            Text('Modelo',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    )),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedModel,
+                  hint: Text(_selectedBrand == null
+                      ? 'Selecciona una marca primero'
+                      : 'Seleccionar modelo'),
+                  isExpanded: true,
+                  icon: const Icon(Iconsax.arrow_down_1),
+                  items: _modelsForBrand
+                      .map((m) =>
+                          DropdownMenuItem(value: m, child: Text(m)))
+                      .toList(),
+                  onChanged: _selectedBrand == null
+                      ? null
+                      : (val) => setState(() => _selectedModel = val),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            Text('Capacidad',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    )),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _btuOptions.map((btu) {
+                final isSelected = _selectedBtu == btu;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedBtu = btu),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppTheme.primaryColor.withValues(alpha: 0.12)
+                          : AppTheme.surfaceColor,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppTheme.primaryColor
+                            : AppTheme.dividerColor,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      '${_btuLabels[btu]} BTU',
+                      style: TextStyle(
+                        color: isSelected
+                            ? AppTheme.primaryColor
+                            : AppTheme.textPrimary,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+
+            const SizedBox(height: 14),
+
+            TextField(
+              controller: _priceCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Precio del equipo',
+                prefixIcon: Icon(Iconsax.money, size: 20),
+                prefixText: '\$ ',
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            TextField(
+              controller: _descCtrl,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Descripción (opcional)',
+                hintText:
+                    'Ej: Mini Split inverter de alta eficiencia. Ideal para habitaciones de hasta 20m².',
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            TextField(
+              controller: _warrantyCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Garantía del fabricante',
+                prefixIcon: Icon(Iconsax.shield_tick, size: 20),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            FuturisticButton(
+              text: 'Agregar al Catálogo',
+              icon: Iconsax.add_circle,
+              onPressed: _canSave
+                  ? () async {
+                      await widget.firestore
+                          .collection('quoteCatalog')
+                          .add({
+                        'brand': _selectedBrand,
+                        'name': _selectedModel,
+                        'type': 'miniSplit',
+                        'btuCapacity': _selectedBtu,
+                        'price':
+                            double.tryParse(_priceCtrl.text) ?? 0,
+                        'description': _descCtrl.text.trim(),
+                        'manufacturerWarrantyDetails':
+                            _warrantyCtrl.text.trim(),
+                      });
+                      if (mounted) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Equipo agregado al catálogo'),
+                            backgroundColor: AppTheme.successColor,
+                          ),
+                        );
+                      }
+                    }
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _BrandManager extends StatefulWidget {
   final FirebaseFirestore firestore;
-  const _BrandManager({required this.firestore});
+  final VoidCallback? onBrandsChanged;
+  const _BrandManager({required this.firestore, this.onBrandsChanged});
 
   @override
   State<_BrandManager> createState() => _BrandManagerState();
@@ -1096,6 +1313,7 @@ class _BrandManagerState extends State<_BrandManager> {
                   backgroundColor: AppTheme.successColor,
                 ),
               );
+              widget.onBrandsChanged?.call();
             }
           },
         ),

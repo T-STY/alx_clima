@@ -102,7 +102,7 @@ class FirebaseService {
   Future<List<Map<String, dynamic>>> getQuoteCatalog() async {
     final snap = await _firestore
         .collection('quoteCatalog')
-        .orderBy('order')
+        .orderBy('brand')
         .get();
     return snap.docs.map((doc) {
       final data = doc.data();
