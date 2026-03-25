@@ -2,7 +2,9 @@ enum ServiceType {
   maintenance,
   repair,
   installation,
-  inspection;
+  inspection,
+  removal,
+  relocation;
 
   String get displayName {
     switch (this) {
@@ -14,6 +16,10 @@ enum ServiceType {
         return 'Instalación';
       case ServiceType.inspection:
         return 'Inspección';
+      case ServiceType.removal:
+        return 'Retiro';
+      case ServiceType.relocation:
+        return 'Reubicación';
     }
   }
 }

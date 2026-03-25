@@ -193,7 +193,7 @@ class DashboardScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        '${DateFormat('dd/MM/yyyy').format(apt.preferredDate)} \u00b7 ${apt.preferredTimeSlot.displayName}',
+                                        '${DateFormat('dd/MM/yyyy').format(apt.preferredDate)} \u00b7 ${apt.preferredTimeLabel ?? apt.preferredTimeSlot.displayName}',
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall,
@@ -394,7 +394,8 @@ class DashboardScreen extends StatelessWidget {
               _DetailRow(
                 icon: Iconsax.clock,
                 label: 'Horario',
-                value: apt.preferredTimeSlot.displayName,
+                value: apt.preferredTimeLabel ??
+                    apt.preferredTimeSlot.displayName,
               ),
               if (apt.notes != null && apt.notes!.isNotEmpty)
                 _DetailRow(

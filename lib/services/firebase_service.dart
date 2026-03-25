@@ -39,6 +39,19 @@ class FirebaseService {
     await _userDoc.set(profile.toMap());
   }
 
+  Future<Map<String, List<String>>> getAvailableSlots() async {
+    final snap = await _firestore.collection('schedule').get();
+    final result = <String, List<String>>{};
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final slots = data['slots'];
+      if (slots is List) {
+        result[doc.id] = slots.cast<String>();
+      }
+    }
+    return result;
+  }
+
   Future<Map<String, dynamic>> getUserStats() async {
     if (_uid == null) return {};
     final equipmentSnap =
