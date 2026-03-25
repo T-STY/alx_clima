@@ -19,9 +19,9 @@ import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/futuristic_button.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  final String? prefilledEquipmentId;
+  final List<String>? prefilledEquipmentIds;
 
-  const ScheduleScreen({super.key, this.prefilledEquipmentId});
+  const ScheduleScreen({super.key, this.prefilledEquipmentIds});
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
@@ -30,7 +30,7 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen> {
   final FirebaseService _firebaseService = FirebaseService();
 
-  String? _selectedEquipmentId;
+  List<String> _selectedEquipmentIds = [];
   ServiceType _selectedServiceType = ServiceType.maintenance;
   DateTime? _selectedDate;
   String? _selectedTimeSlot;
@@ -39,6 +39,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Map<String, List<String>> _availableSlots = {};
   Set<String> _bookedSlots = {};
   bool _isLoadingSlots = true;
+  bool _isBooking = false;
 
   final _serviceTypes = <ServiceType>[
     ServiceType.maintenance,
@@ -53,10 +54,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   static const String _addNewValue = '__add_new__';
 
+  int get _slotsNeeded => _selectedEquipmentIds.isEmpty ? 1 : _selectedEquipmentIds.length;
+
   @override
   void initState() {
     super.initState();
-    _selectedEquipmentId = widget.prefilledEquipmentId;
+    if (widget.prefilledEquipmentIds != null) {
+      _selectedEquipmentIds = [...widget.prefilledEquipmentIds!];
+    }
     _loadAvailableSlots();
   }
 
@@ -105,10 +110,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         .toList();
   }
 
+  List<String> get _consecutiveSlotsFromSelected {
+    if (_selectedTimeSlot == null || _slotsNeeded <= 1) {
+      return _selectedTimeSlot != null ? [_selectedTimeSlot!] : [];
+    }
+    final available = _slotsForSelectedDate;
+    final startIdx = available.indexOf(_selectedTimeSlot!);
+    if (startIdx < 0) return [];
+    if (startIdx + _slotsNeeded > available.length) return [];
+    return available.sublist(startIdx, startIdx + _slotsNeeded);
+  }
+
   bool get _canConfirm =>
-      _selectedEquipmentId != null &&
+      _selectedEquipmentIds.isNotEmpty &&
       _selectedDate != null &&
-      _selectedTimeSlot != null;
+      _selectedTimeSlot != null &&
+      _consecutiveSlotsFromSelected.length == _slotsNeeded;
 
   void _selectServiceType(ServiceType type) {
     setState(() {
@@ -139,13 +156,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Equipo',
+                        'Equipos (${_selectedEquipmentIds.length})',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '1 hora por equipo. Selecciona los equipos que necesitan servicio.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11,
+                            ),
+                      ),
                       const SizedBox(height: 8),
-                      _buildEquipmentDropdown(dashboard)
-                          .animate()
-                          .fadeIn(duration: 400.ms),
+                      ...List.generate(
+                        _selectedEquipmentIds.length + 1,
+                        (i) {
+                          if (i < _selectedEquipmentIds.length) {
+                            return _buildEquipmentRow(dashboard, i);
+                          }
+                          return _buildAddEquipmentButton(dashboard);
+                        },
+                      ),
 
                       const SizedBox(height: 24),
 
@@ -207,7 +238,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
                       if (_selectedDate != null) ...[
                         Text(
-                          'Horario Disponible',
+                          'Horario Disponible${_slotsNeeded > 1 ? ' ($_slotsNeeded hrs necesarias)' : ''}',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 10),
@@ -259,8 +290,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 child: FuturisticButton(
                   text: 'Confirmar Cita',
                   icon: Iconsax.tick_circle,
+                  isLoading: _isBooking,
                   onPressed:
-                      _canConfirm ? () => _confirmAppointment() : null,
+                      _canConfirm && !_isBooking ? () => _confirmAppointment() : null,
                 ),
               ),
             ],
@@ -270,77 +302,183 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Widget _buildEquipmentDropdown(DashboardProvider dashboard) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
-        borderRadius: BorderRadius.circular(12),
-        border: _selectedEquipmentId != null
-            ? Border.all(color: AppTheme.primaryColor)
-            : null,
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedEquipmentId,
-          hint: const Text('Seleccionar equipo'),
-          isExpanded: true,
-          icon: const Icon(Iconsax.arrow_down_1),
-          items: [
-            ...dashboard.equipment.map(
-              (e) => DropdownMenuItem(
-                value: e.id,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      e.equipmentName,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (e.location != null && e.location!.isNotEmpty)
-                      Text(
-                        e.location!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            DropdownMenuItem<String>(
-              value: _addNewValue,
-              child: Row(
+  Widget _buildEquipmentRow(DashboardProvider dashboard, int index) {
+    final eqId = _selectedEquipmentIds[index];
+    final equip = dashboard.getEquipmentById(eqId);
+    final name = equip?.equipmentName ?? 'Equipo desconocido';
+    final loc = equip?.location ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Iconsax.cpu_setting, size: 18, color: AppTheme.primaryColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Iconsax.add_circle,
-                    size: 18,
-                    color: AppTheme.primaryColor,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Agregar nuevo equipo',
-                    style: TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  Text(name,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                      overflow: TextOverflow.ellipsis),
+                  if (loc.isNotEmpty)
+                    Text(loc,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                            )),
                 ],
               ),
             ),
+            if (_selectedEquipmentIds.length > 1)
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedEquipmentIds.removeAt(index);
+                    _selectedTimeSlot = null;
+                  });
+                },
+                icon: const Icon(Iconsax.close_circle, size: 18, color: AppTheme.errorColor),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
           ],
-          onChanged: (value) {
-            if (value == _addNewValue) {
-              _showAddEquipmentSheet(context, dashboard);
-            } else {
-              setState(() => _selectedEquipmentId = value);
-            }
-          },
         ),
       ),
+    );
+  }
+
+  Widget _buildAddEquipmentButton(DashboardProvider dashboard) {
+    return GestureDetector(
+      onTap: () => _showEquipmentPicker(dashboard),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Iconsax.add_circle, color: AppTheme.primaryColor, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              _selectedEquipmentIds.isEmpty
+                  ? 'Seleccionar equipo'
+                  : 'Agregar otro equipo',
+              style: TextStyle(
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEquipmentPicker(DashboardProvider dashboard) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final available = dashboard.equipment
+            .where((e) => !_selectedEquipmentIds.contains(e.id))
+            .toList();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Seleccionar Equipo',
+                  style: Theme.of(ctx)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              if (available.isEmpty && dashboard.equipment.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text('No tienes equipos registrados',
+                      style: Theme.of(ctx).textTheme.bodyMedium),
+                )
+              else if (available.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text('Todos tus equipos ya fueron agregados',
+                      style: Theme.of(ctx).textTheme.bodyMedium),
+                )
+              else
+                ...available.map((e) {
+                  return ListTile(
+                    leading: const Icon(Iconsax.cpu_setting, color: AppTheme.primaryColor),
+                    title: Text(e.equipmentName),
+                    subtitle: e.location != null && e.location!.isNotEmpty
+                        ? Text(e.location!)
+                        : null,
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      setState(() {
+                        _selectedEquipmentIds.add(e.id);
+                        _selectedTimeSlot = null;
+                      });
+                    },
+                  );
+                }),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _showAddEquipmentSheet(context, dashboard);
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Iconsax.add_circle, color: AppTheme.primaryColor, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Registrar nuevo equipo',
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w600,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -694,11 +832,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          if (_selectedEquipmentId != null)
-            Text(
-              'Equipo: ${dashboard.getEquipmentById(_selectedEquipmentId!)?.equipmentName ?? 'N/A'}',
+          ..._selectedEquipmentIds.map((id) {
+            final eq = dashboard.getEquipmentById(id);
+            return Text(
+              'Equipo: ${eq?.equipmentName ?? 'N/A'}',
               style: Theme.of(context).textTheme.bodySmall,
-            ),
+            );
+          }),
           Text(
             'Servicio: ${_selectedServiceType.displayName}',
             style: Theme.of(context).textTheme.bodySmall,
@@ -740,56 +880,79 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Future<void> _confirmAppointment() async {
     if (!_canConfirm) return;
 
+    setState(() => _isBooking = true);
+
     final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    final slotsToBook = _consecutiveSlotsFromSelected;
     final dashboard = context.read<DashboardProvider>();
     final profile = dashboard.profile;
-    final equip = dashboard.getEquipmentById(_selectedEquipmentId!);
 
-    final appointment = Appointment(
-      id: 'apt-${DateTime.now().millisecondsSinceEpoch}',
-      equipmentId: _selectedEquipmentId,
-      preferredDate: _selectedDate!,
-      preferredTimeSlot: TimeSlot.morning,
-      preferredTimeLabel: _selectedTimeSlot,
-      serviceType: _selectedServiceType,
-      notes: _notesController.text.trim(),
-      status: AppointmentStatus.pending,
-    );
+    final booked =
+        await _firebaseService.bookSlotsAtomically(dateKey, slotsToBook);
 
-    context
-        .read<AppointmentProvider>()
-        .scheduleAppointment(appointment);
+    if (!booked) {
+      if (mounted) {
+        setState(() => _isBooking = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('El horario ya no está disponible. Selecciona otro.'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+        _loadAvailableSlots();
+      }
+      return;
+    }
 
-    await Future.wait([
-      _firebaseService.bookSlot(dateKey, _selectedTimeSlot!),
-      _firebaseService.removeSlotFromSchedule(dateKey, _selectedTimeSlot!),
-      _firebaseService.createGlobalAppointment({
-        'appointmentId': appointment.id,
-        'userId': FirebaseAuth.instance.currentUser?.uid,
-        'status': 'pending',
-        'date': dateKey,
-        'timeSlot': _selectedTimeSlot,
-        'serviceType': _selectedServiceType.name,
-        'serviceTypeDisplay': _selectedServiceType.displayName,
-        'notes': _notesController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
-        'customer': {
-          'name': profile?.name ?? '',
-          'phone': profile?.phone ?? '',
-          'email': profile?.email ?? '',
-          'address': profile?.displayAddress ?? '',
-        },
-        'equipment': {
-          'id': equip?.id ?? _selectedEquipmentId,
-          'name': equip?.equipmentName ?? '',
-          'brand': equip?.brand ?? '',
-          'btuCapacity': equip?.btuCapacity ?? 0,
-          'location': equip?.location ?? '',
-          'type': equip?.type.displayName ?? '',
-        },
-        'totalEquipment': dashboard.totalEquipment,
-      }),
-    ]);
+    final equipmentList = _selectedEquipmentIds.map((id) {
+      final eq = dashboard.getEquipmentById(id);
+      return {
+        'id': eq?.id ?? id,
+        'name': eq?.equipmentName ?? '',
+        'brand': eq?.brand ?? '',
+        'btuCapacity': eq?.btuCapacity ?? 0,
+        'location': eq?.location ?? '',
+        'type': eq?.type.displayName ?? '',
+      };
+    }).toList();
+
+    final timeLabel = slotsToBook.join(' + ');
+
+    for (final eqId in _selectedEquipmentIds) {
+      final appointment = Appointment(
+        id: 'apt-${DateTime.now().millisecondsSinceEpoch}-$eqId',
+        equipmentId: eqId,
+        preferredDate: _selectedDate!,
+        preferredTimeSlot: TimeSlot.morning,
+        preferredTimeLabel: timeLabel,
+        serviceType: _selectedServiceType,
+        notes: _notesController.text.trim(),
+        status: AppointmentStatus.pending,
+      );
+      context.read<AppointmentProvider>().scheduleAppointment(appointment);
+    }
+
+    await _firebaseService.createGlobalAppointment({
+      'userId': FirebaseAuth.instance.currentUser?.uid,
+      'status': 'pending',
+      'date': dateKey,
+      'timeSlots': slotsToBook,
+      'timeSlotDisplay': timeLabel,
+      'serviceType': _selectedServiceType.name,
+      'serviceTypeDisplay': _selectedServiceType.displayName,
+      'notes': _notesController.text.trim(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'equipmentCount': _selectedEquipmentIds.length,
+      'customer': {
+        'name': profile?.name ?? '',
+        'phone': profile?.phone ?? '',
+        'email': profile?.email ?? '',
+        'address': profile?.displayAddress ?? '',
+      },
+      'equipment': equipmentList,
+      'totalUserEquipment': dashboard.totalEquipment,
+    });
 
     if (!mounted) return;
 

@@ -109,8 +109,15 @@ GoRouter buildRouter(AuthProvider authProvider) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/dashboard/schedule',
         builder: (context, state) {
+          final equipmentIds = state.uri.queryParameters['equipmentIds'];
           final equipmentId = state.uri.queryParameters['equipmentId'];
-          return ScheduleScreen(prefilledEquipmentId: equipmentId);
+          List<String>? ids;
+          if (equipmentIds != null && equipmentIds.isNotEmpty) {
+            ids = equipmentIds.split(',');
+          } else if (equipmentId != null && equipmentId.isNotEmpty) {
+            ids = [equipmentId];
+          }
+          return ScheduleScreen(prefilledEquipmentIds: ids);
         },
       ),
 

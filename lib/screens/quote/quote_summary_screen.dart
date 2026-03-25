@@ -302,8 +302,14 @@ class QuoteSummaryScreen extends StatelessWidget {
                           child: FuturisticButton(
                             text: 'Agendar',
                             icon: Iconsax.calendar_1,
-                            onPressed: () => context
-                                .push('/dashboard/schedule'),
+                            onPressed: () {
+                              final ids = quoteProvider.items
+                                  .map((i) => i.equipment.id)
+                                  .join(',');
+                              context.push(
+                                '/dashboard/schedule?equipmentIds=$ids',
+                              );
+                            },
                           ),
                         ),
                       ],

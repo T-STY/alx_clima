@@ -595,7 +595,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                   text: 'Agendar Mantenimiento',
                   icon: Iconsax.calendar_1,
                   onPressed: () => context.push(
-                    '/dashboard/schedule?equipmentId=${widget.equipmentId}',
+                    '/dashboard/schedule?equipmentIds=${widget.equipmentId}',
                   ),
                 )
                     .animate()

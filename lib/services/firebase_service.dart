@@ -39,6 +39,26 @@ class FirebaseService {
     await _userDoc.set(profile.toMap());
   }
 
+  Future<String> saveUserEquipment(Map<String, dynamic> data) async {
+    if (_uid == null) return '';
+    final ref = await _userDoc.collection('equipment').add(data);
+    return ref.id;
+  }
+
+  Future<void> deleteUserEquipment(String equipmentId) async {
+    if (_uid == null) return;
+    await _userDoc.collection('equipment').doc(equipmentId).delete();
+  }
+
+  Future<void> updateUserEquipment(
+      String equipmentId, Map<String, dynamic> data) async {
+    if (_uid == null) return;
+    await _userDoc
+        .collection('equipment')
+        .doc(equipmentId)
+        .update(data);
+  }
+
   Future<Map<String, List<String>>> getAvailableSlots() async {
     final snap = await _firestore.collection('schedule').get();
     final result = <String, List<String>>{};
@@ -66,12 +86,45 @@ class FirebaseService {
     return booked;
   }
 
-  Future<void> bookSlot(String date, String slot) async {
-    await _firestore.collection('bookedSlots').add({
-      'date': date,
-      'slot': slot,
-      'userId': _uid,
-      'bookedAt': FieldValue.serverTimestamp(),
+  Future<bool> bookSlotsAtomically(
+    String date,
+    List<String> slots,
+  ) async {
+    return _firestore.runTransaction((transaction) async {
+      final schedRef = _firestore.collection('schedule').doc(date);
+      final schedSnap = await transaction.get(schedRef);
+
+      if (!schedSnap.exists) return false;
+
+      final available =
+          (schedSnap.data()?['slots'] as List?)?.cast<String>() ?? [];
+
+      for (final slot in slots) {
+        if (!available.contains(slot)) return false;
+      }
+
+      final remaining = [...available];
+      for (final slot in slots) {
+        remaining.remove(slot);
+      }
+
+      if (remaining.isEmpty) {
+        transaction.delete(schedRef);
+      } else {
+        transaction.update(schedRef, {'slots': remaining});
+      }
+
+      for (final slot in slots) {
+        final bookedRef = _firestore.collection('bookedSlots').doc();
+        transaction.set(bookedRef, {
+          'date': date,
+          'slot': slot,
+          'userId': _uid,
+          'bookedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      return true;
     });
   }
 
@@ -123,19 +176,6 @@ class FirebaseService {
 
   Future<void> createGlobalAppointment(Map<String, dynamic> data) async {
     await _firestore.collection('appointments').add(data);
-  }
-
-  Future<void> removeSlotFromSchedule(String date, String slot) async {
-    final docRef = _firestore.collection('schedule').doc(date);
-    final doc = await docRef.get();
-    if (!doc.exists) return;
-    final slots = (doc.data()?['slots'] as List?)?.cast<String>() ?? [];
-    slots.remove(slot);
-    if (slots.isEmpty) {
-      await docRef.delete();
-    } else {
-      await docRef.update({'slots': slots});
-    }
   }
 
   Future<Map<String, dynamic>?> getPricingConfig() async {

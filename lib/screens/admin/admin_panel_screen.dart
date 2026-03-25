@@ -377,19 +377,9 @@ class _ScheduleTab extends StatefulWidget {
 
 class _ScheduleTabState extends State<_ScheduleTab> {
   DateTime? _selectedDate;
-  final List<String> _defaultSlots = [
-    '9:00 - 11:00',
-    '11:00 - 13:00',
-    '14:00 - 16:00',
-    '16:00 - 18:00',
-  ];
-  Set<String> _selectedSlots = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedSlots = _defaultSlots.toSet();
-  }
+  List<String> _customSlots = [];
+  TimeOfDay _slotStart = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _slotEnd = const TimeOfDay(hour: 10, minute: 0);
 
   @override
   Widget build(BuildContext context) {
@@ -453,84 +443,125 @@ class _ScheduleTabState extends State<_ScheduleTab> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Horarios',
+          Text('Agregar periodos de tiempo',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w500,
                   )),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _defaultSlots.map((slot) {
-              final isSelected = _selectedSlots.contains(slot);
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      _selectedSlots.remove(slot);
-                    } else {
-                      _selectedSlots.add(slot);
-                    }
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppTheme.primaryColor
-                            .withValues(alpha: 0.12)
-                        : AppTheme.surfaceColor,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppTheme.primaryColor
-                          : AppTheme.dividerColor,
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () async {
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: _slotStart,
+                    );
+                    if (t != null) setState(() => _slotStart = t);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Iconsax.clock, size: 18,
+                            color: AppTheme.primaryColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_slotStart.hour.toString().padLeft(2, '0')}:${_slotStart.minute.toString().padLeft(2, '0')}',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isSelected)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 6),
-                          child: Icon(Iconsax.tick_circle,
-                              size: 14,
-                              color: AppTheme.primaryColor),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text('a',
+                    style: Theme.of(context).textTheme.bodyMedium),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () async {
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: _slotEnd,
+                    );
+                    if (t != null) setState(() => _slotEnd = t);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Iconsax.clock, size: 18,
+                            color: AppTheme.secondaryColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_slotEnd.hour.toString().padLeft(2, '0')}:${_slotEnd.minute.toString().padLeft(2, '0')}',
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
-                      Text(
-                        slot,
-                        style: TextStyle(
-                          color: isSelected
-                              ? AppTheme.primaryColor
-                              : AppTheme.textPrimary,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w500,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              );
-            }).toList(),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () {
+                  final label =
+                      '${_slotStart.hour.toString().padLeft(2, '0')}:${_slotStart.minute.toString().padLeft(2, '0')} - ${_slotEnd.hour.toString().padLeft(2, '0')}:${_slotEnd.minute.toString().padLeft(2, '0')}';
+                  if (!_customSlots.contains(label)) {
+                    setState(() => _customSlots.add(label));
+                  }
+                },
+                icon: const Icon(Iconsax.add_circle,
+                    color: AppTheme.primaryColor),
+              ),
+            ],
           ),
+          const SizedBox(height: 10),
+          if (_customSlots.isNotEmpty)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _customSlots.map((slot) {
+                return Chip(
+                  label: Text(slot),
+                  deleteIcon: const Icon(
+                      Iconsax.close_circle, size: 16),
+                  onDeleted: () =>
+                      setState(() => _customSlots.remove(slot)),
+                );
+              }).toList(),
+            ),
           const SizedBox(height: 16),
           FuturisticButton(
             text: 'Guardar Horarios',
             icon: Iconsax.tick_circle,
             onPressed: (_selectedDate != null &&
-                    _selectedSlots.isNotEmpty)
+                    _customSlots.isNotEmpty)
                 ? () async {
                     final date = DateFormat('yyyy-MM-dd')
                         .format(_selectedDate!);
                     await widget.firestore
                         .collection('schedule')
                         .doc(date)
-                        .set({'slots': _selectedSlots.toList()});
+                        .set({'slots': _customSlots});
                     if (mounted) {
-                      setState(() => _selectedDate = null);
+                      setState(() {
+                        _selectedDate = null;
+                        _customSlots = [];
+                      });
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Horarios guardados'),
@@ -680,10 +711,21 @@ class _PricingTabState extends State<_PricingTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(context, 'Solo Instalación'),
+          _sectionTitle(context, 'Solo Instalación (cliente ya tiene equipo)'),
+          Text(
+            'Precio que cobras por instalar un equipo que el cliente ya compró por su cuenta.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
           ..._priceFields('io', io),
           const SizedBox(height: 20),
-          _sectionTitle(context, 'Paquete Completo'),
+          _sectionTitle(
+              context, 'Equipo + Instalación (compra equipo contigo)'),
+          Text(
+            'Precio de instalación cuando el cliente compra el equipo a través de ti. El costo del equipo se suma aparte.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
           ..._priceFields('fp', fp),
           const SizedBox(height: 20),
           _sectionTitle(context, 'Recargos y Descuentos'),
@@ -1335,14 +1377,13 @@ class _BrandManagerState extends State<_BrandManager> {
                     color: AppTheme.surfaceColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                          children: [
-                            Text(d['name'] ?? doc.id,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(d['name'] ?? doc.id,
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleSmall
@@ -1350,22 +1391,52 @@ class _BrandManagerState extends State<_BrandManager> {
                                       fontWeight: FontWeight.w600,
                                       color: AppTheme.textPrimary,
                                     )),
-                            Text(
-                                (d['models'] as List?)
-                                        ?.join(', ') ??
-                                    '',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall),
-                          ],
-                        ),
+                          ),
+                          IconButton(
+                            onPressed: () =>
+                                _showEditBrandDialog(
+                                    context, doc.reference, d),
+                            icon: const Icon(Iconsax.edit_2,
+                                size: 16,
+                                color: AppTheme.primaryColor),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () {
+                              doc.reference.delete();
+                              widget.onBrandsChanged?.call();
+                            },
+                            icon: const Icon(Iconsax.trash,
+                                size: 16,
+                                color: AppTheme.errorColor),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        onPressed: () =>
-                            doc.reference.delete(),
-                        icon: const Icon(Iconsax.trash,
-                            size: 18,
-                            color: AppTheme.errorColor),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: ((d['models'] as List?) ?? [])
+                            .cast<String>()
+                            .map((m) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor
+                                        .withValues(alpha: 0.08),
+                                    borderRadius:
+                                        BorderRadius.circular(6),
+                                  ),
+                                  child: Text(m,
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppTheme.primaryColor)),
+                                ))
+                            .toList(),
                       ),
                     ],
                   ),
@@ -1375,6 +1446,111 @@ class _BrandManagerState extends State<_BrandManager> {
           },
         ),
       ],
+    );
+  }
+
+  void _showEditBrandDialog(
+    BuildContext context,
+    DocumentReference ref,
+    Map<String, dynamic> data,
+  ) {
+    final models =
+        ((data['models'] as List?) ?? []).cast<String>().toList();
+    final addCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                20, 12, 20,
+                MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.dividerColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Editar ${data['name']}',
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: models
+                        .map((m) => Chip(
+                              label: Text(m),
+                              deleteIcon: const Icon(
+                                  Iconsax.close_circle, size: 16),
+                              onDeleted: () {
+                                setSheetState(() => models.remove(m));
+                              },
+                            ))
+                        .toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: addCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Nuevo modelo',
+                            prefixIcon:
+                                Icon(Iconsax.add_circle, size: 20),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () {
+                          final val = addCtrl.text.trim();
+                          if (val.isNotEmpty && !models.contains(val)) {
+                            setSheetState(() => models.add(val));
+                            addCtrl.clear();
+                          }
+                        },
+                        icon: const Icon(Iconsax.tick_circle,
+                            color: AppTheme.primaryColor),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  FuturisticButton(
+                    text: 'Guardar Cambios',
+                    icon: Iconsax.tick_circle,
+                    onPressed: () async {
+                      await ref.update({'models': models});
+                      if (ctx.mounted) {
+                        Navigator.of(ctx).pop();
+                        widget.onBrandsChanged?.call();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

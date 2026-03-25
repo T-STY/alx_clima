@@ -110,9 +110,33 @@ class DashboardProvider extends ChangeNotifier {
     }
   }
 
-  void addEquipment(CustomerEquipment item) {
+  Future<void> addEquipment(CustomerEquipment item) async {
     _equipment = [..._equipment, item];
     notifyListeners();
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final docRef = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('equipment')
+          .add({
+        'equipmentName': item.equipmentName,
+        'brand': item.brand,
+        'type': item.type.name,
+        'btuCapacity': item.btuCapacity,
+        'installDate': Timestamp.fromDate(item.installDate),
+        'nextServiceDate': Timestamp.fromDate(item.nextServiceDate),
+        'installationType': item.installationType.name,
+        'notes': item.notes ?? '',
+        'location': item.location ?? '',
+        'isUserAdded': item.isUserAdded,
+      });
+      final updated = item.copyWith(id: docRef.id);
+      _equipment = _equipment.map((e) => e.id == item.id ? updated : e).toList();
+      notifyListeners();
+    } catch (_) {}
   }
 
   void updateEquipment(CustomerEquipment updated) {
@@ -121,6 +145,15 @@ class DashboardProvider extends ChangeNotifier {
       return e;
     }).toList();
     notifyListeners();
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('equipment')
+        .doc(updated.id)
+        .update({'location': updated.location ?? ''}).catchError((_) {});
   }
 
   void removeEquipment(String equipmentId) {
@@ -128,6 +161,16 @@ class DashboardProvider extends ChangeNotifier {
     _serviceHistory =
         _serviceHistory.where((s) => s.equipmentId != equipmentId).toList();
     notifyListeners();
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('equipment')
+        .doc(equipmentId)
+        .delete()
+        .catchError((_) {});
   }
 
   void addServiceRecord(ServiceRecord record) {
