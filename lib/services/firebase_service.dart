@@ -52,6 +52,41 @@ class FirebaseService {
     return result;
   }
 
+  Future<Set<String>> getBookedSlots() async {
+    final snap = await _firestore.collection('bookedSlots').get();
+    final booked = <String>{};
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final date = data['date'] as String?;
+      final slot = data['slot'] as String?;
+      if (date != null && slot != null) {
+        booked.add('$date|$slot');
+      }
+    }
+    return booked;
+  }
+
+  Future<void> bookSlot(String date, String slot) async {
+    await _firestore.collection('bookedSlots').add({
+      'date': date,
+      'slot': slot,
+      'userId': _uid,
+      'bookedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> cancelBookedSlot(String date, String slot) async {
+    final snap = await _firestore
+        .collection('bookedSlots')
+        .where('date', isEqualTo: date)
+        .where('slot', isEqualTo: slot)
+        .limit(1)
+        .get();
+    for (final doc in snap.docs) {
+      await doc.reference.delete();
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getEquipmentBrands() async {
     final snap = await _firestore
         .collection('equipmentCatalog')

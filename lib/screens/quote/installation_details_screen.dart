@@ -26,6 +26,7 @@ class _InstallationDetailsScreenState
   final FirebaseService _firebaseService = FirebaseService();
   int? _soloBtu;
   bool _pricingLoaded = false;
+  bool _isAddingSoloEquipment = false;
 
   @override
   void initState() {
@@ -85,7 +86,7 @@ class _InstallationDetailsScreenState
               quote.installationType == InstallationType.installOnly;
           final hasItems = quote.items.isNotEmpty;
 
-          if (isSolo && !hasItems) {
+          if (isSolo && (!hasItems || _isAddingSoloEquipment)) {
             return _buildBtuSelection(context, quote);
           }
 
@@ -298,6 +299,13 @@ class _InstallationDetailsScreenState
     );
   }
 
+  static const Map<int, String> _btuTonnage = {
+    12000: '1 Ton',
+    18000: '1.5 Ton',
+    24000: '2 Ton',
+    36000: '3 Ton',
+  };
+
   Widget _buildBtuSelection(
       BuildContext context, QuoteProvider quote) {
     const btuOptions = [12000, 18000, 24000, 36000];
@@ -409,6 +417,14 @@ class _InstallationDetailsScreenState
                           fontSize: 16,
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _btuTonnage[btu] ?? '',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
                       const Spacer(),
                       if (isSelected)
                         const Icon(
@@ -429,7 +445,9 @@ class _InstallationDetailsScreenState
             onPressed: _soloBtu != null
                 ? () {
                     _addSoloEquipment();
-                    setState(() {});
+                    setState(() {
+                      _isAddingSoloEquipment = false;
+                    });
                   }
                 : null,
           ),
@@ -486,8 +504,10 @@ class _InstallationDetailsScreenState
     if (quote.installationType == InstallationType.fullPackage) {
       context.push('/quote/equipment');
     } else {
-      setState(() => _soloBtu = null);
-      quote.removeItem(quote.items.length);
+      setState(() {
+        _soloBtu = null;
+        _isAddingSoloEquipment = true;
+      });
     }
   }
 

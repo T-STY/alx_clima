@@ -82,18 +82,21 @@ class HomeScreen extends StatelessWidget {
   Widget _buildWelcomeHeader(BuildContext context) {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
+        GestureDetector(
+          onTap: () => context.push('/admin'),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
+              ),
+              borderRadius: BorderRadius.circular(14),
             ),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: const Icon(
-            Iconsax.wind,
-            color: Colors.white,
-            size: 28,
+            child: const Icon(
+              Iconsax.wind,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
         ),
         const SizedBox(width: 14),

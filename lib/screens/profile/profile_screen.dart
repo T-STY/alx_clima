@@ -165,38 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  Center(
-                    child: Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            AppTheme.primaryColor.withValues(alpha: 0.15),
-                            AppTheme.secondaryColor.withValues(alpha: 0.15),
-                          ],
-                        ),
-                        border: Border.all(
-                          color:
-                              AppTheme.primaryColor.withValues(alpha: 0.2),
-                          width: 2,
-                        ),
-                      ),
-                      child: const Icon(
-                        Iconsax.user,
-                        size: 40,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                  )
-                      .animate()
-                      .fadeIn(duration: 400.ms)
-                      .scale(
-                        begin: const Offset(0.9, 0.9),
-                        end: const Offset(1, 1),
-                      ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 8),
                   _buildTextField(
                     controller: _nameController,
                     label: 'Nombre',

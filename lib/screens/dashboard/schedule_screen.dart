@@ -17,7 +17,9 @@ import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/futuristic_button.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key});
+  final String? prefilledEquipmentId;
+
+  const ScheduleScreen({super.key, this.prefilledEquipmentId});
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
@@ -33,6 +35,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   final _notesController = TextEditingController();
 
   Map<String, List<String>> _availableSlots = {};
+  Set<String> _bookedSlots = {};
   bool _isLoadingSlots = true;
 
   final _serviceTypes = <ServiceType>[
@@ -51,6 +54,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedEquipmentId = widget.prefilledEquipmentId;
     _loadAvailableSlots();
   }
 
@@ -62,10 +66,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   Future<void> _loadAvailableSlots() async {
     try {
-      final slots = await _firebaseService.getAvailableSlots();
+      final results = await Future.wait([
+        _firebaseService.getAvailableSlots(),
+        _firebaseService.getBookedSlots(),
+      ]);
       if (mounted) {
         setState(() {
-          _availableSlots = slots;
+          _availableSlots = results[0] as Map<String, List<String>>;
+          _bookedSlots = results[1] as Set<String>;
           _isLoadingSlots = false;
         });
       }
@@ -89,7 +97,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   List<String> get _slotsForSelectedDate {
     if (_selectedDate == null) return [];
     final key = DateFormat('yyyy-MM-dd').format(_selectedDate!);
-    return _availableSlots[key] ?? [];
+    final allSlots = _availableSlots[key] ?? [];
+    return allSlots
+        .where((slot) => !_bookedSlots.contains('$key|$slot'))
+        .toList();
   }
 
   bool get _canConfirm =>
@@ -724,8 +735,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  void _confirmAppointment() {
+  Future<void> _confirmAppointment() async {
     if (!_canConfirm) return;
+
+    final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate!);
 
     final appointment = Appointment(
       id: 'apt-${DateTime.now().millisecondsSinceEpoch}',
@@ -741,6 +754,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     context
         .read<AppointmentProvider>()
         .scheduleAppointment(appointment);
+
+    await _firebaseService.bookSlot(dateKey, _selectedTimeSlot!);
+
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -758,7 +775,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
     );
 
-    context.pop();
+    context.go('/home');
   }
 }
 

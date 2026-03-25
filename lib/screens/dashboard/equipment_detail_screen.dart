@@ -7,7 +7,9 @@ import 'package:provider/provider.dart';
 
 import 'package:alx_clima/config/constants.dart';
 import 'package:alx_clima/config/theme.dart';
+import 'package:alx_clima/models/appointment.dart';
 import 'package:alx_clima/models/installation.dart';
+import 'package:alx_clima/providers/appointment_provider.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
 import 'package:alx_clima/widgets/futuristic_button.dart';
 import 'package:alx_clima/widgets/section_header.dart';
@@ -444,9 +446,15 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                   const SizedBox(height: 20),
                 ],
 
+                _buildAppointmentsSection(context, equip.id)
+                    .animate()
+                    .fadeIn(duration: 400.ms, delay: 280.ms),
+
+                const SizedBox(height: 20),
+
                 const SectionHeader(title: 'Historial de Servicios')
                     .animate()
-                    .fadeIn(duration: 400.ms, delay: 300.ms),
+                    .fadeIn(duration: 400.ms, delay: 350.ms),
 
                 const SizedBox(height: 12),
 
@@ -586,8 +594,9 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                 FuturisticButton(
                   text: 'Agendar Mantenimiento',
                   icon: Iconsax.calendar_1,
-                  onPressed: () =>
-                      context.push('/dashboard/schedule'),
+                  onPressed: () => context.push(
+                    '/dashboard/schedule?equipmentId=${widget.equipmentId}',
+                  ),
                 )
                     .animate()
                     .fadeIn(duration: 400.ms, delay: 500.ms),
@@ -598,6 +607,133 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildAppointmentsSection(
+      BuildContext context, String equipmentId) {
+    final appointments = context.watch<AppointmentProvider>().appointments;
+    final equipAppts = appointments
+        .where((a) =>
+            a.equipmentId == equipmentId &&
+            (a.status == AppointmentStatus.pending ||
+                a.status == AppointmentStatus.confirmed))
+        .toList()
+      ..sort(
+          (a, b) => a.preferredDate.compareTo(b.preferredDate));
+    final dateFormat = DateFormat('dd/MM/yyyy');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(title: 'Citas Programadas'),
+        const SizedBox(height: 12),
+        if (equipAppts.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Iconsax.calendar,
+                  size: 20,
+                  color: AppTheme.textSecondary
+                      .withValues(alpha: 0.5),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Sin citas programadas',
+                  style:
+                      Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          )
+        else
+          ...equipAppts.map((apt) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border:
+                    Border.all(color: AppTheme.dividerColor),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Iconsax.calendar_tick,
+                      color: AppTheme.primaryColor,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          apt.serviceType.displayName,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        Text(
+                          '${dateFormat.format(apt.preferredDate)} \u00b7 ${apt.preferredTimeLabel ?? apt.preferredTimeSlot.displayName}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: apt.status ==
+                              AppointmentStatus.confirmed
+                          ? AppTheme.successColor
+                              .withValues(alpha: 0.12)
+                          : AppTheme.warningColor
+                              .withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      apt.status.displayName,
+                      style: TextStyle(
+                        color: apt.status ==
+                                AppointmentStatus.confirmed
+                            ? AppTheme.successColor
+                            : AppTheme.warningColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
     );
   }
 
