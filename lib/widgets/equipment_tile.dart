@@ -42,25 +42,23 @@ class EquipmentTile extends StatelessWidget {
             Container(
               width: 48,
               height: 48,
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: needsService
                     ? AppTheme.warningColor.withValues(alpha: 0.1)
                     : AppTheme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  'https://img.icons8.com/ios/100/air-conditioner.png',
-                  width: 32,
-                  height: 32,
-                  errorBuilder: (_, __, ___) => Icon(
-                    Iconsax.cpu_setting,
-                    color: needsService
-                        ? AppTheme.warningColor
-                        : AppTheme.primaryColor,
-                    size: 24,
-                  ),
+              child: Image.network(
+                'https://img.icons8.com/ios/100/air-conditioner.png',
+                width: 36,
+                height: 36,
+                errorBuilder: (_, __, ___) => Icon(
+                  Iconsax.cpu_setting,
+                  color: needsService
+                      ? AppTheme.warningColor
+                      : AppTheme.primaryColor,
+                  size: 22,
                 ),
               ),
             ),
@@ -69,14 +67,28 @@ class EquipmentTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    equipment.equipmentName,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w600,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          equipment.equipmentName,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${(equipment.btuCapacity / 1000).toStringAsFixed(0)}K',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(

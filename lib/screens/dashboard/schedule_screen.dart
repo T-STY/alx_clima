@@ -49,11 +49,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   List<QuoteItem> _quoteItems = [];
 
-  final _serviceTypes = <ServiceType>[
-    ServiceType.maintenance,
-    ServiceType.removal,
-    ServiceType.relocation,
-  ];
+  late final List<ServiceType> _serviceTypes;
 
   DateTime _calendarMonth = DateTime(
     DateTime.now().year,
@@ -70,8 +66,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       _quoteItems = [...quote.items];
       _selectedEquipmentIds =
           _quoteItems.map((i) => i.equipment.id).toList();
-    } else if (widget.prefilledEquipmentIds != null) {
-      _selectedEquipmentIds = [...widget.prefilledEquipmentIds!];
+      _selectedServiceType = ServiceType.installation;
+      _serviceTypes = [
+        ServiceType.installation,
+        ServiceType.maintenance,
+        ServiceType.removal,
+        ServiceType.relocation,
+      ];
+    } else {
+      _serviceTypes = [
+        ServiceType.maintenance,
+        ServiceType.removal,
+        ServiceType.relocation,
+      ];
+      if (widget.prefilledEquipmentIds != null) {
+        _selectedEquipmentIds = [...widget.prefilledEquipmentIds!];
+      }
     }
     _loadAvailableSlots();
   }
@@ -846,8 +856,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           const SizedBox(height: 10),
           ..._selectedEquipmentIds.map((id) {
             final eq = dashboard.getEquipmentById(id);
+            final qi = _quoteItems.where((q) => q.equipment.id == id).firstOrNull;
+            final name = eq?.equipmentName ?? qi?.equipment.name ?? 'N/A';
             return Text(
-              'Equipo: ${eq?.equipmentName ?? 'N/A'}',
+              'Equipo: $name',
               style: Theme.of(context).textTheme.bodySmall,
             );
           }),
@@ -921,11 +933,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       return;
     }
 
+    final addedIds = <String, String>{};
     if (_quoteItems.isNotEmpty) {
       for (final item in _quoteItems) {
         final existing = dashboard.getEquipmentById(item.equipment.id);
         if (existing == null) {
           final now = DateTime.now();
+          final isSolo = context.read<QuoteProvider>().installationType ==
+              InstallationType.installOnly;
           final ce = CustomerEquipment(
             id: item.equipment.id,
             equipmentName: item.equipment.name,
@@ -934,16 +949,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             btuCapacity: item.equipment.btuCapacity,
             installDate: now,
             nextServiceDate: DateTime(now.year, now.month + 6, now.day),
-            installationType: InstallationType.fullPackage,
+            installationType: isSolo
+                ? InstallationType.installOnly
+                : InstallationType.fullPackage,
             location: item.location ?? '',
-            isUserAdded: true,
+            isUserAdded: isSolo,
           );
           await dashboard.addEquipment(ce);
+          final saved = dashboard.equipment.lastWhere(
+            (e) => e.equipmentName == item.equipment.name &&
+                e.brand == item.equipment.brand,
+          );
+          addedIds[item.equipment.id] = saved.id;
         }
       }
     }
 
-    final equipmentList = _selectedEquipmentIds.map((id) {
+    final resolvedIds = _selectedEquipmentIds
+        .map((id) => addedIds[id] ?? id)
+        .toList();
+
+    final equipmentList = resolvedIds.map((id) {
       final eq = dashboard.getEquipmentById(id);
       final qi = _quoteItems.where((q) => q.equipment.id == id).firstOrNull;
       return {
@@ -958,7 +984,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     final timeLabel = slotsToBook.join(' + ');
 
-    for (final eqId in _selectedEquipmentIds) {
+    for (final eqId in resolvedIds) {
       final appointment = Appointment(
         id: 'apt-${DateTime.now().millisecondsSinceEpoch}-$eqId',
         equipmentId: eqId,

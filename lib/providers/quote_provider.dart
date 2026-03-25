@@ -99,6 +99,13 @@ class QuoteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setItemLocation(String location) {
+    if (_items.isEmpty) return;
+    final updated = _items[_activeItemIndex].copyWith(location: location);
+    _items = [..._items]..[_activeItemIndex] = updated;
+    notifyListeners();
+  }
+
   void setFloorLevel(FloorLevel level) {
     if (_items.isEmpty) return;
     final updated = _items[_activeItemIndex].copyWith(

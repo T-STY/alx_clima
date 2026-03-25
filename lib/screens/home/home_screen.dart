@@ -303,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final displayTips = tips.take(4).toList();
 
     return SizedBox(
-      height: 160,
+      height: 140,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: displayTips.length,
@@ -343,8 +343,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Text(
                     tip.description,
                     style: Theme.of(context).textTheme.bodySmall,
-                    maxLines: 3,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.justify,
                   ),
                 ),
               ],

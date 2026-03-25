@@ -93,10 +93,30 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
 
           final history = dashboard
               .getServiceHistoryForEquipment(widget.equipmentId);
-          final needsService = equip.needsService;
           final isFullPackage =
               equip.installationType == InstallationType.fullPackage;
           final isUserAdded = equip.isUserAdded;
+
+          String estadoText;
+          Color estadoColor;
+          IconData estadoIcon;
+          if (history.isEmpty && equip.lastServiceDate == null) {
+            estadoText = 'Desconocido';
+            estadoColor = AppTheme.textSecondary;
+            estadoIcon = Iconsax.info_circle;
+          } else {
+            final lastDate = equip.lastServiceDate ?? equip.installDate;
+            final monthsSince = DateTime.now().difference(lastDate).inDays ~/ 30;
+            if (monthsSince >= 4) {
+              estadoText = 'Requiere Mantenimiento';
+              estadoColor = AppTheme.warningColor;
+              estadoIcon = Iconsax.warning_2;
+            } else {
+              estadoText = 'Al día';
+              estadoColor = AppTheme.successColor;
+              estadoIcon = Iconsax.tick_circle;
+            }
+          }
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -290,15 +310,9 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                           ),
                     ),
                     StatusBadge(
-                      text: needsService
-                          ? 'Servicio Pendiente'
-                          : 'Al día',
-                      color: needsService
-                          ? AppTheme.warningColor
-                          : AppTheme.successColor,
-                      icon: needsService
-                          ? Iconsax.warning_2
-                          : Iconsax.tick_circle,
+                      text: estadoText,
+                      color: estadoColor,
+                      icon: estadoIcon,
                     ),
                   ],
                 )
@@ -307,7 +321,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
 
                 const SizedBox(height: 20),
 
-                if (isUserAdded) ...[
+                if (isUserAdded && !isFullPackage) ...[
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),

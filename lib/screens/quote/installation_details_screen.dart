@@ -216,13 +216,23 @@ class _InstallationDetailsScreenState
                         ),
                       ).animate().fadeIn(duration: 400.ms),
                       const SizedBox(height: 24),
+                      TextField(
+                        controller: TextEditingController(
+                            text: activeItem.location ?? ''),
+                        onChanged: (val) => quote.setItemLocation(val),
+                        decoration: const InputDecoration(
+                          labelText: 'Ubicación del equipo (ej. Sala, Recámara)',
+                          prefixIcon: Icon(Iconsax.location, size: 20),
+                        ),
+                      ).animate().fadeIn(duration: 400.ms, delay: 80.ms),
+                      const SizedBox(height: 20),
                       FloorSelector(
                         selectedFloor: details.floorLevel,
                         compressorSameFloor: details.compressorSameFloor,
                         onFloorChanged: (floor) => quote.setFloorLevel(floor),
                         onCompressorLocationChanged: (sameFloor) =>
                             quote.setCompressorLocation(sameFloor),
-                      ).animate().fadeIn(duration: 500.ms, delay: 100.ms),
+                      ).animate().fadeIn(duration: 500.ms, delay: 150.ms),
                       const SizedBox(height: 20),
                       if (details.floorLevel == FloorLevel.second ||
                           !details.compressorSameFloor)
