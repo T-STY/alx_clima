@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -739,6 +741,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     if (!_canConfirm) return;
 
     final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    final dashboard = context.read<DashboardProvider>();
+    final profile = dashboard.profile;
+    final equip = dashboard.getEquipmentById(_selectedEquipmentId!);
 
     final appointment = Appointment(
       id: 'apt-${DateTime.now().millisecondsSinceEpoch}',
@@ -755,7 +760,36 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         .read<AppointmentProvider>()
         .scheduleAppointment(appointment);
 
-    await _firebaseService.bookSlot(dateKey, _selectedTimeSlot!);
+    await Future.wait([
+      _firebaseService.bookSlot(dateKey, _selectedTimeSlot!),
+      _firebaseService.removeSlotFromSchedule(dateKey, _selectedTimeSlot!),
+      _firebaseService.createGlobalAppointment({
+        'appointmentId': appointment.id,
+        'userId': FirebaseAuth.instance.currentUser?.uid,
+        'status': 'pending',
+        'date': dateKey,
+        'timeSlot': _selectedTimeSlot,
+        'serviceType': _selectedServiceType.name,
+        'serviceTypeDisplay': _selectedServiceType.displayName,
+        'notes': _notesController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'customer': {
+          'name': profile?.name ?? '',
+          'phone': profile?.phone ?? '',
+          'email': profile?.email ?? '',
+          'address': profile?.displayAddress ?? '',
+        },
+        'equipment': {
+          'id': equip?.id ?? _selectedEquipmentId,
+          'name': equip?.equipmentName ?? '',
+          'brand': equip?.brand ?? '',
+          'btuCapacity': equip?.btuCapacity ?? 0,
+          'location': equip?.location ?? '',
+          'type': equip?.type.displayName ?? '',
+        },
+        'totalEquipment': dashboard.totalEquipment,
+      }),
+    ]);
 
     if (!mounted) return;
 

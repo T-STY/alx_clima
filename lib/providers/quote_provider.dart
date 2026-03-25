@@ -6,19 +6,23 @@ import 'package:alx_clima/models/quote.dart';
 class QuoteItem {
   final Equipment equipment;
   final InstallationDetails installationDetails;
+  final String? location;
 
   const QuoteItem({
     required this.equipment,
     required this.installationDetails,
+    this.location,
   });
 
   QuoteItem copyWith({
     Equipment? equipment,
     InstallationDetails? installationDetails,
+    String? location,
   }) {
     return QuoteItem(
       equipment: equipment ?? this.equipment,
       installationDetails: installationDetails ?? this.installationDetails,
+      location: location ?? this.location,
     );
   }
 }
@@ -58,7 +62,7 @@ class QuoteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addEquipmentItem(Equipment equipment) {
+  void addEquipmentItem(Equipment equipment, {String? location}) {
     _items = [
       ..._items,
       QuoteItem(
@@ -67,6 +71,7 @@ class QuoteProvider extends ChangeNotifier {
           floorLevel: FloorLevel.first,
           compressorSameFloor: true,
         ),
+        location: location,
       ),
     ];
     _activeItemIndex = _items.length - 1;

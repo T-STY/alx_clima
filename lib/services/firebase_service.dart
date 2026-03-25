@@ -121,6 +121,23 @@ class FirebaseService {
     return [];
   }
 
+  Future<void> createGlobalAppointment(Map<String, dynamic> data) async {
+    await _firestore.collection('appointments').add(data);
+  }
+
+  Future<void> removeSlotFromSchedule(String date, String slot) async {
+    final docRef = _firestore.collection('schedule').doc(date);
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+    final slots = (doc.data()?['slots'] as List?)?.cast<String>() ?? [];
+    slots.remove(slot);
+    if (slots.isEmpty) {
+      await docRef.delete();
+    } else {
+      await docRef.update({'slots': slots});
+    }
+  }
+
   Future<Map<String, dynamic>?> getPricingConfig() async {
     final doc =
         await _firestore.collection('config').doc('pricing').get();

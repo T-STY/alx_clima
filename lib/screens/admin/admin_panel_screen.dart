@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
@@ -23,7 +22,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -48,21 +47,321 @@ class _AdminPanelScreenState extends State<AdminPanelScreen>
           unselectedLabelColor: AppTheme.textSecondary,
           indicatorColor: AppTheme.primaryColor,
           tabs: const [
-            Tab(text: 'Horarios'),
-            Tab(text: 'Precios'),
-            Tab(text: 'Catálogo'),
-            Tab(text: 'Empresa'),
+            Tab(icon: Icon(Iconsax.calendar_tick, size: 18), text: 'Citas'),
+            Tab(icon: Icon(Iconsax.clock, size: 18), text: 'Horarios'),
+            Tab(icon: Icon(Iconsax.money, size: 18), text: 'Precios'),
+            Tab(icon: Icon(Iconsax.box_1, size: 18), text: 'Catálogo'),
+            Tab(icon: Icon(Iconsax.building, size: 18), text: 'Empresa'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
+          _AppointmentsTab(firestore: _firestore),
           _ScheduleTab(firestore: _firestore),
           _PricingTab(firestore: _firestore),
           _CatalogTab(firestore: _firestore),
           _CompanyTab(firestore: _firestore),
         ],
+      ),
+    );
+  }
+}
+
+class _AppointmentsTab extends StatelessWidget {
+  final FirebaseFirestore firestore;
+  const _AppointmentsTab({required this.firestore});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: firestore
+          .collection('appointments')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final docs = snapshot.data!.docs;
+        if (docs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Iconsax.calendar,
+                    size: 48,
+                    color: AppTheme.textSecondary.withValues(alpha: 0.4)),
+                const SizedBox(height: 12),
+                Text('Sin citas registradas',
+                    style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: docs.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (context, index) {
+            final data = docs[index].data() as Map<String, dynamic>;
+            final ref = docs[index].reference;
+            final customer =
+                data['customer'] as Map<String, dynamic>? ?? {};
+            final equipment =
+                data['equipment'] as Map<String, dynamic>? ?? {};
+            final status = data['status'] ?? 'pending';
+
+            Color statusColor;
+            switch (status) {
+              case 'confirmed':
+                statusColor = AppTheme.successColor;
+                break;
+              case 'cancelled':
+                statusColor = AppTheme.errorColor;
+                break;
+              case 'completed':
+                statusColor = AppTheme.textSecondary;
+                break;
+              default:
+                statusColor = AppTheme.warningColor;
+            }
+
+            return Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.dividerColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          customer['name'] ?? 'Sin nombre',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
+                              ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _statusLabel(status),
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _AdminDetailRow(
+                      Iconsax.calendar_1, '${data['date']} \u00b7 ${data['timeSlot']}'),
+                  _AdminDetailRow(
+                      Iconsax.setting_2, data['serviceTypeDisplay'] ?? ''),
+                  _AdminDetailRow(
+                      Iconsax.cpu_setting,
+                      '${equipment['brand']} ${equipment['name']} (${equipment['btuCapacity']} BTU)'),
+                  if ((equipment['location'] ?? '').isNotEmpty)
+                    _AdminDetailRow(
+                        Iconsax.location, equipment['location']),
+                  _AdminDetailRow(
+                      Iconsax.call, customer['phone'] ?? ''),
+                  if ((customer['email'] ?? '').isNotEmpty)
+                    _AdminDetailRow(
+                        Iconsax.sms, customer['email']),
+                  if ((customer['address'] ?? '').isNotEmpty)
+                    _AdminDetailRow(
+                        Iconsax.home_2, customer['address']),
+                  if ((data['notes'] ?? '').isNotEmpty)
+                    _AdminDetailRow(
+                        Iconsax.note_text, data['notes']),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      if (status == 'pending') ...[
+                        Expanded(
+                          child: _SmallButton(
+                            label: 'Confirmar',
+                            color: AppTheme.successColor,
+                            icon: Iconsax.tick_circle,
+                            onTap: () =>
+                                ref.update({'status': 'confirmed'}),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      if (status == 'confirmed') ...[
+                        Expanded(
+                          child: _SmallButton(
+                            label: 'Completar',
+                            color: AppTheme.primaryColor,
+                            icon: Iconsax.tick_square,
+                            onTap: () =>
+                                ref.update({'status': 'completed'}),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      if (status != 'cancelled' &&
+                          status != 'completed')
+                        Expanded(
+                          child: _SmallButton(
+                            label: 'Cancelar',
+                            color: AppTheme.errorColor,
+                            icon: Iconsax.close_circle,
+                            onTap: () async {
+                              await ref
+                                  .update({'status': 'cancelled'});
+                              final date = data['date'] as String?;
+                              final slot =
+                                  data['timeSlot'] as String?;
+                              if (date != null && slot != null) {
+                                final schedRef = firestore
+                                    .collection('schedule')
+                                    .doc(date);
+                                final schedDoc =
+                                    await schedRef.get();
+                                if (schedDoc.exists) {
+                                  await schedRef.update({
+                                    'slots':
+                                        FieldValue.arrayUnion([slot])
+                                  });
+                                } else {
+                                  await schedRef.set({
+                                    'slots': [slot]
+                                  });
+                                }
+                                final bookedSnap = await firestore
+                                    .collection('bookedSlots')
+                                    .where('date', isEqualTo: date)
+                                    .where('slot', isEqualTo: slot)
+                                    .limit(1)
+                                    .get();
+                                for (final d in bookedSnap.docs) {
+                                  await d.reference.delete();
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      if (status == 'cancelled' ||
+                          status == 'completed')
+                        Expanded(
+                          child: _SmallButton(
+                            label: 'Eliminar',
+                            color: AppTheme.textSecondary,
+                            icon: Iconsax.trash,
+                            onTap: () => ref.delete(),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'confirmed':
+        return 'Confirmada';
+      case 'cancelled':
+        return 'Cancelada';
+      case 'completed':
+        return 'Completada';
+      default:
+        return 'Pendiente';
+    }
+  }
+}
+
+class _AdminDetailRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _AdminDetailRow(this.icon, this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppTheme.textSecondary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textPrimary,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SmallButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _SmallButton({
+    required this.label,
+    required this.color,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -77,14 +376,19 @@ class _ScheduleTab extends StatefulWidget {
 }
 
 class _ScheduleTabState extends State<_ScheduleTab> {
-  final _dateController = TextEditingController();
-  final _slotsController = TextEditingController();
+  DateTime? _selectedDate;
+  final List<String> _defaultSlots = [
+    '9:00 - 11:00',
+    '11:00 - 13:00',
+    '14:00 - 16:00',
+    '16:00 - 18:00',
+  ];
+  Set<String> _selectedSlots = {};
 
   @override
-  void dispose() {
-    _dateController.dispose();
-    _slotsController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _selectedSlots = _defaultSlots.toSet();
   }
 
   @override
@@ -94,84 +398,155 @@ class _ScheduleTabState extends State<_ScheduleTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Agregar Disponibilidad',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          const SizedBox(height: 16),
+          Text('Agregar Disponibilidad',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
           GestureDetector(
             onTap: () async {
               final picked = await showDatePicker(
                 context: context,
-                initialDate: DateTime.now().add(const Duration(days: 1)),
+                initialDate:
+                    DateTime.now().add(const Duration(days: 1)),
                 firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 120)),
+                lastDate:
+                    DateTime.now().add(const Duration(days: 120)),
               );
               if (picked != null) {
-                _dateController.text =
-                    DateFormat('yyyy-MM-dd').format(picked);
+                setState(() => _selectedDate = picked);
               }
             },
-            child: AbsorbPointer(
-              child: TextField(
-                controller: _dateController,
-                decoration: const InputDecoration(
-                  labelText: 'Fecha (yyyy-MM-dd)',
-                  prefixIcon: Icon(Iconsax.calendar_1, size: 20),
-                ),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(12),
+                border: _selectedDate != null
+                    ? Border.all(color: AppTheme.primaryColor)
+                    : null,
+              ),
+              child: Row(
+                children: [
+                  Icon(Iconsax.calendar_1,
+                      size: 20,
+                      color: _selectedDate != null
+                          ? AppTheme.primaryColor
+                          : AppTheme.textSecondary),
+                  const SizedBox(width: 12),
+                  Text(
+                    _selectedDate != null
+                        ? DateFormat('EEEE dd MMMM yyyy', 'es')
+                            .format(_selectedDate!)
+                        : 'Seleccionar fecha',
+                    style: TextStyle(
+                      color: _selectedDate != null
+                          ? AppTheme.textPrimary
+                          : AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _slotsController,
-            decoration: const InputDecoration(
-              labelText: 'Horarios (separados por coma)',
-              hintText: '9:00 - 11:00, 11:00 - 13:00, 14:00 - 16:00',
-              prefixIcon: Icon(Iconsax.clock, size: 20),
-            ),
+          const SizedBox(height: 16),
+          Text('Horarios',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  )),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _defaultSlots.map((slot) {
+              final isSelected = _selectedSlots.contains(slot);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      _selectedSlots.remove(slot);
+                    } else {
+                      _selectedSlots.add(slot);
+                    }
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                            .withValues(alpha: 0.12)
+                        : AppTheme.surfaceColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppTheme.primaryColor
+                          : AppTheme.dividerColor,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 6),
+                          child: Icon(Iconsax.tick_circle,
+                              size: 14,
+                              color: AppTheme.primaryColor),
+                        ),
+                      Text(
+                        slot,
+                        style: TextStyle(
+                          color: isSelected
+                              ? AppTheme.primaryColor
+                              : AppTheme.textPrimary,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 16),
           FuturisticButton(
             text: 'Guardar Horarios',
             icon: Iconsax.tick_circle,
-            onPressed: () async {
-              final date = _dateController.text.trim();
-              final slotsText = _slotsController.text.trim();
-              if (date.isEmpty || slotsText.isEmpty) return;
-
-              final slots = slotsText
-                  .split(',')
-                  .map((s) => s.trim())
-                  .where((s) => s.isNotEmpty)
-                  .toList();
-
-              await widget.firestore
-                  .collection('schedule')
-                  .doc(date)
-                  .set({'slots': slots});
-
-              if (mounted) {
-                _dateController.clear();
-                _slotsController.clear();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Horarios guardados'),
-                    backgroundColor: AppTheme.successColor,
-                  ),
-                );
-              }
-            },
+            onPressed: (_selectedDate != null &&
+                    _selectedSlots.isNotEmpty)
+                ? () async {
+                    final date = DateFormat('yyyy-MM-dd')
+                        .format(_selectedDate!);
+                    await widget.firestore
+                        .collection('schedule')
+                        .doc(date)
+                        .set({'slots': _selectedSlots.toList()});
+                    if (mounted) {
+                      setState(() => _selectedDate = null);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Horarios guardados'),
+                          backgroundColor: AppTheme.successColor,
+                        ),
+                      );
+                    }
+                  }
+                : null,
           ),
-          const SizedBox(height: 28),
-          Text(
-            'Horarios Existentes',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
+          const SizedBox(height: 24),
+          Text('Disponibilidad Actual',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           StreamBuilder<QuerySnapshot>(
             stream: widget.firestore
@@ -180,14 +555,14 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                 .snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(
+                    child: CircularProgressIndicator());
               }
               final docs = snapshot.data!.docs;
               if (docs.isEmpty) {
-                return Text(
-                  'Sin horarios configurados',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                );
+                return Text('Sin horarios configurados',
+                    style:
+                        Theme.of(context).textTheme.bodyMedium);
               }
               return Column(
                 children: docs.map((doc) {
@@ -219,19 +594,19 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                                       color: AppTheme.textPrimary,
                                     ),
                               ),
-                              Text(
-                                slots,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall,
-                              ),
+                              Text(slots,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall),
                             ],
                           ),
                         ),
                         IconButton(
-                          onPressed: () => doc.reference.delete(),
+                          onPressed: () =>
+                              doc.reference.delete(),
                           icon: const Icon(Iconsax.trash,
-                              size: 18, color: AppTheme.errorColor),
+                              size: 18,
+                              color: AppTheme.errorColor),
                         ),
                       ],
                     ),
@@ -255,7 +630,7 @@ class _PricingTab extends StatefulWidget {
 }
 
 class _PricingTabState extends State<_PricingTab> {
-  final _controllers = <String, TextEditingController>{};
+  final _c = <String, TextEditingController>{};
   bool _isLoading = true;
   Map<String, dynamic> _pricing = {};
 
@@ -267,7 +642,7 @@ class _PricingTabState extends State<_PricingTab> {
 
   @override
   void dispose() {
-    for (final c in _controllers.values) {
+    for (final c in _c.values) {
       c.dispose();
     }
     super.dispose();
@@ -286,12 +661,9 @@ class _PricingTabState extends State<_PricingTab> {
     }
   }
 
-  TextEditingController _ctrl(String key, dynamic defaultVal) {
-    if (!_controllers.containsKey(key)) {
-      _controllers[key] =
-          TextEditingController(text: '$defaultVal');
-    }
-    return _controllers[key]!;
+  TextEditingController _ctrl(String key, dynamic def) {
+    _c.putIfAbsent(key, () => TextEditingController(text: '$def'));
+    return _c[key]!;
   }
 
   @override
@@ -300,54 +672,35 @@ class _PricingTabState extends State<_PricingTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final installOnly =
-        (_pricing['installOnly'] as Map<String, dynamic>?) ?? {};
-    final fullPackage =
-        (_pricing['fullPackage'] as Map<String, dynamic>?) ?? {};
+    final io = (_pricing['installOnly'] as Map<String, dynamic>?) ?? {};
+    final fp = (_pricing['fullPackage'] as Map<String, dynamic>?) ?? {};
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Solo Instalación',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          const SizedBox(height: 12),
-          ..._buildPriceFields('io', installOnly),
+          _sectionTitle(context, 'Solo Instalación'),
+          ..._priceFields('io', io),
           const SizedBox(height: 20),
-          Text(
-            'Paquete Completo',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          const SizedBox(height: 12),
-          ..._buildPriceFields('fp', fullPackage),
+          _sectionTitle(context, 'Paquete Completo'),
+          ..._priceFields('fp', fp),
           const SizedBox(height: 20),
-          Text(
-            'Recargos y Descuentos',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
+          _sectionTitle(context, 'Recargos y Descuentos'),
           const SizedBox(height: 12),
           TextField(
-            controller: _ctrl('secondFloor',
-                _pricing['secondFloorSurcharge'] ?? 0.3),
+            controller: _ctrl(
+                'sf', _pricing['secondFloorSurcharge'] ?? 0.3),
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
-              labelText: 'Recargo segundo piso (ej. 0.3 = 30%)',
+              labelText: 'Recargo segundo piso (0.3 = 30%)',
               prefixIcon: Icon(Iconsax.building_4, size: 20),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _ctrl('diffFloor',
-                _pricing['differentFloorSurcharge'] ?? 0.25),
+            controller: _ctrl(
+                'df', _pricing['differentFloorSurcharge'] ?? 0.25),
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
               labelText: 'Recargo compresor piso diferente',
@@ -357,11 +710,10 @@ class _PricingTabState extends State<_PricingTab> {
           const SizedBox(height: 12),
           TextField(
             controller: _ctrl(
-                'multiDiscount',
-                _pricing['multiUnitDiscount'] ?? 0.1),
+                'md', _pricing['multiUnitDiscount'] ?? 0.1),
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
-              labelText: 'Descuento multi-equipo (ej. 0.1 = 10%)',
+              labelText: 'Descuento multi-equipo (0.1 = 10%)',
               prefixIcon: Icon(Iconsax.discount_shape, size: 20),
             ),
           ),
@@ -369,23 +721,64 @@ class _PricingTabState extends State<_PricingTab> {
           FuturisticButton(
             text: 'Guardar Precios',
             icon: Iconsax.tick_circle,
-            onPressed: _savePricing,
+            onPressed: () async {
+              await widget.firestore
+                  .collection('config')
+                  .doc('pricing')
+                  .set({
+                'installOnly': {
+                  '12000': num.tryParse(_ctrl('io12000', 0).text) ?? 0,
+                  '18000': num.tryParse(_ctrl('io18000', 0).text) ?? 0,
+                  '24000': num.tryParse(_ctrl('io24000', 0).text) ?? 0,
+                  '36000': num.tryParse(_ctrl('io36000', 0).text) ?? 0,
+                },
+                'fullPackage': {
+                  '12000': num.tryParse(_ctrl('fp12000', 0).text) ?? 0,
+                  '18000': num.tryParse(_ctrl('fp18000', 0).text) ?? 0,
+                  '24000': num.tryParse(_ctrl('fp24000', 0).text) ?? 0,
+                  '36000': num.tryParse(_ctrl('fp36000', 0).text) ?? 0,
+                },
+                'secondFloorSurcharge':
+                    num.tryParse(_ctrl('sf', 0).text) ?? 0.3,
+                'differentFloorSurcharge':
+                    num.tryParse(_ctrl('df', 0).text) ?? 0.25,
+                'multiUnitDiscount':
+                    num.tryParse(_ctrl('md', 0).text) ?? 0.1,
+              });
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Precios actualizados'),
+                    backgroundColor: AppTheme.successColor,
+                  ),
+                );
+              }
+            },
           ),
         ],
       ),
     );
   }
 
-  List<Widget> _buildPriceFields(
-      String prefix, Map<String, dynamic> prices) {
+  Widget _sectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(title,
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w600)),
+    );
+  }
+
+  List<Widget> _priceFields(String pfx, Map<String, dynamic> p) {
     const btus = ['12000', '18000', '24000', '36000'];
     const labels = ['12K BTU', '18K BTU', '24K BTU', '36K BTU'];
     return List.generate(btus.length, (i) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: TextField(
-          controller:
-              _ctrl('$prefix${btus[i]}', prices[btus[i]] ?? 0),
+          controller: _ctrl('$pfx${btus[i]}', p[btus[i]] ?? 0),
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
             labelText: labels[i],
@@ -396,54 +789,12 @@ class _PricingTabState extends State<_PricingTab> {
       );
     });
   }
-
-  Future<void> _savePricing() async {
-    final data = <String, dynamic>{
-      'installOnly': {
-        '12000': num.tryParse(_ctrl('io12000', 0).text) ?? 0,
-        '18000': num.tryParse(_ctrl('io18000', 0).text) ?? 0,
-        '24000': num.tryParse(_ctrl('io24000', 0).text) ?? 0,
-        '36000': num.tryParse(_ctrl('io36000', 0).text) ?? 0,
-      },
-      'fullPackage': {
-        '12000': num.tryParse(_ctrl('fp12000', 0).text) ?? 0,
-        '18000': num.tryParse(_ctrl('fp18000', 0).text) ?? 0,
-        '24000': num.tryParse(_ctrl('fp24000', 0).text) ?? 0,
-        '36000': num.tryParse(_ctrl('fp36000', 0).text) ?? 0,
-      },
-      'secondFloorSurcharge':
-          num.tryParse(_ctrl('secondFloor', 0).text) ?? 0.3,
-      'differentFloorSurcharge':
-          num.tryParse(_ctrl('diffFloor', 0).text) ?? 0.25,
-      'multiUnitDiscount':
-          num.tryParse(_ctrl('multiDiscount', 0).text) ?? 0.1,
-    };
-
-    await widget.firestore
-        .collection('config')
-        .doc('pricing')
-        .set(data);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Precios actualizados'),
-          backgroundColor: AppTheme.successColor,
-        ),
-      );
-    }
-  }
 }
 
-class _CatalogTab extends StatefulWidget {
+class _CatalogTab extends StatelessWidget {
   final FirebaseFirestore firestore;
   const _CatalogTab({required this.firestore});
 
-  @override
-  State<_CatalogTab> createState() => _CatalogTabState();
-}
-
-class _CatalogTabState extends State<_CatalogTab> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -454,23 +805,22 @@ class _CatalogTabState extends State<_CatalogTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Equipos en Catálogo',
-                style:
-                    Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-              ),
+              Text('Equipos en Catálogo',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600)),
               IconButton(
-                onPressed: () => _showAddEquipmentDialog(context),
+                onPressed: () =>
+                    _showAddEquipmentDialog(context),
                 icon: const Icon(Iconsax.add_circle,
                     color: AppTheme.primaryColor),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           StreamBuilder<QuerySnapshot>(
-            stream: widget.firestore
+            stream: firestore
                 .collection('quoteCatalog')
                 .orderBy('order')
                 .snapshots(),
@@ -481,14 +831,13 @@ class _CatalogTabState extends State<_CatalogTab> {
               }
               final docs = snapshot.data!.docs;
               if (docs.isEmpty) {
-                return Text(
-                  'Sin equipos en el catálogo',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                );
+                return Text('Sin equipos',
+                    style:
+                        Theme.of(context).textTheme.bodyMedium);
               }
               return Column(
                 children: docs.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+                  final d = doc.data() as Map<String, dynamic>;
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
@@ -504,7 +853,7 @@ class _CatalogTabState extends State<_CatalogTab> {
                                 CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${data['brand']} - ${data['name']}',
+                                '${d['brand']} - ${d['name']}',
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleSmall
@@ -514,7 +863,7 @@ class _CatalogTabState extends State<_CatalogTab> {
                                     ),
                               ),
                               Text(
-                                '${data['btuCapacity']} BTU \u00b7 \$${data['price']}',
+                                '${d['btuCapacity']} BTU \u00b7 \$${d['price']}',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodySmall,
@@ -523,7 +872,8 @@ class _CatalogTabState extends State<_CatalogTab> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () => doc.reference.delete(),
+                          onPressed: () =>
+                              doc.reference.delete(),
                           icon: const Icon(Iconsax.trash,
                               size: 18,
                               color: AppTheme.errorColor),
@@ -536,42 +886,46 @@ class _CatalogTabState extends State<_CatalogTab> {
             },
           ),
           const SizedBox(height: 24),
-          Text(
-            'Marcas (Agregar Equipo)',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
+          Text('Marcas y Modelos',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          _BrandManager(firestore: widget.firestore),
+          _BrandManager(firestore: firestore),
+          const SizedBox(height: 24),
+          Text('Tipos de Equipo',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          _EquipmentTypesManager(firestore: firestore),
         ],
       ),
     );
   }
 
   void _showAddEquipmentDialog(BuildContext context) {
-    final nameCtrl = TextEditingController();
-    final brandCtrl = TextEditingController();
-    final btuCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    final warrantyCtrl = TextEditingController();
-    final orderCtrl = TextEditingController(text: '10');
+    final nc = TextEditingController();
+    final bc = TextEditingController();
+    final btuc = TextEditingController();
+    final pc = TextEditingController();
+    final dc = TextEditingController();
+    final wc = TextEditingController();
+    final oc = TextEditingController(text: '10');
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
         return Padding(
           padding: EdgeInsets.fromLTRB(
-            20,
-            12,
-            20,
-            MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
+              20, 12, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -585,89 +939,75 @@ class _CatalogTabState extends State<_CatalogTab> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'Agregar al Catálogo',
-                  style: Theme.of(ctx)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
+                Text('Agregar al Catálogo',
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: brandCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Marca'),
-                ),
+                    controller: bc,
+                    decoration:
+                        const InputDecoration(labelText: 'Marca')),
                 const SizedBox(height: 10),
                 TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Nombre / Modelo'),
-                ),
+                    controller: nc,
+                    decoration: const InputDecoration(
+                        labelText: 'Nombre / Modelo')),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
+                Row(children: [
+                  Expanded(
                       child: TextField(
-                        controller: btuCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                            labelText: 'BTU'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
+                          controller: btuc,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                              labelText: 'BTU'))),
+                  const SizedBox(width: 10),
+                  Expanded(
                       child: TextField(
-                        controller: priceCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                            labelText: 'Precio'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
+                          controller: pc,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                              labelText: 'Precio'))),
+                  const SizedBox(width: 10),
+                  Expanded(
                       child: TextField(
-                        controller: orderCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                            labelText: 'Orden'),
-                      ),
-                    ),
-                  ],
-                ),
+                          controller: oc,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                              labelText: 'Orden'))),
+                ]),
                 const SizedBox(height: 10),
                 TextField(
-                  controller: descCtrl,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                      labelText: 'Descripción'),
-                ),
+                    controller: dc,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                        labelText: 'Descripción')),
                 const SizedBox(height: 10),
                 TextField(
-                  controller: warrantyCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Detalles de garantía'),
-                ),
+                    controller: wc,
+                    decoration: const InputDecoration(
+                        labelText: 'Garantía')),
                 const SizedBox(height: 16),
                 FuturisticButton(
                   text: 'Agregar',
                   icon: Iconsax.add_circle,
                   onPressed: () async {
-                    await widget.firestore
+                    await firestore
                         .collection('quoteCatalog')
                         .add({
-                      'name': nameCtrl.text.trim(),
-                      'brand': brandCtrl.text.trim(),
+                      'name': nc.text.trim(),
+                      'brand': bc.text.trim(),
                       'type': 'miniSplit',
                       'btuCapacity':
-                          int.tryParse(btuCtrl.text) ?? 12000,
+                          int.tryParse(btuc.text) ?? 12000,
                       'price':
-                          double.tryParse(priceCtrl.text) ?? 0,
-                      'description': descCtrl.text.trim(),
+                          double.tryParse(pc.text) ?? 0,
+                      'description': dc.text.trim(),
                       'manufacturerWarrantyDetails':
-                          warrantyCtrl.text.trim(),
+                          wc.text.trim(),
                       'order':
-                          int.tryParse(orderCtrl.text) ?? 10,
+                          int.tryParse(oc.text) ?? 10,
                     });
                     if (ctx.mounted) Navigator.of(ctx).pop();
                   },
@@ -690,15 +1030,15 @@ class _BrandManager extends StatefulWidget {
 }
 
 class _BrandManagerState extends State<_BrandManager> {
-  final _nameCtrl = TextEditingController();
-  final _modelsCtrl = TextEditingController();
-  final _orderCtrl = TextEditingController(text: '1');
+  final _nc = TextEditingController();
+  final _mc = TextEditingController();
+  final _oc = TextEditingController(text: '1');
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _modelsCtrl.dispose();
-    _orderCtrl.dispose();
+    _nc.dispose();
+    _mc.dispose();
+    _oc.dispose();
     super.dispose();
   }
 
@@ -707,56 +1047,49 @@ class _BrandManagerState extends State<_BrandManager> {
     return Column(
       children: [
         TextField(
-          controller: _nameCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Nombre de marca',
-            prefixIcon: Icon(Iconsax.tag, size: 20),
-          ),
-        ),
+            controller: _nc,
+            decoration: const InputDecoration(
+              labelText: 'Nombre de marca',
+              prefixIcon: Icon(Iconsax.tag, size: 20),
+            )),
         const SizedBox(height: 10),
         TextField(
-          controller: _modelsCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Modelos (separados por coma)',
-            hintText: 'Modelo A, Modelo B, Modelo C',
-            prefixIcon: Icon(Iconsax.cpu_setting, size: 20),
-          ),
-        ),
+            controller: _mc,
+            decoration: const InputDecoration(
+              labelText: 'Modelos (separados por coma)',
+              prefixIcon: Icon(Iconsax.cpu_setting, size: 20),
+            )),
         const SizedBox(height: 10),
         TextField(
-          controller: _orderCtrl,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Orden (1 = primero)',
-            prefixIcon: Icon(Iconsax.sort, size: 20),
-          ),
-        ),
+            controller: _oc,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Orden (1 = primero)',
+              prefixIcon: Icon(Iconsax.sort, size: 20),
+            )),
         const SizedBox(height: 12),
         FuturisticButton(
           text: 'Guardar Marca',
           icon: Iconsax.tick_circle,
           onPressed: () async {
-            final name = _nameCtrl.text.trim();
+            final name = _nc.text.trim();
             if (name.isEmpty) return;
-
-            final models = _modelsCtrl.text
+            final models = _mc.text
                 .split(',')
                 .map((s) => s.trim())
                 .where((s) => s.isNotEmpty)
                 .toList();
-
             await widget.firestore
                 .collection('equipmentCatalog')
                 .doc(name.toLowerCase().replaceAll(' ', '_'))
                 .set({
               'name': name,
               'models': models,
-              'order': int.tryParse(_orderCtrl.text) ?? 1,
+              'order': int.tryParse(_oc.text) ?? 1,
             });
-
             if (mounted) {
-              _nameCtrl.clear();
-              _modelsCtrl.clear();
+              _nc.clear();
+              _mc.clear();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Marca guardada'),
@@ -766,7 +1099,7 @@ class _BrandManagerState extends State<_BrandManager> {
             }
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         StreamBuilder<QuerySnapshot>(
           stream: widget.firestore
               .collection('equipmentCatalog')
@@ -774,12 +1107,9 @@ class _BrandManagerState extends State<_BrandManager> {
               .snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const SizedBox();
-            final docs = snapshot.data!.docs;
             return Column(
-              children: docs.map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                final models =
-                    (data['models'] as List?)?.join(', ') ?? '';
+              children: snapshot.data!.docs.map((doc) {
+                final d = doc.data() as Map<String, dynamic>;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
@@ -794,34 +1124,123 @@ class _BrandManagerState extends State<_BrandManager> {
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              data['name'] ?? doc.id,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.textPrimary,
-                                  ),
-                            ),
-                            if (models.isNotEmpty)
-                              Text(
-                                models,
+                            Text(d['name'] ?? doc.id,
                                 style: Theme.of(context)
                                     .textTheme
-                                    .bodySmall,
-                              ),
+                                    .titleSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.textPrimary,
+                                    )),
+                            Text(
+                                (d['models'] as List?)
+                                        ?.join(', ') ??
+                                    '',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall),
                           ],
                         ),
                       ),
                       IconButton(
-                        onPressed: () => doc.reference.delete(),
+                        onPressed: () =>
+                            doc.reference.delete(),
                         icon: const Icon(Iconsax.trash,
                             size: 18,
                             color: AppTheme.errorColor),
                       ),
                     ],
                   ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _EquipmentTypesManager extends StatefulWidget {
+  final FirebaseFirestore firestore;
+  const _EquipmentTypesManager({required this.firestore});
+
+  @override
+  State<_EquipmentTypesManager> createState() =>
+      _EquipmentTypesManagerState();
+}
+
+class _EquipmentTypesManagerState
+    extends State<_EquipmentTypesManager> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _ctrl,
+                decoration: const InputDecoration(
+                  labelText: 'Nuevo tipo (ej. Mini Split)',
+                  prefixIcon: Icon(Iconsax.category, size: 20),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            IconButton(
+              onPressed: () async {
+                final val = _ctrl.text.trim();
+                if (val.isEmpty) return;
+                await widget.firestore
+                    .collection('config')
+                    .doc('equipmentTypes')
+                    .set({
+                  'types': FieldValue.arrayUnion([val])
+                }, SetOptions(merge: true));
+                _ctrl.clear();
+              },
+              icon: const Icon(Iconsax.add_circle,
+                  color: AppTheme.primaryColor),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<DocumentSnapshot>(
+          stream: widget.firestore
+              .collection('config')
+              .doc('equipmentTypes')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const SizedBox();
+            final data =
+                snapshot.data!.data() as Map<String, dynamic>?;
+            final types =
+                (data?['types'] as List?)?.cast<String>() ?? [];
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: types.map((t) {
+                return Chip(
+                  label: Text(t),
+                  deleteIcon: const Icon(Iconsax.close_circle,
+                      size: 16),
+                  onDeleted: () {
+                    widget.firestore
+                        .collection('config')
+                        .doc('equipmentTypes')
+                        .update({
+                      'types': FieldValue.arrayRemove([t])
+                    });
+                  },
                 );
               }).toList(),
             );
@@ -841,41 +1260,41 @@ class _CompanyTab extends StatefulWidget {
 }
 
 class _CompanyTabState extends State<_CompanyTab> {
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _whatsAppCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _hoursCtrl = TextEditingController();
+  final _nc = TextEditingController();
+  final _pc = TextEditingController();
+  final _wc = TextEditingController();
+  final _ec = TextEditingController();
+  final _hc = TextEditingController();
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadCompanyInfo();
+    _load();
   }
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _phoneCtrl.dispose();
-    _whatsAppCtrl.dispose();
-    _emailCtrl.dispose();
-    _hoursCtrl.dispose();
+    _nc.dispose();
+    _pc.dispose();
+    _wc.dispose();
+    _ec.dispose();
+    _hc.dispose();
     super.dispose();
   }
 
-  Future<void> _loadCompanyInfo() async {
+  Future<void> _load() async {
     final doc = await widget.firestore
         .collection('company')
         .doc('info')
         .get();
-    final data = doc.data();
-    if (data != null && mounted) {
-      _nameCtrl.text = data['name'] ?? '';
-      _phoneCtrl.text = data['phone'] ?? '';
-      _whatsAppCtrl.text = data['whatsApp'] ?? '';
-      _emailCtrl.text = data['email'] ?? '';
-      _hoursCtrl.text = data['businessHours'] ?? '';
+    final d = doc.data();
+    if (d != null && mounted) {
+      _nc.text = d['name'] ?? '';
+      _pc.text = d['phone'] ?? '';
+      _wc.text = d['whatsApp'] ?? '';
+      _ec.text = d['email'] ?? '';
+      _hc.text = d['businessHours'] ?? '';
     }
     if (mounted) setState(() => _isLoading = false);
   }
@@ -885,58 +1304,51 @@ class _CompanyTabState extends State<_CompanyTab> {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Información de la Empresa',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
+          Text('Información de la Empresa',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 16),
           TextField(
-            controller: _nameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Nombre',
-              prefixIcon: Icon(Iconsax.building, size: 20),
-            ),
-          ),
+              controller: _nc,
+              decoration: const InputDecoration(
+                labelText: 'Nombre',
+                prefixIcon: Icon(Iconsax.building, size: 20),
+              )),
           const SizedBox(height: 12),
           TextField(
-            controller: _phoneCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Teléfono',
-              prefixIcon: Icon(Iconsax.call, size: 20),
-            ),
-          ),
+              controller: _pc,
+              decoration: const InputDecoration(
+                labelText: 'Teléfono',
+                prefixIcon: Icon(Iconsax.call, size: 20),
+              )),
           const SizedBox(height: 12),
           TextField(
-            controller: _whatsAppCtrl,
-            decoration: const InputDecoration(
-              labelText: 'WhatsApp (solo números)',
-              prefixIcon: Icon(Iconsax.message, size: 20),
-            ),
-          ),
+              controller: _wc,
+              decoration: const InputDecoration(
+                labelText: 'WhatsApp',
+                prefixIcon: Icon(Iconsax.message, size: 20),
+              )),
           const SizedBox(height: 12),
           TextField(
-            controller: _emailCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Correo electrónico',
-              prefixIcon: Icon(Iconsax.sms, size: 20),
-            ),
-          ),
+              controller: _ec,
+              decoration: const InputDecoration(
+                labelText: 'Correo',
+                prefixIcon: Icon(Iconsax.sms, size: 20),
+              )),
           const SizedBox(height: 12),
           TextField(
-            controller: _hoursCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Horario de atención',
-              prefixIcon: Icon(Iconsax.clock, size: 20),
-            ),
-          ),
+              controller: _hc,
+              decoration: const InputDecoration(
+                labelText: 'Horario de atención',
+                prefixIcon: Icon(Iconsax.clock, size: 20),
+              )),
           const SizedBox(height: 20),
           FuturisticButton(
             text: 'Guardar',
@@ -946,13 +1358,12 @@ class _CompanyTabState extends State<_CompanyTab> {
                   .collection('company')
                   .doc('info')
                   .set({
-                'name': _nameCtrl.text.trim(),
-                'phone': _phoneCtrl.text.trim(),
-                'whatsApp': _whatsAppCtrl.text.trim(),
-                'email': _emailCtrl.text.trim(),
-                'businessHours': _hoursCtrl.text.trim(),
+                'name': _nc.text.trim(),
+                'phone': _pc.text.trim(),
+                'whatsApp': _wc.text.trim(),
+                'email': _ec.text.trim(),
+                'businessHours': _hc.text.trim(),
               });
-
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
