@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:provider/provider.dart';
 
 import 'package:alx_clima/config/theme.dart';
+import 'package:alx_clima/providers/auth_provider.dart';
 import 'package:alx_clima/widgets/status_badge.dart';
 
 class FutureServicesScreen extends StatelessWidget {
@@ -170,10 +172,77 @@ class FutureServicesScreen extends StatelessWidget {
                   .animate()
                   .fadeIn(duration: 500.ms, delay: 600.ms),
 
+              const SizedBox(height: 24),
+
+              GestureDetector(
+                onTap: () => _showSignOutDialog(context),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.errorColor.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Iconsax.logout,
+                        color: AppTheme.errorColor,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Cerrar Sesión',
+                        style:
+                            Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  color: AppTheme.errorColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 700.ms),
+
               const SizedBox(height: 32),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showSignOutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cerrar Sesión'),
+        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              context.read<AuthProvider>().signOut();
+            },
+            child: Text(
+              'Cerrar Sesión',
+              style: TextStyle(color: AppTheme.errorColor),
+            ),
+          ),
+        ],
       ),
     );
   }

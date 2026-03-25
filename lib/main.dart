@@ -1,15 +1,23 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:alx_clima/config/routes.dart';
 import 'package:alx_clima/config/theme.dart';
+import 'package:alx_clima/firebase_options.dart';
 import 'package:alx_clima/providers/appointment_provider.dart';
+import 'package:alx_clima/providers/auth_provider.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
 import 'package:alx_clima/providers/quote_provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -22,13 +30,36 @@ void main() {
   runApp(const ALXClimaApp());
 }
 
-class ALXClimaApp extends StatelessWidget {
+class ALXClimaApp extends StatefulWidget {
   const ALXClimaApp({super.key});
+
+  @override
+  State<ALXClimaApp> createState() => _ALXClimaAppState();
+}
+
+class _ALXClimaAppState extends State<ALXClimaApp> {
+  late final AuthProvider _authProvider;
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _authProvider = AuthProvider();
+    _router = buildRouter(_authProvider);
+  }
+
+  @override
+  void dispose() {
+    _authProvider.dispose();
+    _router.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: _authProvider),
         ChangeNotifierProvider(create: (_) => QuoteProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => AppointmentProvider()),
@@ -37,7 +68,7 @@ class ALXClimaApp extends StatelessWidget {
         title: 'ALX-Clima',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        routerConfig: appRouter,
+        routerConfig: _router,
       ),
     );
   }
