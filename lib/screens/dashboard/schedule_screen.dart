@@ -60,8 +60,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     DateTime.now().month,
   );
 
-  static const String _addNewValue = '__add_new__';
-
   int get _slotsNeeded => _selectedEquipmentIds.isEmpty ? 1 : _selectedEquipmentIds.length;
 
   @override
@@ -884,7 +882,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         return _AddEquipmentSheet(
           dashboard: dashboard,
           onAdded: (equipment) {
-            setState(() => _selectedEquipmentId = equipment.id);
+            setState(() {
+              _selectedEquipmentIds.add(equipment.id);
+              _selectedTimeSlot = null;
+            });
           },
         );
       },
@@ -899,6 +900,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate!);
     final slotsToBook = _consecutiveSlotsFromSelected;
     final dashboard = context.read<DashboardProvider>();
+    final appointmentProvider = context.read<AppointmentProvider>();
     final profile = dashboard.profile;
 
     final booked =
@@ -967,7 +969,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         notes: _notesController.text.trim(),
         status: AppointmentStatus.pending,
       );
-      context.read<AppointmentProvider>().scheduleAppointment(appointment);
+      appointmentProvider.scheduleAppointment(appointment);
     }
 
     await _firebaseService.createGlobalAppointment({
