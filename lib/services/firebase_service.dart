@@ -64,6 +64,34 @@ class FirebaseService {
     }).toList();
   }
 
+  Future<List<Map<String, dynamic>>> getQuoteCatalog() async {
+    final snap = await _firestore
+        .collection('quoteCatalog')
+        .orderBy('order')
+        .get();
+    return snap.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return data;
+    }).toList();
+  }
+
+  Future<List<String>> getEquipmentTypes() async {
+    final doc =
+        await _firestore.collection('config').doc('equipmentTypes').get();
+    final data = doc.data();
+    if (data != null && data['types'] is List) {
+      return (data['types'] as List).cast<String>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>?> getPricingConfig() async {
+    final doc =
+        await _firestore.collection('config').doc('pricing').get();
+    return doc.data();
+  }
+
   Future<Map<String, dynamic>> getUserStats() async {
     if (_uid == null) return {};
     final equipmentSnap =

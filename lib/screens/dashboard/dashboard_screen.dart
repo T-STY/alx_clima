@@ -36,8 +36,8 @@ class DashboardScreen extends StatelessWidget {
                   DateFormat('dd/MM').format(nextAppointmentDate);
               nextServiceColor = AppTheme.secondaryColor;
             } else {
-              nextServiceValue = 'Agendar';
-              nextServiceColor = AppTheme.warningColor;
+              nextServiceValue = '\u2014/\u2014';
+              nextServiceColor = AppTheme.textSecondary;
             }
 
             return SingleChildScrollView(
@@ -76,17 +76,11 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: GestureDetector(
-                          onTap: nextAppointmentDate == null
-                              ? () =>
-                                  context.push('/dashboard/schedule')
-                              : null,
-                          child: _DashStatCard(
-                            icon: Iconsax.calendar_1,
-                            label: 'Próxima\nCita',
-                            value: nextServiceValue,
-                            color: nextServiceColor,
-                          ),
+                        child: _DashStatCard(
+                          icon: Iconsax.calendar_1,
+                          label: 'Próxima\nCita',
+                          value: nextServiceValue,
+                          color: nextServiceColor,
                         ),
                       ),
                       const SizedBox(width: 10),
