@@ -10,12 +10,38 @@ import 'package:alx_clima/config/constants.dart';
 import 'package:alx_clima/config/theme.dart';
 import 'package:alx_clima/models/installation.dart';
 import 'package:alx_clima/providers/quote_provider.dart';
+import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/futuristic_button.dart';
 import 'package:alx_clima/widgets/price_row.dart';
 import 'package:alx_clima/widgets/warranty_info_card.dart';
 
-class QuoteSummaryScreen extends StatelessWidget {
+class QuoteSummaryScreen extends StatefulWidget {
   const QuoteSummaryScreen({super.key});
+
+  @override
+  State<QuoteSummaryScreen> createState() => _QuoteSummaryScreenState();
+}
+
+class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
+  final FirebaseService _firebaseService = FirebaseService();
+  String _companyPhone = AppConstants.technicianPhone;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCompanyPhone();
+  }
+
+  Future<void> _loadCompanyPhone() async {
+    try {
+      final data = await _firebaseService.getCompanyInfo();
+      if (data != null && mounted) {
+        setState(() {
+          _companyPhone = data['phone'] ?? _companyPhone;
+        });
+      }
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,14 +127,14 @@ class QuoteSummaryScreen extends StatelessWidget {
                                         BorderRadius.circular(12),
                                   ),
                                   child: Image.network(
-                                    'https://img.icons8.com/fluency/96/air-conditioner.png',
+                                    'https://img.icons8.com/ios/100/air-conditioner.png',
                                     width: 32,
                                     height: 32,
                                     errorBuilder:
                                         (_, __, ___) => const Icon(
                                       Iconsax.cpu_setting,
                                       color:
-                                          AppTheme.primaryColor,
+                                          AppTheme.textSecondary,
                                       size: 24,
                                     ),
                                   ),
@@ -303,11 +329,8 @@ class QuoteSummaryScreen extends StatelessWidget {
                             text: 'Agendar',
                             icon: Iconsax.calendar_1,
                             onPressed: () {
-                              final ids = quoteProvider.items
-                                  .map((i) => i.equipment.id)
-                                  .join(',');
                               context.push(
-                                '/dashboard/schedule?equipmentIds=$ids',
+                                '/dashboard/schedule?fromQuote=true',
                               );
                             },
                           ),
@@ -363,7 +386,7 @@ class QuoteSummaryScreen extends StatelessWidget {
     buffer.writeln(
         'Garantía: ${isFullPackage ? "Incluida" : "No incluida"}');
     buffer.writeln('');
-    buffer.writeln('Contacto: ${AppConstants.technicianPhone}');
+    buffer.writeln('Contacto: $_companyPhone');
 
     Share.share(buffer.toString());
   }

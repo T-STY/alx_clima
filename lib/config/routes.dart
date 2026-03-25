@@ -111,13 +111,17 @@ GoRouter buildRouter(AuthProvider authProvider) {
         builder: (context, state) {
           final equipmentIds = state.uri.queryParameters['equipmentIds'];
           final equipmentId = state.uri.queryParameters['equipmentId'];
+          final fromQuote = state.uri.queryParameters['fromQuote'] == 'true';
           List<String>? ids;
           if (equipmentIds != null && equipmentIds.isNotEmpty) {
             ids = equipmentIds.split(',');
           } else if (equipmentId != null && equipmentId.isNotEmpty) {
             ids = [equipmentId];
           }
-          return ScheduleScreen(prefilledEquipmentIds: ids);
+          return ScheduleScreen(
+            prefilledEquipmentIds: ids,
+            fromQuote: fromQuote,
+          );
         },
       ),
 

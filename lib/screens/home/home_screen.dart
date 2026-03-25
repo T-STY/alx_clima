@@ -10,10 +10,35 @@ import 'package:alx_clima/config/constants.dart';
 import 'package:alx_clima/config/theme.dart';
 import 'package:alx_clima/data/care_tips.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
+import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/section_header.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _companyPhone = AppConstants.technicianPhone;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCompanyPhone();
+  }
+
+  Future<void> _loadCompanyPhone() async {
+    try {
+      final data = await FirebaseService().getCompanyInfo();
+      if (data != null && mounted) {
+        setState(() {
+          _companyPhone = data['phone'] ?? _companyPhone;
+        });
+      }
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +303,7 @@ class HomeScreen extends StatelessWidget {
     final displayTips = tips.take(4).toList();
 
     return SizedBox(
-      height: 140,
+      height: 160,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: displayTips.length,
@@ -318,7 +343,7 @@ class HomeScreen extends StatelessWidget {
                   child: Text(
                     tip.description,
                     style: Theme.of(context).textTheme.bodySmall,
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -333,10 +358,9 @@ class HomeScreen extends StatelessWidget {
   Widget _buildEmergencyButton(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        final uri = Uri.parse('tel:${AppConstants.technicianPhone}');
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri);
-        }
+        try {
+          await launchUrl(Uri(scheme: 'tel', path: _companyPhone));
+        } catch (_) {}
       },
       child: Container(
         width: double.infinity,

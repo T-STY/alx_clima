@@ -51,10 +51,9 @@ class EquipmentTile extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  'https://img.icons8.com/fluency/96/air-conditioner.png',
-                  width: 48,
-                  height: 48,
-                  fit: BoxFit.cover,
+                  'https://img.icons8.com/ios/100/air-conditioner.png',
+                  width: 32,
+                  height: 32,
                   errorBuilder: (_, __, ___) => Icon(
                     Iconsax.cpu_setting,
                     color: needsService

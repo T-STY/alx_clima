@@ -276,7 +276,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                         Border.all(color: AppTheme.dividerColor),
                   ),
                   child: Image.network(
-                    'https://img.icons8.com/fluency/96/air-conditioner.png',
+                    'https://img.icons8.com/ios/100/air-conditioner.png',
                     height: 64,
                     errorBuilder: (_, __, ___) => const Icon(
                       Iconsax.cpu_setting,
@@ -459,7 +459,7 @@ class _EquipmentCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Image.network(
-                'https://img.icons8.com/fluency/96/air-conditioner.png',
+                'https://img.icons8.com/ios/100/air-conditioner.png',
                 width: 40,
                 height: 40,
                 errorBuilder: (_, __, ___) => const Icon(

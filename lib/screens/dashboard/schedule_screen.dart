@@ -15,13 +15,19 @@ import 'package:alx_clima/models/installation.dart';
 import 'package:alx_clima/models/service_record.dart';
 import 'package:alx_clima/providers/appointment_provider.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
+import 'package:alx_clima/providers/quote_provider.dart';
 import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/futuristic_button.dart';
 
 class ScheduleScreen extends StatefulWidget {
   final List<String>? prefilledEquipmentIds;
+  final bool fromQuote;
 
-  const ScheduleScreen({super.key, this.prefilledEquipmentIds});
+  const ScheduleScreen({
+    super.key,
+    this.prefilledEquipmentIds,
+    this.fromQuote = false,
+  });
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
@@ -41,6 +47,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   bool _isLoadingSlots = true;
   bool _isBooking = false;
 
+  List<QuoteItem> _quoteItems = [];
+
   final _serviceTypes = <ServiceType>[
     ServiceType.maintenance,
     ServiceType.removal,
@@ -59,7 +67,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.prefilledEquipmentIds != null) {
+    if (widget.fromQuote) {
+      final quote = context.read<QuoteProvider>();
+      _quoteItems = [...quote.items];
+      _selectedEquipmentIds =
+          _quoteItems.map((i) => i.equipment.id).toList();
+    } else if (widget.prefilledEquipmentIds != null) {
       _selectedEquipmentIds = [...widget.prefilledEquipmentIds!];
     }
     _loadAvailableSlots();
@@ -305,8 +318,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget _buildEquipmentRow(DashboardProvider dashboard, int index) {
     final eqId = _selectedEquipmentIds[index];
     final equip = dashboard.getEquipmentById(eqId);
-    final name = equip?.equipmentName ?? 'Equipo desconocido';
-    final loc = equip?.location ?? '';
+    final quoteItem = _quoteItems.where((q) => q.equipment.id == eqId).firstOrNull;
+    final name = equip?.equipmentName ?? quoteItem?.equipment.name ?? 'Equipo desconocido';
+    final loc = equip?.location ?? quoteItem?.location ?? '';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -905,15 +919,38 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       return;
     }
 
+    if (_quoteItems.isNotEmpty) {
+      for (final item in _quoteItems) {
+        final existing = dashboard.getEquipmentById(item.equipment.id);
+        if (existing == null) {
+          final now = DateTime.now();
+          final ce = CustomerEquipment(
+            id: item.equipment.id,
+            equipmentName: item.equipment.name,
+            brand: item.equipment.brand,
+            type: item.equipment.type,
+            btuCapacity: item.equipment.btuCapacity,
+            installDate: now,
+            nextServiceDate: DateTime(now.year, now.month + 6, now.day),
+            installationType: InstallationType.fullPackage,
+            location: item.location ?? '',
+            isUserAdded: true,
+          );
+          await dashboard.addEquipment(ce);
+        }
+      }
+    }
+
     final equipmentList = _selectedEquipmentIds.map((id) {
       final eq = dashboard.getEquipmentById(id);
+      final qi = _quoteItems.where((q) => q.equipment.id == id).firstOrNull;
       return {
         'id': eq?.id ?? id,
-        'name': eq?.equipmentName ?? '',
-        'brand': eq?.brand ?? '',
-        'btuCapacity': eq?.btuCapacity ?? 0,
-        'location': eq?.location ?? '',
-        'type': eq?.type.displayName ?? '',
+        'name': eq?.equipmentName ?? qi?.equipment.name ?? '',
+        'brand': eq?.brand ?? qi?.equipment.brand ?? '',
+        'btuCapacity': eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0,
+        'location': eq?.location ?? qi?.location ?? '',
+        'type': eq?.type.displayName ?? qi?.equipment.type.displayName ?? '',
       };
     }).toList();
 

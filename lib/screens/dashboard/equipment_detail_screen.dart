@@ -136,7 +136,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(14),
                               child: Image.network(
-                                'https://img.icons8.com/fluency/96/air-conditioner.png',
+                                'https://img.icons8.com/ios/100/air-conditioner.png',
                                 width: 56,
                                 height: 56,
                                 fit: BoxFit.cover,
