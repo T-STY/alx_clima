@@ -17,19 +17,20 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'TU_API_KEY_AQUI',
-    appId: 'TU_APP_ID_AQUI',
-    messagingSenderId: 'TU_SENDER_ID_AQUI',
-    projectId: 'TU_PROJECT_ID_AQUI',
-    storageBucket: 'TU_STORAGE_BUCKET_AQUI',
+    apiKey: 'AIzaSyBjkg_r5MWLV1Vv8IkMVBuNOI77QxJ7r5U',
+    appId: '1:985195089189:android:453b04edb7d09d38ffdecc',
+    messagingSenderId: '985195089189',
+    projectId: 'alx-clima',
+    storageBucket: 'alx-clima.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'TU_API_KEY_AQUI',
-    appId: 'TU_APP_ID_AQUI',
-    messagingSenderId: 'TU_SENDER_ID_AQUI',
-    projectId: 'TU_PROJECT_ID_AQUI',
-    storageBucket: 'TU_STORAGE_BUCKET_AQUI',
-    iosBundleId: 'com.example.alxClima',
+    apiKey: 'AIzaSyCdGQGFMahj59SJ6LxuAuZfa5GdmvlJdFA',
+    appId: '1:985195089189:ios:1684133ccaf6e427ffdecc',
+    messagingSenderId: '985195089189',
+    projectId: 'alx-clima',
+    storageBucket: 'alx-clima.firebasestorage.app',
+    iosBundleId: 'com.tsty.mx.alxClima',
   );
+
 }
