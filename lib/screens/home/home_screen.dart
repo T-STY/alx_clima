@@ -188,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () => context.go('/quote'),
       ),
       _ActionItem(
-        icon: Iconsax.setting_2,
+        icon: Iconsax.setting_54,
         title: 'Solo\nInstalación',
         gradient: const [AppTheme.secondaryColor, Color(0xFF40E0FF)],
         onTap: () => context.go('/quote'),
