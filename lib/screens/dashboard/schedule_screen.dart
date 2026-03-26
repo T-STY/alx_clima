@@ -984,9 +984,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     final timeLabel = slotsToBook.join(' + ');
 
+    final mainAptId = 'apt-${DateTime.now().millisecondsSinceEpoch}';
+
     for (final eqId in resolvedIds) {
       final appointment = Appointment(
-        id: 'apt-${DateTime.now().millisecondsSinceEpoch}-$eqId',
+        id: '$mainAptId-$eqId',
         equipmentId: eqId,
         preferredDate: _selectedDate!,
         preferredTimeSlot: TimeSlot.morning,
@@ -999,6 +1001,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
 
     await _firebaseService.createGlobalAppointment({
+      'appointmentId': mainAptId,
       'userId': FirebaseAuth.instance.currentUser?.uid,
       'status': 'pending',
       'date': dateKey,

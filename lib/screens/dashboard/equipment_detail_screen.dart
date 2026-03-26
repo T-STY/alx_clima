@@ -97,13 +97,26 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
               equip.installationType == InstallationType.fullPackage;
           final isUserAdded = equip.isUserAdded;
 
+          final allAppts = context.watch<AppointmentProvider>().appointments;
+          final hasInstallAppt = allAppts.any((a) =>
+              a.equipmentId == equip.id &&
+              a.serviceType == ServiceType.installation &&
+              (a.status == AppointmentStatus.pending ||
+                  a.status == AppointmentStatus.confirmed));
+
           String estadoText;
           Color estadoColor;
           IconData estadoIcon;
           if (history.isEmpty && equip.lastServiceDate == null) {
-            estadoText = 'Desconocido';
-            estadoColor = AppTheme.textSecondary;
-            estadoIcon = Iconsax.info_circle;
+            if (hasInstallAppt) {
+              estadoText = 'Pendiente de Instalación';
+              estadoColor = AppTheme.primaryColor;
+              estadoIcon = Iconsax.clock;
+            } else {
+              estadoText = 'Desconocido';
+              estadoColor = AppTheme.textSecondary;
+              estadoIcon = Iconsax.info_circle;
+            }
           } else {
             final lastDate = equip.lastServiceDate ?? equip.installDate;
             final monthsSince = DateTime.now().difference(lastDate).inDays ~/ 30;
@@ -411,6 +424,11 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                         _InfoRow(
                           label: 'Garantía del Técnico',
                           value: AppConstants.warrantyTechnician,
+                        ),
+                        _InfoRow(
+                          label: 'Garantía del Fabricante',
+                          value: AppConstants
+                              .warrantyManufacturerCompressor,
                         ),
                         _InfoRow(
                           label: 'Instalación desde',

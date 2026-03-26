@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:alx_clima/config/constants.dart';
 import 'package:alx_clima/config/theme.dart';
 import 'package:alx_clima/data/care_tips.dart';
+import 'package:alx_clima/providers/appointment_provider.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
 import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/section_header.dart';
@@ -148,10 +149,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickStats(BuildContext context, DashboardProvider dashboard) {
-    final nextDate = dashboard.nextServiceDate;
-    final nextDateStr = nextDate != null
-        ? DateFormat('dd/MM/yyyy').format(nextDate)
-        : 'Al día';
+    final upcoming = context.watch<AppointmentProvider>().upcomingAppointments;
+    final nextDateStr = upcoming.isNotEmpty
+        ? DateFormat('dd/MM/yyyy').format(upcoming.first.preferredDate)
+        : '\u2014/\u2014';
 
     return Row(
       children: [
@@ -169,7 +170,9 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Iconsax.calendar_1,
             label: 'Próximo Servicio',
             value: nextDateStr,
-            color: AppTheme.secondaryColor,
+            color: upcoming.isNotEmpty
+                ? AppTheme.secondaryColor
+                : AppTheme.textSecondary,
           ),
         ),
       ],

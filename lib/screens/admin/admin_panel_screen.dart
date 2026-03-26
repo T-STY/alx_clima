@@ -110,8 +110,16 @@ class _AppointmentsTab extends StatelessWidget {
             final ref = docs[index].reference;
             final customer =
                 data['customer'] as Map<String, dynamic>? ?? {};
-            final equipment =
-                data['equipment'] as Map<String, dynamic>? ?? {};
+            final equipField = data['equipment'];
+            Map<String, dynamic> equipment;
+            if (equipField is List && equipField.isNotEmpty) {
+              equipment = equipField.first as Map<String, dynamic>;
+            } else if (equipField is Map<String, dynamic>) {
+              equipment = equipField;
+            } else {
+              equipment = {};
+            }
+            final equipCount = data['equipmentCount'] ?? 1;
             final status = data['status'] ?? 'pending';
 
             Color statusColor;
@@ -178,7 +186,7 @@ class _AppointmentsTab extends StatelessWidget {
                       Iconsax.setting_2, data['serviceTypeDisplay'] ?? ''),
                   _AdminDetailRow(
                       Iconsax.cpu_setting,
-                      '${equipment['brand']} ${equipment['name']} (${equipment['btuCapacity']} BTU)'),
+                      '${equipment['brand']} ${equipment['name']} (${equipment['btuCapacity']} BTU)${equipCount > 1 ? ' +${equipCount - 1} más' : ''}'),
                   if ((equipment['location'] ?? '').isNotEmpty)
                     _AdminDetailRow(
                         Iconsax.location, equipment['location']),

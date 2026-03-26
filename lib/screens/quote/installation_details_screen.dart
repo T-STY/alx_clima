@@ -24,6 +24,8 @@ class InstallationDetailsScreen extends StatefulWidget {
 class _InstallationDetailsScreenState
     extends State<InstallationDetailsScreen> {
   final FirebaseService _firebaseService = FirebaseService();
+  final _locationController = TextEditingController();
+  int _lastActiveIndex = -1;
 
   int _soloStep = 0;
   int? _soloBtu;
@@ -148,6 +150,11 @@ class _InstallationDetailsScreenState
           final activeItem = quote.items[quote.activeItemIndex];
           final details = activeItem.installationDetails;
 
+          if (_lastActiveIndex != quote.activeItemIndex) {
+            _lastActiveIndex = quote.activeItemIndex;
+            _locationController.text = activeItem.location ?? '';
+          }
+
           return Column(
             children: [
               Expanded(
@@ -217,8 +224,7 @@ class _InstallationDetailsScreenState
                       ).animate().fadeIn(duration: 400.ms),
                       const SizedBox(height: 24),
                       TextField(
-                        controller: TextEditingController(
-                            text: activeItem.location ?? ''),
+                        controller: _locationController,
                         onChanged: (val) => quote.setItemLocation(val),
                         decoration: const InputDecoration(
                           labelText: 'Ubicación del equipo (ej. Sala, Recámara)',
