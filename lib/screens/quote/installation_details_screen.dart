@@ -34,7 +34,6 @@ class _InstallationDetailsScreenState
   List<Map<String, dynamic>> _brands = [];
   List<String> _modelsForBrand = [];
   bool _isLoadingBrands = false;
-  bool _pricingLoaded = false;
   bool _isAddingSoloEquipment = false;
 
   @override
@@ -49,11 +48,8 @@ class _InstallationDetailsScreenState
       final pricing = await _firebaseService.getPricingConfig();
       if (pricing != null && mounted) {
         quote.setPricingConfig(pricing);
-        setState(() => _pricingLoaded = true);
       }
-    } catch (_) {
-      if (mounted) setState(() => _pricingLoaded = true);
-    }
+    } catch (_) {}
   }
 
   Future<void> _loadBrands() async {
@@ -595,7 +591,6 @@ class _InstallationDetailsScreenState
         _soloBtu = null;
         _soloBrand = null;
         _soloModel = null;
-        _soloLocation = '';
         _soloStep = 0;
         _isAddingSoloEquipment = true;
       });
