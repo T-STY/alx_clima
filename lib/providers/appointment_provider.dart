@@ -80,14 +80,10 @@ class AppointmentProvider extends ChangeNotifier {
     }).toList();
     notifyListeners();
 
-    await _restoreSlotsForAppointment(appointmentId);
+    await restoreSlotsForAppointment(appointmentId);
   }
 
-  Future<void> rescheduleAppointment(String oldAppointmentId) async {
-    await cancelAppointment(oldAppointmentId);
-  }
-
-  Future<void> _restoreSlotsForAppointment(String appointmentId) async {
+  Future<void> restoreSlotsForAppointment(String appointmentId) async {
     try {
       QuerySnapshot<Map<String, dynamic>> snap;
       snap = await _firestore
@@ -127,11 +123,13 @@ class AppointmentProvider extends ChangeNotifier {
           final schedRef = _firestore.collection('schedule').doc(date);
           final schedDoc = await schedRef.get();
           if (schedDoc.exists) {
-            await schedRef.update({
-              'slots': FieldValue.arrayUnion(slotsToRestore),
-            });
+            final existing =
+                (schedDoc.data()?['slots'] as List?)?.cast<String>() ?? [];
+            final merged = {...existing, ...slotsToRestore}.toList()..sort();
+            await schedRef.update({'slots': merged});
           } else {
-            await schedRef.set({'slots': slotsToRestore});
+            final sorted = [...slotsToRestore]..sort();
+            await schedRef.set({'slots': sorted});
           }
 
           for (final slot in slotsToRestore) {

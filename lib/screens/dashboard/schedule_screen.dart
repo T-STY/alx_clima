@@ -22,11 +22,13 @@ import 'package:alx_clima/widgets/futuristic_button.dart';
 class ScheduleScreen extends StatefulWidget {
   final List<String>? prefilledEquipmentIds;
   final bool fromQuote;
+  final String? rescheduleId;
 
   const ScheduleScreen({
     super.key,
     this.prefilledEquipmentIds,
     this.fromQuote = false,
+    this.rescheduleId,
   });
 
   @override
@@ -1061,6 +1063,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       'equipment': equipmentList,
       'totalUserEquipment': dashboard.totalEquipment,
     });
+
+    if (widget.rescheduleId != null) {
+      await appointmentProvider
+          .restoreSlotsForAppointment(widget.rescheduleId!);
+    }
 
     if (!mounted) return;
 

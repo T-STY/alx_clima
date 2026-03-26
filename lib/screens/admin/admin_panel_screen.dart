@@ -262,13 +262,18 @@ class _AppointmentsTab extends StatelessWidget {
                                 final schedDoc =
                                     await schedRef.get();
                                 if (schedDoc.exists) {
-                                  await schedRef.update({
-                                    'slots': FieldValue.arrayUnion(
-                                        slotsToRestore)
-                                  });
+                                  final existing = (schedDoc.data()?['slots']
+                                          as List?)
+                                      ?.cast<String>() ?? [];
+                                  final merged = {
+                                    ...existing,
+                                    ...slotsToRestore
+                                  }.toList()
+                                    ..sort();
+                                  await schedRef.update({'slots': merged});
                                 } else {
-                                  await schedRef
-                                      .set({'slots': slotsToRestore});
+                                  final sorted = [...slotsToRestore]..sort();
+                                  await schedRef.set({'slots': sorted});
                                 }
                                 for (final slot in slotsToRestore) {
                                   final bookedSnap = await firestore
@@ -905,46 +910,56 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                 children: docs.map((doc) {
                   final slotsList =
                       (doc['slots'] as List?)?.cast<String>() ?? [];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                doc.id,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleSmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.textPrimary,
-                                    ),
-                              ),
-                              Text(
-                                  '${slotsList.length} bloques disponibles',
+                  return GestureDetector(
+                    onTap: () => _showEditDayDialog(
+                        context, doc.reference, doc.id, slotsList),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  doc.id,
                                   style: Theme.of(context)
                                       .textTheme
-                                      .bodySmall),
-                            ],
+                                      .titleSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.textPrimary,
+                                      ),
+                                ),
+                                Text(
+                                    '${slotsList.length} bloques \u00b7 Toca para editar',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall),
+                              ],
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          onPressed: () =>
-                              doc.reference.delete(),
-                          icon: const Icon(Iconsax.trash,
-                              size: 18,
-                              color: AppTheme.errorColor),
-                        ),
-                      ],
+                          const Icon(Iconsax.edit_2,
+                              size: 16,
+                              color: AppTheme.primaryColor),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () =>
+                                doc.reference.delete(),
+                            icon: const Icon(Iconsax.trash,
+                                size: 16,
+                                color: AppTheme.errorColor),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }).toList(),
@@ -953,6 +968,174 @@ class _ScheduleTabState extends State<_ScheduleTab> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showEditDayDialog(
+    BuildContext context,
+    DocumentReference ref,
+    String dateId,
+    List<String> currentSlots,
+  ) {
+    final slots = [...currentSlots]..sort();
+    var addStart = const TimeOfDay(hour: 9, minute: 0);
+    var addEnd = const TimeOfDay(hour: 10, minute: 0);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                  20, 12, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppTheme.dividerColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Editar $dateId',
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Toca un bloque para eliminarlo',
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: slots.map((slot) {
+                      return Chip(
+                        label: Text(slot),
+                        deleteIcon: const Icon(
+                            Iconsax.close_circle, size: 16),
+                        onDeleted: () {
+                          setSheetState(() => slots.remove(slot));
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Agregar bloque',
+                      style: Theme.of(ctx)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final t = await showTimePicker(
+                              context: ctx,
+                              initialTime: addStart,
+                            );
+                            if (t != null) {
+                              setSheetState(() => addStart = t);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceColor,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${addStart.hour.toString().padLeft(2, '0')}:${addStart.minute.toString().padLeft(2, '0')}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('a'),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final t = await showTimePicker(
+                              context: ctx,
+                              initialTime: addEnd,
+                            );
+                            if (t != null) {
+                              setSheetState(() => addEnd = t);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceColor,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${addEnd.hour.toString().padLeft(2, '0')}:${addEnd.minute.toString().padLeft(2, '0')}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () {
+                          final label =
+                              '${addStart.hour.toString().padLeft(2, '0')}:${addStart.minute.toString().padLeft(2, '0')} - ${addEnd.hour.toString().padLeft(2, '0')}:${addEnd.minute.toString().padLeft(2, '0')}';
+                          if (!slots.contains(label)) {
+                            setSheetState(() {
+                              slots.add(label);
+                              slots.sort();
+                            });
+                          }
+                        },
+                        icon: const Icon(Iconsax.add_circle,
+                            color: AppTheme.primaryColor),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  FuturisticButton(
+                    text: 'Guardar Cambios',
+                    icon: Iconsax.tick_circle,
+                    onPressed: () async {
+                      if (slots.isEmpty) {
+                        await ref.delete();
+                      } else {
+                        await ref.update({'slots': slots});
+                      }
+                      if (ctx.mounted) Navigator.of(ctx).pop();
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

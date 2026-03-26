@@ -112,6 +112,7 @@ GoRouter buildRouter(AuthProvider authProvider) {
           final equipmentIds = state.uri.queryParameters['equipmentIds'];
           final equipmentId = state.uri.queryParameters['equipmentId'];
           final fromQuote = state.uri.queryParameters['fromQuote'] == 'true';
+          final rescheduleId = state.uri.queryParameters['rescheduleId'];
           List<String>? ids;
           if (equipmentIds != null && equipmentIds.isNotEmpty) {
             ids = equipmentIds.split(',');
@@ -121,6 +122,7 @@ GoRouter buildRouter(AuthProvider authProvider) {
           return ScheduleScreen(
             prefilledEquipmentIds: ids,
             fromQuote: fromQuote,
+            rescheduleId: rescheduleId,
           );
         },
       ),

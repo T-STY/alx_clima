@@ -117,7 +117,8 @@ class FirebaseService {
       final data = doc.data();
       final slots = data['slots'];
       if (slots is List) {
-        result[doc.id] = slots.cast<String>();
+        final sorted = slots.cast<String>()..sort();
+        result[doc.id] = sorted;
       }
     }
     return result;
