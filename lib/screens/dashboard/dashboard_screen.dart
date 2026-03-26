@@ -470,19 +470,39 @@ class DashboardScreen extends StatelessWidget {
   }
 
   void _showRescheduleDialog(BuildContext context, Appointment apt) {
-    final eqId = apt.equipmentId;
-    final params = <String>['rescheduleId=${apt.id}'];
-    if (eqId != null) params.add('equipmentIds=$eqId');
+    final baseId = _getBaseAppointmentId(apt.id);
+    final allAppts = context.read<AppointmentProvider>().appointments;
+    final grouped = allAppts
+        .where((a) => _getBaseAppointmentId(a.id) == baseId)
+        .toList();
+    final eqIds = grouped
+        .where((a) => a.equipmentId != null)
+        .map((a) => a.equipmentId!)
+        .toSet()
+        .join(',');
+    final params = <String>['rescheduleId=$baseId'];
+    if (eqIds.isNotEmpty) params.add('equipmentIds=$eqIds');
     context.push('/dashboard/schedule?${params.join('&')}');
   }
 
+  String _getBaseAppointmentId(String id) {
+    if (id.startsWith('apt-')) {
+      final dashParts = id.split('-');
+      if (dashParts.length > 2) {
+        return '${dashParts[0]}-${dashParts[1]}';
+      }
+    }
+    return id;
+  }
+
   void _showCancelDialog(BuildContext context, String appointmentId) {
+    final baseId = _getBaseAppointmentId(appointmentId);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancelar Cita'),
-        content:
-            const Text('¿Estás seguro de que deseas cancelar esta cita?'),
+        content: const Text(
+            '¿Estás seguro de que deseas cancelar esta cita? Se cancelará para todos los equipos incluidos.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -492,7 +512,7 @@ class DashboardScreen extends StatelessWidget {
             onPressed: () {
               context
                   .read<AppointmentProvider>()
-                  .cancelAppointment(appointmentId);
+                  .cancelAppointment(baseId);
               Navigator.of(ctx).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(

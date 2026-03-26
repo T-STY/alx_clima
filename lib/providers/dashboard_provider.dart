@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -15,9 +16,16 @@ class DashboardProvider extends ChangeNotifier {
   bool _isLoading = false;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  StreamSubscription? _historySub;
 
   DashboardProvider() {
     _listenToAuthChanges();
+  }
+
+  @override
+  void dispose() {
+    _historySub?.cancel();
+    super.dispose();
   }
 
   List<CustomerEquipment> get equipment => List.unmodifiable(_equipment);
@@ -57,14 +65,32 @@ class DashboardProvider extends ChangeNotifier {
 
   void _listenToAuthChanges() {
     FirebaseAuth.instance.authStateChanges().listen((user) {
+      _historySub?.cancel();
       if (user != null) {
         loadUserData();
+        _listenToServiceHistory(user.uid);
       } else {
         _equipment = [];
         _serviceHistory = [];
         _profile = null;
         notifyListeners();
       }
+    });
+  }
+
+  void _listenToServiceHistory(String uid) {
+    _historySub = _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('serviceHistory')
+        .snapshots()
+        .listen((snap) {
+      _serviceHistory = snap.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return _serviceRecordFromMap(data);
+      }).toList();
+      notifyListeners();
     });
   }
 
