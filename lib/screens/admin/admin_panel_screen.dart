@@ -1026,7 +1026,10 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                     runSpacing: 8,
                     children: slots.map((slot) {
                       return Chip(
-                        label: Text(slot),
+                        label: Text(slot,
+                            style: TextStyle(
+                                color: AppTheme.textPrimary)),
+                        backgroundColor: AppTheme.surfaceColor,
                         deleteIcon: const Icon(
                             Iconsax.close_circle, size: 16),
                         onDeleted: () {
@@ -1985,7 +1988,10 @@ class _BrandManagerState extends State<_BrandManager> {
                     runSpacing: 8,
                     children: models
                         .map((m) => Chip(
-                              label: Text(m),
+                              label: Text(m,
+                                  style: TextStyle(
+                                      color: AppTheme.textPrimary)),
+                              backgroundColor: AppTheme.surfaceColor,
                               deleteIcon: const Icon(
                                   Iconsax.close_circle, size: 16),
                               onDeleted: () {
@@ -2112,7 +2118,9 @@ class _EquipmentTypesManagerState
               runSpacing: 8,
               children: types.map((t) {
                 return Chip(
-                  label: Text(t),
+                  label: Text(t,
+                      style: TextStyle(color: AppTheme.textPrimary)),
+                  backgroundColor: AppTheme.surfaceColor,
                   deleteIcon: const Icon(Iconsax.close_circle,
                       size: 16),
                   onDeleted: () {
