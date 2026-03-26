@@ -331,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: AppTheme.primaryColor,
                   size: 24,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
                 Text(
                   tip.title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
