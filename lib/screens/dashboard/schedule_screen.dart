@@ -173,8 +173,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       _selectedDate != null &&
       _selectedTimeSlot != null &&
       _selectedSlotGroup.length == _slotsNeeded;
-      _selectedTimeSlot != null &&
-      _consecutiveSlotsFromSelected.length == _slotsNeeded;
 
   String _capitalizeFirst(String s) =>
       s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
