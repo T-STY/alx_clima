@@ -1400,7 +1400,10 @@ class _CatalogTabState extends State<_CatalogTab> {
               return Column(
                 children: docs.map((doc) {
                   final d = doc.data() as Map<String, dynamic>;
-                  return Container(
+                  return GestureDetector(
+                    onTap: () => _showEditEquipmentDialog(
+                        context, doc.reference, d),
+                    child: Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -1433,15 +1436,22 @@ class _CatalogTabState extends State<_CatalogTab> {
                             ],
                           ),
                         ),
+                        const Icon(Iconsax.edit_2,
+                            size: 16,
+                            color: AppTheme.primaryColor),
+                        const SizedBox(width: 8),
                         IconButton(
                           onPressed: () =>
                               doc.reference.delete(),
                           icon: const Icon(Iconsax.trash,
-                              size: 18,
+                              size: 16,
                               color: AppTheme.errorColor),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),
+                  ),
                   );
                 }).toList(),
               );
@@ -1473,6 +1483,111 @@ class _CatalogTabState extends State<_CatalogTab> {
           _EquipmentTypesManager(firestore: widget.firestore),
         ],
       ),
+    );
+  }
+
+  void _showEditEquipmentDialog(
+    BuildContext context,
+    DocumentReference ref,
+    Map<String, dynamic> data,
+  ) {
+    final priceCtrl =
+        TextEditingController(text: '${data['price'] ?? 0}');
+    final descCtrl =
+        TextEditingController(text: data['description'] ?? '');
+    final warrantyCtrl = TextEditingController(
+        text: data['manufacturerWarrantyDetails'] ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+              20, 12, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.dividerColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    'Editar ${data['brand']} ${data['name']}',
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Center(
+                  child: Text(
+                    '${data['btuCapacity']} BTU',
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: priceCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Precio',
+                    prefixIcon: Icon(Iconsax.money, size: 20),
+                    prefixText: '\$ ',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción (opcional)',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: warrantyCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Garantía del fabricante',
+                    prefixIcon: Icon(Iconsax.shield_tick, size: 20),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FuturisticButton(
+                  text: 'Guardar Cambios',
+                  icon: Iconsax.tick_circle,
+                  onPressed: () async {
+                    await ref.update({
+                      'price':
+                          double.tryParse(priceCtrl.text) ??
+                              data['price'],
+                      'description': descCtrl.text.trim(),
+                      'manufacturerWarrantyDetails':
+                          warrantyCtrl.text.trim(),
+                    });
+                    if (ctx.mounted) Navigator.of(ctx).pop();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

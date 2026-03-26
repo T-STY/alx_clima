@@ -353,10 +353,26 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      'Precio del equipo',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Precio del equipo',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        Text(
+                          'Precio aproximado',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                color: AppTheme.textSecondary,
+                                fontSize: 11,
+                              ),
+                        ),
+                      ],
                     ),
                     Text(
                       _currencyFormat.format(equipment.price),
