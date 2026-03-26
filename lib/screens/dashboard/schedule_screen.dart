@@ -128,22 +128,56 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         .toList();
   }
 
-  List<String> get _consecutiveSlotsFromSelected {
-    if (_selectedTimeSlot == null || _slotsNeeded <= 1) {
-      return _selectedTimeSlot != null ? [_selectedTimeSlot!] : [];
+  List<Map<String, dynamic>> get _availableTimeWindows {
+    final rawSlots = _slotsForSelectedDate;
+    if (rawSlots.isEmpty) return [];
+    if (_slotsNeeded <= 1) {
+      return rawSlots
+          .map((s) => {'display': s, 'slots': [s]})
+          .toList();
     }
-    final available = _slotsForSelectedDate;
-    final startIdx = available.indexOf(_selectedTimeSlot!);
-    if (startIdx < 0) return [];
-    if (startIdx + _slotsNeeded > available.length) return [];
-    return available.sublist(startIdx, startIdx + _slotsNeeded);
+
+    final windows = <Map<String, dynamic>>[];
+    for (var i = 0; i <= rawSlots.length - _slotsNeeded; i++) {
+      bool consecutive = true;
+      for (var j = 0; j < _slotsNeeded - 1; j++) {
+        final currentEnd = rawSlots[i + j].split(' - ').last.trim();
+        final nextStart = rawSlots[i + j + 1].split(' - ').first.trim();
+        if (currentEnd != nextStart) {
+          consecutive = false;
+          break;
+        }
+      }
+      if (consecutive) {
+        final start = rawSlots[i].split(' - ').first.trim();
+        final end = rawSlots[i + _slotsNeeded - 1].split(' - ').last.trim();
+        windows.add({
+          'display': '$start - $end',
+          'slots': rawSlots.sublist(i, i + _slotsNeeded),
+        });
+      }
+    }
+    return windows;
+  }
+
+  List<String> get _selectedSlotGroup {
+    if (_selectedTimeSlot == null) return [];
+    final window = _availableTimeWindows.where(
+        (w) => w['display'] == _selectedTimeSlot).firstOrNull;
+    if (window == null) return [];
+    return (window['slots'] as List).cast<String>();
   }
 
   bool get _canConfirm =>
       _selectedEquipmentIds.isNotEmpty &&
       _selectedDate != null &&
       _selectedTimeSlot != null &&
+      _selectedSlotGroup.length == _slotsNeeded;
+      _selectedTimeSlot != null &&
       _consecutiveSlotsFromSelected.length == _slotsNeeded;
+
+  String _capitalizeFirst(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
   void _selectServiceType(ServiceType type) {
     setState(() {
@@ -587,7 +621,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ),
               Text(
-                DateFormat('MMMM yyyy', 'es').format(_calendarMonth),
+                _capitalizeFirst(DateFormat('MMMM yyyy', 'es').format(_calendarMonth)),
                 style:
                     Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
@@ -746,9 +780,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Widget _buildTimeSlots() {
-    final slots = _slotsForSelectedDate;
+    final windows = _availableTimeWindows;
 
-    if (slots.isEmpty) {
+    if (windows.isEmpty) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
@@ -757,7 +791,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
-          'No hay horarios disponibles para esta fecha',
+          _slotsNeeded > 1
+              ? 'No hay $_slotsNeeded horas consecutivas disponibles'
+              : 'No hay horarios disponibles para esta fecha',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppTheme.textSecondary,
@@ -769,10 +805,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return Wrap(
       spacing: 10,
       runSpacing: 10,
-      children: slots.map((slot) {
-        final isSelected = _selectedTimeSlot == slot;
+      children: windows.map((window) {
+        final display = window['display'] as String;
+        final isSelected = _selectedTimeSlot == display;
         return GestureDetector(
-          onTap: () => setState(() => _selectedTimeSlot = slot),
+          onTap: () => setState(() => _selectedTimeSlot = display),
           child: Container(
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 12),
@@ -800,7 +837,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  slot,
+                  display,
                   style: TextStyle(
                     color: isSelected
                         ? AppTheme.primaryColor
@@ -907,7 +944,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     setState(() => _isBooking = true);
 
     final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate!);
-    final slotsToBook = _consecutiveSlotsFromSelected;
+    final slotsToBook = _selectedSlotGroup;
     final dashboard = context.read<DashboardProvider>();
     final appointmentProvider = context.read<AppointmentProvider>();
     final profile = dashboard.profile;

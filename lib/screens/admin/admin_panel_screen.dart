@@ -140,7 +140,9 @@ class _AppointmentsTab extends StatelessWidget {
                 statusColor = AppTheme.warningColor;
             }
 
-            return Container(
+            return GestureDetector(
+              onTap: () => _showAppointmentDetail(context, data, ref),
+              child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: AppTheme.cardColor,
@@ -184,7 +186,7 @@ class _AppointmentsTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   _AdminDetailRow(
-                      Iconsax.calendar_1, '${data['date']} \u00b7 ${data['timeSlot']}'),
+                      Iconsax.calendar_1, '${data['date']} \u00b7 ${data['timeSlotDisplay'] ?? ''}'),
                   _AdminDetailRow(
                       Iconsax.setting_2, data['serviceTypeDisplay'] ?? ''),
                   _AdminDetailRow(
@@ -225,8 +227,35 @@ class _AppointmentsTab extends StatelessWidget {
                             label: 'Completar',
                             color: AppTheme.primaryColor,
                             icon: Iconsax.tick_square,
-                            onTap: () =>
-                                ref.update({'status': 'completed'}),
+                            onTap: () async {
+                              await ref.update({'status': 'completed'});
+                              final userId = data['userId'] as String?;
+                              if (userId == null) return;
+                              final equipList = data['equipment'];
+                              final eqItems = <Map<String, dynamic>>[];
+                              if (equipList is List) {
+                                for (final e in equipList) {
+                                  if (e is Map<String, dynamic>) eqItems.add(e);
+                                }
+                              } else if (equipList is Map<String, dynamic>) {
+                                eqItems.add(equipList);
+                              }
+                              for (final eq in eqItems) {
+                                await firestore
+                                    .collection('users')
+                                    .doc(userId)
+                                    .collection('serviceHistory')
+                                    .add({
+                                  'equipmentId': eq['id'] ?? '',
+                                  'serviceDate': FieldValue.serverTimestamp(),
+                                  'serviceType': data['serviceType'] ?? 'maintenance',
+                                  'description':
+                                      '${data['serviceTypeDisplay'] ?? 'Servicio'} completado',
+                                  'technicianNotes': data['notes'] ?? '',
+                                  'cost': 0,
+                                });
+                              }
+                            },
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -299,8 +328,119 @@ class _AppointmentsTab extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showAppointmentDetail(
+    BuildContext context,
+    Map<String, dynamic> data,
+    DocumentReference ref,
+  ) {
+    final customer = data['customer'] as Map<String, dynamic>? ?? {};
+    final equipField = data['equipment'];
+    final allEquipment = <Map<String, dynamic>>[];
+    if (equipField is List) {
+      for (final e in equipField) {
+        if (e is Map<String, dynamic>) allEquipment.add(e);
+      }
+    } else if (equipField is Map<String, dynamic>) {
+      allEquipment.add(equipField);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Detalle Completo',
+                  style: Theme.of(ctx)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              _AdminDetailRow(Iconsax.user, customer['name'] ?? ''),
+              _AdminDetailRow(Iconsax.call, customer['phone'] ?? ''),
+              if ((customer['email'] ?? '').isNotEmpty)
+                _AdminDetailRow(Iconsax.sms, customer['email']),
+              if ((customer['address'] ?? '').isNotEmpty)
+                _AdminDetailRow(Iconsax.home_2, customer['address']),
+              const Divider(height: 20),
+              _AdminDetailRow(Iconsax.calendar_1,
+                  '${data['date']} \u00b7 ${data['timeSlotDisplay'] ?? ''}'),
+              _AdminDetailRow(
+                  Iconsax.setting_2, data['serviceTypeDisplay'] ?? ''),
+              if ((data['notes'] ?? '').isNotEmpty)
+                _AdminDetailRow(Iconsax.note_text, data['notes']),
+              const Divider(height: 20),
+              Text('Equipos (${allEquipment.length})',
+                  style: Theme.of(ctx)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              ...allEquipment.map((eq) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Iconsax.cpu_setting,
+                            size: 16, color: AppTheme.primaryColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${eq['brand']} ${eq['name']} (${eq['btuCapacity']} BTU)',
+                            style:
+                                Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.textPrimary,
+                                    ),
+                          ),
+                        ),
+                        if ((eq['location'] ?? '').isNotEmpty)
+                          Text(
+                            eq['location'],
+                            style:
+                                Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                      fontSize: 11,
+                                    ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
         );
       },
     );
@@ -591,6 +731,14 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                 selectedColor:
                     AppTheme.primaryColor.withValues(alpha: 0.12),
                 checkmarkColor: AppTheme.primaryColor,
+                labelStyle: TextStyle(
+                  color: isSelected
+                      ? AppTheme.primaryColor
+                      : AppTheme.textPrimary,
+                  fontWeight: isSelected
+                      ? FontWeight.w600
+                      : FontWeight.w500,
+                ),
               );
             }).toList(),
           ),

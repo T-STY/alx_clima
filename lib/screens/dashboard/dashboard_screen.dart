@@ -470,7 +470,12 @@ class DashboardScreen extends StatelessWidget {
   }
 
   void _showRescheduleDialog(BuildContext context, Appointment apt) {
-    context.push('/dashboard/schedule');
+    final eqId = apt.equipmentId;
+    if (eqId != null) {
+      context.push('/dashboard/schedule?equipmentIds=$eqId');
+    } else {
+      context.push('/dashboard/schedule');
+    }
   }
 
   void _showCancelDialog(BuildContext context, String appointmentId) {

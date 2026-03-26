@@ -1,16 +1,25 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:alx_clima/models/appointment.dart';
 import 'package:alx_clima/models/service_record.dart';
-import 'package:alx_clima/services/firebase_service.dart';
 
 class AppointmentProvider extends ChangeNotifier {
   List<Appointment> _appointments = [];
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  StreamSubscription? _appointmentsSub;
+  StreamSubscription? _authSub;
 
   AppointmentProvider() {
     _listenToAuth();
+  }
+
+  @override
+  void dispose() {
+    _appointmentsSub?.cancel();
+    _authSub?.cancel();
+    super.dispose();
   }
 
   List<Appointment> get appointments => List.unmodifiable(_appointments);
@@ -21,15 +30,17 @@ class AppointmentProvider extends ChangeNotifier {
         .where((a) =>
             a.preferredDate.isAfter(now) &&
             (a.status == AppointmentStatus.pending ||
-                a.status == AppointmentStatus.confirmed))
+                a.status == AppointmentStatus.confirmed ||
+                a.status == AppointmentStatus.modified))
         .toList()
       ..sort((a, b) => a.preferredDate.compareTo(b.preferredDate));
   }
 
   void _listenToAuth() {
-    FirebaseAuth.instance.authStateChanges().listen((user) {
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      _appointmentsSub?.cancel();
       if (user != null) {
-        _loadAppointments(user.uid);
+        _listenToAppointments(user.uid);
       } else {
         _appointments = [];
         notifyListeners();
@@ -37,19 +48,18 @@ class AppointmentProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> _loadAppointments(String uid) async {
-    try {
-      final snap = await _firestore
-          .collection('appointments')
-          .where('userId', isEqualTo: uid)
-          .orderBy('createdAt', descending: true)
-          .get();
+  void _listenToAppointments(String uid) {
+    _appointmentsSub = _firestore
+        .collection('appointments')
+        .where('userId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .listen((snap) {
       _appointments = snap.docs.map((doc) {
-        final data = doc.data();
-        return _appointmentFromMap(data, doc.id);
+        return _appointmentFromMap(doc.data(), doc.id);
       }).toList();
       notifyListeners();
-    } catch (_) {}
+    });
   }
 
   void scheduleAppointment(Appointment appointment) {
@@ -115,8 +125,6 @@ class AppointmentProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
-  List<Appointment> getUpcomingAppointments() => upcomingAppointments;
-
   Appointment _appointmentFromMap(Map<String, dynamic> data, String docId) {
     final date = data['date'] as String? ?? '';
     final parsed = DateTime.tryParse(date) ?? DateTime.now();
@@ -144,7 +152,8 @@ class AppointmentProvider extends ChangeNotifier {
     final timeSlots = data['timeSlots'] as List?;
     final timeSlot = data['timeSlot'] as String?;
     final timeLabel = data['timeSlotDisplay'] as String? ??
-        (timeSlots != null ? timeSlots.cast<String>().join(' + ') : timeSlot);
+        (timeSlots != null ? timeSlots.cast<String>().join(' + ') : timeSlot) ??
+        '';
 
     return Appointment(
       id: data['appointmentId'] as String? ?? docId,
