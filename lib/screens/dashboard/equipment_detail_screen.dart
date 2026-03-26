@@ -151,84 +151,140 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppTheme.primaryColor.withValues(alpha: 0.06),
-                        AppTheme.secondaryColor
-                            .withValues(alpha: 0.06),
-                      ],
-                    ),
+                    color: AppTheme.cardColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppTheme.primaryColor
-                          .withValues(alpha: 0.12),
-                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryColor
+                            .withValues(alpha: 0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceColor,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Image.network(
-                                'https://img.icons8.com/ios/100/air-conditioner.png',
-                                width: 40,
-                                height: 40,
-                                errorBuilder: (_, __, ___) =>
-                                    const Icon(
-                                  Iconsax.cpu_setting,
-                                  color: AppTheme.primaryColor,
-                                  size: 28,
-                                ),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppTheme.surfaceColor,
+                              AppTheme.dividerColor
+                                  .withValues(alpha: 0.3),
+                            ],
+                          ),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(20),
+                          ),
+                        ),
+                        child: Center(
+                          child: Image.network(
+                            'https://img.icons8.com/ios/100/air-conditioner.png',
+                            height: 72,
+                            errorBuilder: (_, __, ___) =>
+                                const Icon(
+                              Iconsax.cpu_setting,
+                              color: AppTheme.textSecondary,
+                              size: 48,
                             ),
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               children: [
-                                Text(
-                                  equip.equipmentName,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w600,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        equip.equipmentName,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              fontWeight:
+                                                  FontWeight.w700,
+                                            ),
                                       ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  equip.brand,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(
-                                        color: AppTheme.primaryColor,
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding:
+                                                const EdgeInsets
+                                                    .symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme
+                                                  .primaryColor
+                                                  .withValues(
+                                                      alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius
+                                                      .circular(6),
+                                            ),
+                                            child: Text(
+                                              equip.brand,
+                                              style: TextStyle(
+                                                color: AppTheme
+                                                    .primaryColor,
+                                                fontSize: 11,
+                                                fontWeight:
+                                                    FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding:
+                                                const EdgeInsets
+                                                    .symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme
+                                                  .secondaryColor
+                                                  .withValues(
+                                                      alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius
+                                                      .circular(6),
+                                            ),
+                                            child: Text(
+                                              equip.tonnageLabel,
+                                              style: TextStyle(
+                                                color: AppTheme
+                                                    .secondaryColor,
+                                                fontSize: 11,
+                                                fontWeight:
+                                                    FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 12),
-                      _InfoRow(
-                        label: 'Capacidad',
-                        value:
-                            '${NumberFormat('#,###').format(equip.btuCapacity)} BTU',
-                      ),
+                            const SizedBox(height: 12),
+                            const Divider(),
+                            const SizedBox(height: 8),
                       if (_isEditing)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
@@ -310,6 +366,9 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                           },
                         ),
                       ],
+                    ],
+                  ),
+                ),
                     ],
                   ),
                 )
@@ -436,8 +495,11 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                         ),
                         _InfoRow(
                           label: 'Garantía del Fabricante',
-                          value: AppConstants
-                              .warrantyManufacturerCompressor,
+                          value: (equip.warrantyDetails != null &&
+                                  equip.warrantyDetails!.isNotEmpty)
+                              ? equip.warrantyDetails!
+                              : AppConstants
+                                  .warrantyManufacturerCompressor,
                         ),
                         _InfoRow(
                           label: 'Instalación desde',

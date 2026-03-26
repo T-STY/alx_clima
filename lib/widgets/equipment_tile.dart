@@ -20,10 +20,10 @@ class EquipmentTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppTheme.cardColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: needsService
                 ? AppTheme.warningColor.withValues(alpha: 0.4)
@@ -31,33 +31,63 @@ class EquipmentTile extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryColor.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: AppTheme.primaryColor.withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              width: 48,
-              height: 48,
-              padding: const EdgeInsets.all(6),
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
-                color: AppTheme.surfaceColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Image.network(
-                'https://img.icons8.com/ios/100/air-conditioner.png',
-                width: 36,
-                height: 36,
-                errorBuilder: (_, __, ___) => Icon(
-                  Iconsax.cpu_setting,
-                  color: needsService
-                      ? AppTheme.warningColor
-                      : AppTheme.primaryColor,
-                  size: 22,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.surfaceColor,
+                    AppTheme.dividerColor.withValues(alpha: 0.3),
+                  ],
                 ),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Image.network(
+                      'https://img.icons8.com/ios/100/air-conditioner.png',
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Iconsax.cpu_setting,
+                        color: AppTheme.textSecondary,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 2,
+                    right: 2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        equipment.tonnageLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 14),
@@ -65,53 +95,89 @@ class EquipmentTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          equipment.equipmentName,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: AppTheme.textPrimary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${(equipment.btuCapacity / 1000).toStringAsFixed(0)}K',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: AppTheme.textSecondary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
                   Text(
-                    '${equipment.brand} \u00b7 ${equipment.location}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    equipment.equipmentName,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (needsService) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Servicio pendiente',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.warningColor,
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          equipment.brand,
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                           ),
+                        ),
+                      ),
+                      if (equipment.location != null &&
+                          equipment.location!.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Icon(Iconsax.location,
+                            size: 10, color: AppTheme.textSecondary),
+                        const SizedBox(width: 2),
+                        Text(
+                          equipment.location!,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                color: AppTheme.textSecondary,
+                              ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (needsService) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.warningColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Servicio pendiente',
+                          style: TextStyle(
+                            color: AppTheme.warningColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
               ),
             ),
-            Icon(
-              Iconsax.arrow_right_3,
-              color: AppTheme.textSecondary.withValues(alpha: 0.5),
-              size: 20,
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Iconsax.arrow_right_3,
+                color: AppTheme.textSecondary.withValues(alpha: 0.6),
+                size: 16,
+              ),
             ),
           ],
         ),

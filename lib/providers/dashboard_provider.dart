@@ -158,6 +158,7 @@ class DashboardProvider extends ChangeNotifier {
         'notes': item.notes ?? '',
         'location': item.location ?? '',
         'isUserAdded': item.isUserAdded,
+        'warrantyDetails': item.warrantyDetails ?? '',
       });
       final updated = item.copyWith(id: docRef.id);
       _equipment = _equipment.map((e) => e.id == item.id ? updated : e).toList();
@@ -223,6 +224,7 @@ class DashboardProvider extends ChangeNotifier {
       notes: data['notes'] ?? '',
       location: data['location'] ?? '',
       isUserAdded: data['isUserAdded'] ?? false,
+      warrantyDetails: data['warrantyDetails'] ?? '',
     );
   }
 

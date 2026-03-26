@@ -996,6 +996,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 : InstallationType.fullPackage,
             location: item.location ?? '',
             isUserAdded: isSolo,
+            warrantyDetails:
+                item.equipment.manufacturerWarrantyDetails,
           );
           await dashboard.addEquipment(ce);
           final saved = dashboard.equipment.lastWhere(

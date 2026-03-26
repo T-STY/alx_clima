@@ -14,6 +14,7 @@ class CustomerEquipment {
   final String? notes;
   final String? location;
   final bool isUserAdded;
+  final String? warrantyDetails;
 
   const CustomerEquipment({
     required this.id,
@@ -28,9 +29,25 @@ class CustomerEquipment {
     this.notes,
     this.location,
     this.isUserAdded = false,
+    this.warrantyDetails,
   });
 
   bool get needsService => DateTime.now().isAfter(nextServiceDate);
+
+  String get tonnageLabel {
+    switch (btuCapacity) {
+      case 12000:
+        return '1 Ton';
+      case 18000:
+        return '1.5 Ton';
+      case 24000:
+        return '2 Ton';
+      case 36000:
+        return '3 Ton';
+      default:
+        return '${(btuCapacity / 12000).toStringAsFixed(1)} Ton';
+    }
+  }
 
   CustomerEquipment copyWith({
     String? id,
@@ -45,6 +62,7 @@ class CustomerEquipment {
     String? notes,
     String? location,
     bool? isUserAdded,
+    String? warrantyDetails,
   }) {
     return CustomerEquipment(
       id: id ?? this.id,
@@ -59,6 +77,7 @@ class CustomerEquipment {
       notes: notes ?? this.notes,
       location: location ?? this.location,
       isUserAdded: isUserAdded ?? this.isUserAdded,
+      warrantyDetails: warrantyDetails ?? this.warrantyDetails,
     );
   }
 }

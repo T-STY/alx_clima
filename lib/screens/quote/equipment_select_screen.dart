@@ -438,34 +438,42 @@ class _EquipmentCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppTheme.cardColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppTheme.dividerColor),
           boxShadow: [
             BoxShadow(
               color:
-                  AppTheme.primaryColor.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+                  AppTheme.primaryColor.withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 68,
+              height: 68,
               decoration: BoxDecoration(
-                color: AppTheme.surfaceColor,
-                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.surfaceColor,
+                    AppTheme.dividerColor.withValues(alpha: 0.3),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Image.network(
-                'https://img.icons8.com/ios/100/air-conditioner.png',
-                width: 40,
-                height: 40,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Iconsax.cpu_setting,
-                  color: AppTheme.primaryColor,
-                  size: 28,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Image.network(
+                  'https://img.icons8.com/ios/100/air-conditioner.png',
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Iconsax.cpu_setting,
+                    color: AppTheme.textSecondary,
+                    size: 28,
+                  ),
                 ),
               ),
             ),
@@ -475,24 +483,14 @@ class _EquipmentCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    equipment.brand,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(
-                          color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
                     equipment.name,
                     style: Theme.of(context)
                         .textTheme
                         .titleSmall
                         ?.copyWith(
                           color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
                         ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -500,19 +498,45 @@ class _EquipmentCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Text(
-                        equipment.btuFormatted,
-                        style:
-                            Theme.of(context).textTheme.bodySmall,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor
+                              .withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          equipment.brand,
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '\u00b7',
-                        style:
-                            Theme.of(context).textTheme.bodySmall,
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryColor
+                              .withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          equipment.btuFormatted,
+                          style: TextStyle(
+                            color: AppTheme.secondaryColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
                         currencyFormat.format(equipment.price),
                         style: Theme.of(context)
                             .textTheme
@@ -522,16 +546,21 @@ class _EquipmentCard extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                             ),
                       ),
-                    ],
-                  ),
                 ],
               ),
             ),
-            Icon(
-              Iconsax.arrow_right_3,
-              color:
-                  AppTheme.textSecondary.withValues(alpha: 0.5),
-              size: 20,
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Iconsax.arrow_right_3,
+                color:
+                    AppTheme.textSecondary.withValues(alpha: 0.6),
+                size: 16,
+              ),
             ),
           ],
         ),
