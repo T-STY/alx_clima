@@ -227,35 +227,8 @@ class _AppointmentsTab extends StatelessWidget {
                             label: 'Completar',
                             color: AppTheme.primaryColor,
                             icon: Iconsax.tick_square,
-                            onTap: () async {
-                              await ref.update({'status': 'completed'});
-                              final userId = data['userId'] as String?;
-                              if (userId == null) return;
-                              final equipList = data['equipment'];
-                              final eqItems = <Map<String, dynamic>>[];
-                              if (equipList is List) {
-                                for (final e in equipList) {
-                                  if (e is Map<String, dynamic>) eqItems.add(e);
-                                }
-                              } else if (equipList is Map<String, dynamic>) {
-                                eqItems.add(equipList);
-                              }
-                              for (final eq in eqItems) {
-                                await firestore
-                                    .collection('users')
-                                    .doc(userId)
-                                    .collection('serviceHistory')
-                                    .add({
-                                  'equipmentId': eq['id'] ?? '',
-                                  'serviceDate': FieldValue.serverTimestamp(),
-                                  'serviceType': data['serviceType'] ?? 'maintenance',
-                                  'description':
-                                      '${data['serviceTypeDisplay'] ?? 'Servicio'} completado',
-                                  'technicianNotes': data['notes'] ?? '',
-                                  'cost': 0,
-                                });
-                              }
-                            },
+                            onTap: () => _showCompleteDialog(
+                                context, ref, data, firestore),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -334,6 +307,109 @@ class _AppointmentsTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _showCompleteDialog(
+    BuildContext context,
+    DocumentReference ref,
+    Map<String, dynamic> data,
+    FirebaseFirestore firestore,
+  ) {
+    final equipField = data['equipment'];
+    final eqItems = <Map<String, dynamic>>[];
+    if (equipField is List) {
+      for (final e in equipField) {
+        if (e is Map<String, dynamic>) eqItems.add(e);
+      }
+    } else if (equipField is Map<String, dynamic>) {
+      eqItems.add(equipField);
+    }
+
+    if (eqItems.length <= 1) {
+      _completeForEquipment(ref, data, eqItems, firestore);
+      return;
+    }
+
+    final selected = List.filled(eqItems.length, true);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              title: const Text('Completar Servicio'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('¿Cuáles equipos fueron atendidos?'),
+                  const SizedBox(height: 12),
+                  ...eqItems.asMap().entries.map((entry) {
+                    final i = entry.key;
+                    final eq = entry.value;
+                    return CheckboxListTile(
+                      value: selected[i],
+                      onChanged: (v) =>
+                          setDialogState(() => selected[i] = v ?? true),
+                      title: Text(
+                          '${eq['brand']} ${eq['name']}',
+                          style: const TextStyle(fontSize: 14)),
+                      dense: true,
+                      controlAffinity: ListTileControlAffinity.leading,
+                    );
+                  }),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    final attended = <Map<String, dynamic>>[];
+                    for (var i = 0; i < eqItems.length; i++) {
+                      if (selected[i]) attended.add(eqItems[i]);
+                    }
+                    _completeForEquipment(
+                        ref, data, attended, firestore);
+                  },
+                  child: const Text('Completar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _completeForEquipment(
+    DocumentReference ref,
+    Map<String, dynamic> data,
+    List<Map<String, dynamic>> attendedEquipment,
+    FirebaseFirestore firestore,
+  ) async {
+    await ref.update({'status': 'completed'});
+    final userId = data['userId'] as String?;
+    if (userId == null) return;
+    for (final eq in attendedEquipment) {
+      await firestore
+          .collection('users')
+          .doc(userId)
+          .collection('serviceHistory')
+          .add({
+        'equipmentId': eq['id'] ?? '',
+        'serviceDate': FieldValue.serverTimestamp(),
+        'serviceType': data['serviceType'] ?? 'maintenance',
+        'description':
+            '${data['serviceTypeDisplay'] ?? 'Servicio'} completado',
+        'technicianNotes': data['notes'] ?? '',
+        'cost': 0,
+      });
+    }
   }
 
   void _showAppointmentDetail(
@@ -1888,6 +1964,7 @@ class _CompanyTabState extends State<_CompanyTab> {
   final _wc = TextEditingController();
   final _ec = TextEditingController();
   final _hc = TextEditingController();
+  final _twc = TextEditingController();
   bool _isLoading = true;
 
   @override
@@ -1903,6 +1980,7 @@ class _CompanyTabState extends State<_CompanyTab> {
     _wc.dispose();
     _ec.dispose();
     _hc.dispose();
+    _twc.dispose();
     super.dispose();
   }
 
@@ -1918,6 +1996,7 @@ class _CompanyTabState extends State<_CompanyTab> {
       _wc.text = d['whatsApp'] ?? '';
       _ec.text = d['email'] ?? '';
       _hc.text = d['businessHours'] ?? '';
+      _twc.text = d['techWarranty'] ?? '1 año general + 3 meses en electrónicos';
     }
     if (mounted) setState(() => _isLoading = false);
   }
@@ -1972,6 +2051,13 @@ class _CompanyTabState extends State<_CompanyTab> {
                 labelText: 'Horario de atención',
                 prefixIcon: Icon(Iconsax.clock, size: 20),
               )),
+          const SizedBox(height: 12),
+          TextField(
+              controller: _twc,
+              decoration: const InputDecoration(
+                labelText: 'Garantía del técnico',
+                prefixIcon: Icon(Iconsax.shield_tick, size: 20),
+              )),
           const SizedBox(height: 20),
           FuturisticButton(
             text: 'Guardar',
@@ -1986,6 +2072,7 @@ class _CompanyTabState extends State<_CompanyTab> {
                 'whatsApp': _wc.text.trim(),
                 'email': _ec.text.trim(),
                 'businessHours': _hc.text.trim(),
+                'techWarranty': _twc.text.trim(),
               });
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(

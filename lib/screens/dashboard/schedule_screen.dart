@@ -926,9 +926,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         return _AddEquipmentSheet(
           dashboard: dashboard,
           onAdded: (equipment) {
-            setState(() {
-              _selectedEquipmentIds.add(equipment.id);
-              _selectedTimeSlot = null;
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (!mounted) return;
+              final latest = dashboard.equipment.lastWhere(
+                (e) => e.equipmentName == equipment.equipmentName &&
+                    e.brand == equipment.brand,
+                orElse: () => equipment,
+              );
+              setState(() {
+                _selectedEquipmentIds.add(latest.id);
+                _selectedTimeSlot = null;
+              });
             });
           },
         );

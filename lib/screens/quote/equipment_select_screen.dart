@@ -208,7 +208,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
       labelStyle: TextStyle(
         color: isSelected
             ? AppTheme.primaryColor
-            : AppTheme.textSecondary,
+            : AppTheme.textPrimary,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
         fontSize: 13,
       ),

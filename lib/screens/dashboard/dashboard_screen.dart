@@ -87,9 +87,9 @@ class DashboardScreen extends StatelessWidget {
                       Expanded(
                         child: _DashStatCard(
                           icon: Iconsax.warning_2,
-                          label: 'Servicios\nPendientes',
-                          value: '${needingService.length}',
-                          color: needingService.isNotEmpty
+                          label: 'Citas\nPendientes',
+                          value: '${appointments.pendingAppointmentCount}',
+                          color: appointments.pendingAppointmentCount > 0
                               ? AppTheme.warningColor
                               : AppTheme.successColor,
                         ),
@@ -469,7 +469,9 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  void _showRescheduleDialog(BuildContext context, Appointment apt) {
+  void _showRescheduleDialog(BuildContext context, Appointment apt) async {
+    await context.read<AppointmentProvider>().rescheduleAppointment(apt.id);
+    if (!context.mounted) return;
     final eqId = apt.equipmentId;
     if (eqId != null) {
       context.push('/dashboard/schedule?equipmentIds=$eqId');

@@ -104,6 +104,10 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
               a.serviceType == ServiceType.installation &&
               (a.status == AppointmentStatus.pending ||
                   a.status == AppointmentStatus.confirmed));
+          final hasPendingAppt = allAppts.any((a) =>
+              a.equipmentId == equip.id &&
+              (a.status == AppointmentStatus.pending ||
+                  a.status == AppointmentStatus.confirmed));
 
           String estadoText;
           Color estadoColor;
@@ -113,6 +117,10 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
               estadoText = 'Pendiente de Instalación';
               estadoColor = AppTheme.primaryColor;
               estadoIcon = Iconsax.clock;
+            } else if (hasPendingAppt) {
+              estadoText = 'Mantenimiento Pendiente';
+              estadoColor = AppTheme.warningColor;
+              estadoIcon = Iconsax.clock;
             } else {
               estadoText = 'Desconocido';
               estadoColor = AppTheme.textSecondary;
@@ -121,7 +129,11 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
           } else {
             final lastDate = equip.lastServiceDate ?? equip.installDate;
             final monthsSince = DateTime.now().difference(lastDate).inDays ~/ 30;
-            if (monthsSince >= 4) {
+            if (hasPendingAppt) {
+              estadoText = 'Mantenimiento Pendiente';
+              estadoColor = AppTheme.warningColor;
+              estadoIcon = Iconsax.clock;
+            } else if (monthsSince >= 4) {
               estadoText = 'Requiere Mantenimiento';
               estadoColor = AppTheme.warningColor;
               estadoIcon = Iconsax.warning_2;
