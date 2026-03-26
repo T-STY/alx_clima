@@ -44,9 +44,7 @@ class EquipmentTile extends StatelessWidget {
               height: 48,
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: needsService
-                    ? AppTheme.warningColor.withValues(alpha: 0.1)
-                    : AppTheme.primaryColor.withValues(alpha: 0.1),
+                color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Image.network(
