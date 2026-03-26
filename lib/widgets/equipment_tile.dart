@@ -53,41 +53,16 @@ class EquipmentTile extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Image.network(
-                      'https://img.icons8.com/ios/100/air-conditioner.png',
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Iconsax.cpu_setting,
-                        color: AppTheme.textSecondary,
-                        size: 24,
-                      ),
-                    ),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Image.network(
+                  'https://img.icons8.com/ios/100/air-conditioner.png',
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Iconsax.cpu_setting,
+                    color: AppTheme.textSecondary,
+                    size: 24,
                   ),
-                  Positioned(
-                    bottom: 2,
-                    right: 2,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        equipment.tonnageLabel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
             const SizedBox(width: 14),
@@ -95,15 +70,30 @@ class EquipmentTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    equipment.equipmentName,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          equipment.equipmentName,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        equipment.tonnageLabel,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 3),
                   Row(
