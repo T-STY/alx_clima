@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 import 'package:alx_clima/models/customer_profile.dart';
 
@@ -57,6 +58,56 @@ class FirebaseService {
         .collection('equipment')
         .doc(equipmentId)
         .update(data);
+  }
+
+  Future<Map<String, dynamic>?> getWorkScheduleConfig() async {
+    final doc = await _firestore
+        .collection('config')
+        .doc('workSchedule')
+        .get();
+    return doc.data();
+  }
+
+  Future<void> saveWorkScheduleConfig(Map<String, dynamic> config) async {
+    await _firestore
+        .collection('config')
+        .doc('workSchedule')
+        .set(config);
+  }
+
+  Future<void> generateScheduleFromConfig(
+    Map<String, dynamic> config,
+    int weeksAhead,
+  ) async {
+    final workDays = (config['workDays'] as List?)?.cast<int>() ?? [];
+    final startHour = config['startHour'] as int? ?? 9;
+    final endHour = config['endHour'] as int? ?? 18;
+
+    final slots = <String>[];
+    for (var h = startHour; h < endHour; h++) {
+      slots.add(
+          '${h.toString().padLeft(2, '0')}:00 - ${(h + 1).toString().padLeft(2, '0')}:00');
+    }
+
+    final now = DateTime.now();
+    final batch = _firestore.batch();
+    final dateFormat = DateFormat('yyyy-MM-dd');
+
+    for (var d = 1; d <= weeksAhead * 7; d++) {
+      final date = now.add(Duration(days: d));
+      if (!workDays.contains(date.weekday)) continue;
+
+      final key = dateFormat.format(date);
+      final existing = await _firestore.collection('schedule').doc(key).get();
+      if (existing.exists) continue;
+
+      batch.set(
+        _firestore.collection('schedule').doc(key),
+        {'slots': slots},
+      );
+    }
+
+    await batch.commit();
   }
 
   Future<Map<String, List<String>>> getAvailableSlots() async {

@@ -69,9 +69,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       _selectedServiceType = ServiceType.installation;
       _serviceTypes = [
         ServiceType.installation,
-        ServiceType.maintenance,
-        ServiceType.removal,
-        ServiceType.relocation,
       ];
     } else {
       _serviceTypes = [

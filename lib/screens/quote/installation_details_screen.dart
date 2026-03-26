@@ -31,7 +31,6 @@ class _InstallationDetailsScreenState
   int? _soloBtu;
   String? _soloBrand;
   String? _soloModel;
-  String _soloLocation = '';
   List<Map<String, dynamic>> _brands = [];
   List<String> _modelsForBrand = [];
   bool _isLoadingBrands = false;
@@ -103,14 +102,13 @@ class _InstallationDetailsScreenState
       price: 0,
       description: 'Equipo del cliente',
     );
-    quote.addEquipmentItem(equipment, location: _soloLocation);
+    quote.addEquipmentItem(equipment);
     setState(() {
       _isAddingSoloEquipment = false;
       _soloStep = 0;
       _soloBtu = null;
       _soloBrand = null;
       _soloModel = null;
-      _soloLocation = '';
     });
   }
 
@@ -475,8 +473,6 @@ class _InstallationDetailsScreenState
   }
 
   Widget _buildBrandModelStep(BuildContext context) {
-    final locationCtrl = TextEditingController(text: _soloLocation);
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -539,18 +535,6 @@ class _InstallationDetailsScreenState
                     ? null
                     : (val) => setState(() => _soloModel = val),
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text('Ubicación del equipo (opcional)',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 10),
-          TextField(
-            controller: locationCtrl,
-            onChanged: (val) => _soloLocation = val,
-            decoration: const InputDecoration(
-              hintText: 'Ej. Sala, Recámara, Oficina',
-              prefixIcon: Icon(Iconsax.location, size: 20),
             ),
           ),
           const SizedBox(height: 28),

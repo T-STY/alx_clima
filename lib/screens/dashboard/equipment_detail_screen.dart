@@ -9,6 +9,7 @@ import 'package:alx_clima/config/constants.dart';
 import 'package:alx_clima/config/theme.dart';
 import 'package:alx_clima/models/appointment.dart';
 import 'package:alx_clima/models/installation.dart';
+import 'package:alx_clima/models/service_record.dart';
 import 'package:alx_clima/providers/appointment_provider.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
 import 'package:alx_clima/widgets/futuristic_button.dart';
@@ -161,25 +162,21 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                           Container(
                             width: 56,
                             height: 56,
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryColor
-                                  .withValues(alpha: 0.1),
+                              color: AppTheme.surfaceColor,
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
-                              child: Image.network(
+                            child: Image.network(
                                 'https://img.icons8.com/ios/100/air-conditioner.png',
-                                width: 56,
-                                height: 56,
-                                fit: BoxFit.cover,
+                                width: 40,
+                                height: 40,
                                 errorBuilder: (_, __, ___) =>
                                     const Icon(
                                   Iconsax.cpu_setting,
                                   color: AppTheme.primaryColor,
                                   size: 28,
                                 ),
-                              ),
                             ),
                           ),
                           const SizedBox(width: 14),

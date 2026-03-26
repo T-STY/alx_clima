@@ -18,7 +18,8 @@ enum AppointmentStatus {
   pending,
   confirmed,
   completed,
-  cancelled;
+  cancelled,
+  modified;
 
   String get displayName {
     switch (this) {
@@ -30,6 +31,8 @@ enum AppointmentStatus {
         return 'Completada';
       case AppointmentStatus.cancelled:
         return 'Cancelada';
+      case AppointmentStatus.modified:
+        return 'Cita Modificada';
     }
   }
 }

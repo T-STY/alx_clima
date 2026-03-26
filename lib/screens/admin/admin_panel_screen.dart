@@ -133,6 +133,9 @@ class _AppointmentsTab extends StatelessWidget {
               case 'completed':
                 statusColor = AppTheme.textSecondary;
                 break;
+              case 'modified':
+                statusColor = AppTheme.primaryColor;
+                break;
               default:
                 statusColor = AppTheme.warningColor;
             }
@@ -239,9 +242,18 @@ class _AppointmentsTab extends StatelessWidget {
                               await ref
                                   .update({'status': 'cancelled'});
                               final date = data['date'] as String?;
-                              final slot =
+                              final slotsField = data['timeSlots'];
+                              final singleSlot =
                                   data['timeSlot'] as String?;
-                              if (date != null && slot != null) {
+                              final slotsToRestore = <String>[];
+                              if (slotsField is List) {
+                                slotsToRestore
+                                    .addAll(slotsField.cast<String>());
+                              } else if (singleSlot != null) {
+                                slotsToRestore.add(singleSlot);
+                              }
+                              if (date != null &&
+                                  slotsToRestore.isNotEmpty) {
                                 final schedRef = firestore
                                     .collection('schedule')
                                     .doc(date);
@@ -249,22 +261,25 @@ class _AppointmentsTab extends StatelessWidget {
                                     await schedRef.get();
                                 if (schedDoc.exists) {
                                   await schedRef.update({
-                                    'slots':
-                                        FieldValue.arrayUnion([slot])
+                                    'slots': FieldValue.arrayUnion(
+                                        slotsToRestore)
                                   });
                                 } else {
-                                  await schedRef.set({
-                                    'slots': [slot]
-                                  });
+                                  await schedRef
+                                      .set({'slots': slotsToRestore});
                                 }
-                                final bookedSnap = await firestore
-                                    .collection('bookedSlots')
-                                    .where('date', isEqualTo: date)
-                                    .where('slot', isEqualTo: slot)
-                                    .limit(1)
-                                    .get();
-                                for (final d in bookedSnap.docs) {
-                                  await d.reference.delete();
+                                for (final slot in slotsToRestore) {
+                                  final bookedSnap = await firestore
+                                      .collection('bookedSlots')
+                                      .where('date',
+                                          isEqualTo: date)
+                                      .where('slot',
+                                          isEqualTo: slot)
+                                      .limit(1)
+                                      .get();
+                                  for (final d in bookedSnap.docs) {
+                                    await d.reference.delete();
+                                  }
                                 }
                               }
                             },
@@ -299,6 +314,8 @@ class _AppointmentsTab extends StatelessWidget {
         return 'Cancelada';
       case 'completed':
         return 'Completada';
+      case 'modified':
+        return 'Modificada';
       default:
         return 'Pendiente';
     }
@@ -384,203 +401,260 @@ class _ScheduleTab extends StatefulWidget {
 }
 
 class _ScheduleTabState extends State<_ScheduleTab> {
-  DateTime? _selectedDate;
-  List<String> _customSlots = [];
-  TimeOfDay _slotStart = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _slotEnd = const TimeOfDay(hour: 10, minute: 0);
+  static const _dayNames = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  Set<int> _workDays = {1, 2, 3, 4, 5, 6};
+  int _startHour = 9;
+  int _endHour = 18;
+  int _weeksAhead = 4;
+  bool _isLoading = true;
+  bool _isGenerating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    final doc = await widget.firestore
+        .collection('config')
+        .doc('workSchedule')
+        .get();
+    final data = doc.data();
+    if (data != null && mounted) {
+      setState(() {
+        _workDays = ((data['workDays'] as List?) ?? [1, 2, 3, 4, 5, 6])
+            .cast<int>()
+            .toSet();
+        _startHour = data['startHour'] ?? 9;
+        _endHour = data['endHour'] ?? 18;
+        _weeksAhead = data['weeksAhead'] ?? 4;
+      });
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Agregar Disponibilidad',
+          Text('Horario de Trabajo',
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
                   ?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate:
-                    DateTime.now().add(const Duration(days: 1)),
-                firstDate: DateTime.now(),
-                lastDate:
-                    DateTime.now().add(const Duration(days: 120)),
-              );
-              if (picked != null) {
-                setState(() => _selectedDate = picked);
-              }
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceColor,
-                borderRadius: BorderRadius.circular(12),
-                border: _selectedDate != null
-                    ? Border.all(color: AppTheme.primaryColor)
-                    : null,
-              ),
-              child: Row(
-                children: [
-                  Icon(Iconsax.calendar_1,
-                      size: 20,
-                      color: _selectedDate != null
-                          ? AppTheme.primaryColor
-                          : AppTheme.textSecondary),
-                  const SizedBox(width: 12),
-                  Text(
-                    _selectedDate != null
-                        ? DateFormat('EEEE dd MMMM yyyy', 'es')
-                            .format(_selectedDate!)
-                        : 'Seleccionar fecha',
-                    style: TextStyle(
-                      color: _selectedDate != null
-                          ? AppTheme.textPrimary
-                          : AppTheme.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          const SizedBox(height: 4),
+          Text(
+            'Configura tus días y horario laboral. Se generarán bloques de 1 hora automáticamente.',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 16),
-          Text('Agregar periodos de tiempo',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  )),
+          Text('Días laborales',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(7, (i) {
+              final day = i + 1;
+              final isSelected = _workDays.contains(day);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      _workDays.remove(day);
+                    } else {
+                      _workDays.add(day);
+                    }
+                  });
+                },
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : AppTheme.surfaceColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppTheme.primaryColor
+                          : AppTheme.dividerColor,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _dayNames[day],
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : AppTheme.textPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 20),
+          Text('Horario',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
-                child: GestureDetector(
-                  onTap: () async {
-                    final t = await showTimePicker(
-                      context: context,
-                      initialTime: _slotStart,
-                    );
-                    if (t != null) setState(() => _slotStart = t);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Iconsax.clock, size: 18,
-                            color: AppTheme.primaryColor),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_slotStart.hour.toString().padLeft(2, '0')}:${_slotStart.minute.toString().padLeft(2, '0')}',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: _startHour,
+                      isExpanded: true,
+                      items: List.generate(
+                          14,
+                          (i) => DropdownMenuItem(
+                                value: i + 6,
+                                child: Text(
+                                    '${(i + 6).toString().padLeft(2, '0')}:00'),
+                              )),
+                      onChanged: (v) =>
+                          setState(() => _startHour = v ?? 9),
                     ),
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text('a',
                     style: Theme.of(context).textTheme.bodyMedium),
               ),
               Expanded(
-                child: GestureDetector(
-                  onTap: () async {
-                    final t = await showTimePicker(
-                      context: context,
-                      initialTime: _slotEnd,
-                    );
-                    if (t != null) setState(() => _slotEnd = t);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Iconsax.clock, size: 18,
-                            color: AppTheme.secondaryColor),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_slotEnd.hour.toString().padLeft(2, '0')}:${_slotEnd.minute.toString().padLeft(2, '0')}',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: _endHour,
+                      isExpanded: true,
+                      items: List.generate(
+                          14,
+                          (i) => DropdownMenuItem(
+                                value: i + 7,
+                                child: Text(
+                                    '${(i + 7).toString().padLeft(2, '0')}:00'),
+                              )),
+                      onChanged: (v) =>
+                          setState(() => _endHour = v ?? 18),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: () {
-                  final label =
-                      '${_slotStart.hour.toString().padLeft(2, '0')}:${_slotStart.minute.toString().padLeft(2, '0')} - ${_slotEnd.hour.toString().padLeft(2, '0')}:${_slotEnd.minute.toString().padLeft(2, '0')}';
-                  if (!_customSlots.contains(label)) {
-                    setState(() => _customSlots.add(label));
-                  }
-                },
-                icon: const Icon(Iconsax.add_circle,
-                    color: AppTheme.primaryColor),
-              ),
             ],
           ),
-          const SizedBox(height: 10),
-          if (_customSlots.isNotEmpty)
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _customSlots.map((slot) {
-                return Chip(
-                  label: Text(slot),
-                  deleteIcon: const Icon(
-                      Iconsax.close_circle, size: 16),
-                  onDeleted: () =>
-                      setState(() => _customSlots.remove(slot)),
-                );
-              }).toList(),
-            ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+          Text('Generar disponibilidad para',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [2, 4, 6, 8].map((w) {
+              final isSelected = _weeksAhead == w;
+              return FilterChip(
+                label: Text('$w semanas'),
+                selected: isSelected,
+                onSelected: (_) =>
+                    setState(() => _weeksAhead = w),
+                selectedColor:
+                    AppTheme.primaryColor.withValues(alpha: 0.12),
+                checkmarkColor: AppTheme.primaryColor,
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
           FuturisticButton(
-            text: 'Guardar Horarios',
-            icon: Iconsax.tick_circle,
-            onPressed: (_selectedDate != null &&
-                    _customSlots.isNotEmpty)
-                ? () async {
-                    final date = DateFormat('yyyy-MM-dd')
-                        .format(_selectedDate!);
+            text: _isGenerating
+                ? 'Generando...'
+                : 'Guardar y Generar Disponibilidad',
+            icon: Iconsax.calendar_tick,
+            isLoading: _isGenerating,
+            onPressed: _isGenerating
+                ? null
+                : () async {
+                    setState(() => _isGenerating = true);
+
+                    final config = {
+                      'workDays': _workDays.toList()..sort(),
+                      'startHour': _startHour,
+                      'endHour': _endHour,
+                      'weeksAhead': _weeksAhead,
+                    };
+
                     await widget.firestore
-                        .collection('schedule')
-                        .doc(date)
-                        .set({'slots': _customSlots});
+                        .collection('config')
+                        .doc('workSchedule')
+                        .set(config);
+
+                    final slots = <String>[];
+                    for (var h = _startHour; h < _endHour; h++) {
+                      slots.add(
+                          '${h.toString().padLeft(2, '0')}:00 - ${(h + 1).toString().padLeft(2, '0')}:00');
+                    }
+
+                    final now = DateTime.now();
+                    for (var d = 1; d <= _weeksAhead * 7; d++) {
+                      final date = now.add(Duration(days: d));
+                      if (!_workDays.contains(date.weekday)) continue;
+                      final key =
+                          DateFormat('yyyy-MM-dd').format(date);
+                      final existing = await widget.firestore
+                          .collection('schedule')
+                          .doc(key)
+                          .get();
+                      if (!existing.exists) {
+                        await widget.firestore
+                            .collection('schedule')
+                            .doc(key)
+                            .set({'slots': slots});
+                      }
+                    }
+
                     if (mounted) {
-                      setState(() {
-                        _selectedDate = null;
-                        _customSlots = [];
-                      });
+                      setState(() => _isGenerating = false);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Horarios guardados'),
+                          content: Text(
+                              'Disponibilidad generada exitosamente'),
                           backgroundColor: AppTheme.successColor,
                         ),
                       );
                     }
-                  }
-                : null,
+                  },
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           Text('Disponibilidad Actual',
               style: Theme.of(context)
                   .textTheme
@@ -605,10 +679,8 @@ class _ScheduleTabState extends State<_ScheduleTab> {
               }
               return Column(
                 children: docs.map((doc) {
-                  final slots = (doc['slots'] as List?)
-                          ?.cast<String>()
-                          .join(', ') ??
-                      '';
+                  final slotsList =
+                      (doc['slots'] as List?)?.cast<String>() ?? [];
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
@@ -633,7 +705,8 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                                       color: AppTheme.textPrimary,
                                     ),
                               ),
-                              Text(slots,
+                              Text(
+                                  '${slotsList.length} bloques disponibles',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall),
