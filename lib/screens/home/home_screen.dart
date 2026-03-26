@@ -111,17 +111,17 @@ class _HomeScreenState extends State<HomeScreen> {
         GestureDetector(
           onTap: () => context.push('/admin'),
           child: Container(
-            padding: const EdgeInsets.all(10),
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
-              ),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Iconsax.wind,
-              color: Colors.white,
-              size: 28,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.asset(
+                'assets/images/logo.png',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),

@@ -101,6 +101,7 @@ class EquipmentTile extends StatelessWidget {
                           ),
                         ),
                       ),
+                      const SizedBox(width: 15),
                     ],
                   ),
                   const SizedBox(height: 3),
