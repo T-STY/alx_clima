@@ -10,22 +10,19 @@ import 'package:alx_clima_admin/screens/schedule/schedule_helpers.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
-
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  final _firestore = FirebaseFirestore.instance;
+  final _fs = FirebaseFirestore.instance;
   List<bool> _workDays = List.filled(7, false);
   int _startHour = 8;
   int _endHour = 18;
-  int _weeksToGenerate = 2;
+  int _weeks = 2;
   bool _isGenerating = false;
-  bool _isSavingConfig = false;
-
+  bool _isSaving = false;
   static const _dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-  static const _weekOptions = [2, 4, 6, 8];
 
   @override
   void initState() {
@@ -34,70 +31,46 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Future<void> _loadConfig() async {
-    final doc = await _firestore.collection('config').doc('workSchedule').get();
-    if (doc.exists) {
-      final data = doc.data()!;
-      final days = List<int>.from(data['workDays'] ?? []);
-      setState(() {
-        _workDays = List.generate(7, (i) => days.contains(i + 1));
-        _startHour = data['startHour'] ?? 8;
-        _endHour = data['endHour'] ?? 18;
-      });
-    }
+    final doc = await _fs.collection('config').doc('workSchedule').get();
+    if (!doc.exists) return;
+    final data = doc.data()!;
+    final days = List<int>.from(data['workDays'] ?? []);
+    setState(() {
+      _workDays = List.generate(7, (i) => days.contains(i + 1));
+      _startHour = data['startHour'] ?? 8;
+      _endHour = data['endHour'] ?? 18;
+    });
   }
 
   Future<void> _saveConfig() async {
-    setState(() => _isSavingConfig = true);
-    final activeDays = <int>[];
-    for (var i = 0; i < 7; i++) {
-      if (_workDays[i]) activeDays.add(i + 1);
-    }
-    await _firestore.collection('config').doc('workSchedule').set({
-      'workDays': activeDays,
-      'startHour': _startHour,
-      'endHour': _endHour,
-    }, SetOptions(merge: true));
-    setState(() => _isSavingConfig = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Configuración guardada')),
-      );
-    }
+    setState(() => _isSaving = true);
+    final active = <int>[for (var i = 0; i < 7; i++) if (_workDays[i]) i + 1];
+    await _fs.collection('config').doc('workSchedule').set(
+      {'workDays': active, 'startHour': _startHour, 'endHour': _endHour},
+      SetOptions(merge: true),
+    );
+    setState(() => _isSaving = false);
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Configuración guardada')));
   }
 
-  Future<void> _generateAvailability() async {
+  Future<void> _generate() async {
     setState(() => _isGenerating = true);
-    final activeDays = <int>[];
-    for (var i = 0; i < 7; i++) {
-      if (_workDays[i]) activeDays.add(i + 1);
-    }
+    final active = <int>[for (var i = 0; i < 7; i++) if (_workDays[i]) i + 1];
     final now = DateTime.now();
-    final batch = _firestore.batch();
-    for (var d = 0; d < _weeksToGenerate * 7; d++) {
+    final batch = _fs.batch();
+    for (var d = 0; d < _weeks * 7; d++) {
       final date = now.add(Duration(days: d));
-      if (!activeDays.contains(date.weekday)) continue;
+      if (!active.contains(date.weekday)) continue;
       final dateStr = DateFormat('yyyy-MM-dd').format(date);
-      final slots = <String>[];
-      for (var h = _startHour; h < _endHour; h++) {
-        final start = '${h.toString().padLeft(2, '0')}:00';
-        final end = '${(h + 1).toString().padLeft(2, '0')}:00';
-        slots.add('$start - $end');
-      }
-      batch.set(
-        _firestore.collection('schedule').doc(dateStr),
-        {'date': dateStr, 'slots': slots},
-        SetOptions(merge: true),
-      );
+      final slots = <String>[
+        for (var h = _startHour; h < _endHour; h++)
+          '${h.toString().padLeft(2, '0')}:00 - ${(h + 1).toString().padLeft(2, '0')}:00',
+      ];
+      batch.set(_fs.collection('schedule').doc(dateStr), {'date': dateStr, 'slots': slots}, SetOptions(merge: true));
     }
     await batch.commit();
     setState(() => _isGenerating = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Disponibilidad generada para $_weeksToGenerate semanas'),
-        ),
-      );
-    }
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Disponibilidad generada para $_weeks semanas')));
   }
 
   @override
@@ -110,27 +83,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Horarios',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
-                ),
-              ).animate().fadeIn(duration: 300.ms),
+              Text('Horarios', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.5)).animate().fadeIn(duration: 300.ms),
               const SizedBox(height: 24),
-              _buildConfigCard(context),
+              _configCard(theme),
               const SizedBox(height: 16),
-              _buildGenerateCard(context),
+              _generateCard(theme),
               const SizedBox(height: 24),
-              Text(
-                'Fechas Programadas',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.textTheme.bodyLarge?.color,
-                ),
-              ).animate().fadeIn(duration: 300.ms, delay: 200.ms),
+              Text('Fechas Programadas', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color)).animate().fadeIn(duration: 300.ms, delay: 200.ms),
               const SizedBox(height: 12),
-              _buildScheduleList(context),
+              _scheduleList(theme),
             ],
           ),
         ),
@@ -138,278 +99,120 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Widget _buildConfigCard(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget _configCard(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Días Laborales',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
+      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(14)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Días Laborales', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+        const SizedBox(height: 12),
+        Wrap(spacing: 8, runSpacing: 8, children: List.generate(7, (i) {
+          final on = _workDays[i];
+          return GestureDetector(
+            onTap: () => setState(() => _workDays[i] = !on),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: on ? AdminTheme.primaryColor.withValues(alpha: 0.15) : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: on ? AdminTheme.primaryColor : theme.dividerColor),
+              ),
+              child: Text(_dayLabels[i], style: TextStyle(color: on ? AdminTheme.primaryColor : theme.textTheme.bodySmall?.color, fontWeight: FontWeight.w500, fontSize: 13)),
             ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: List.generate(7, (i) {
-              final active = _workDays[i];
-              return GestureDetector(
-                onTap: () => setState(() => _workDays[i] = !_workDays[i]),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: active
-                        ? AdminTheme.primaryColor.withValues(alpha: 0.15)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: active
-                          ? AdminTheme.primaryColor
-                          : theme.dividerColor,
-                    ),
-                  ),
-                  child: Text(
-                    _dayLabels[i],
-                    style: TextStyle(
-                      color: active
-                          ? AdminTheme.primaryColor
-                          : theme.textTheme.bodySmall?.color,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hora Inicio',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 6),
-                    buildHourDropdown(
-                      context,
-                      _startHour,
-                      (v) => setState(() => _startHour = v!),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hora Fin',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 6),
-                    buildHourDropdown(
-                      context,
-                      _endHour,
-                      (v) => setState(() => _endHour = v!),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          AdminButton(
-            text: 'Guardar Configuración',
-            icon: Iconsax.tick_circle,
-            isLoading: _isSavingConfig,
-            onPressed: _saveConfig,
-          ),
-        ],
-      ),
+          );
+        })),
+        const SizedBox(height: 18),
+        Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Hora Inicio', style: theme.textTheme.bodySmall),
+            const SizedBox(height: 6),
+            buildHourDropdown(context, _startHour, (v) => setState(() => _startHour = v!)),
+          ])),
+          const SizedBox(width: 16),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Hora Fin', style: theme.textTheme.bodySmall),
+            const SizedBox(height: 6),
+            buildHourDropdown(context, _endHour, (v) => setState(() => _endHour = v!)),
+          ])),
+        ]),
+        const SizedBox(height: 14),
+        AdminButton(text: 'Guardar Configuración', icon: Iconsax.tick_circle, isLoading: _isSaving, onPressed: _saveConfig),
+      ]),
     ).animate().fadeIn(duration: 300.ms, delay: 80.ms);
   }
 
-  Widget _buildGenerateCard(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget _generateCard(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Generar Disponibilidad',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: _weekOptions.map((w) {
-              final selected = _weeksToGenerate == w;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => setState(() => _weeksToGenerate = w),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? AdminTheme.secondaryColor.withValues(alpha: 0.15)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: selected
-                            ? AdminTheme.secondaryColor
-                            : theme.dividerColor,
-                      ),
-                    ),
-                    child: Text(
-                      '$w sem',
-                      style: TextStyle(
-                        color: selected
-                            ? AdminTheme.secondaryColor
-                            : theme.textTheme.bodySmall?.color,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
+      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(14)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Generar Disponibilidad', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+        const SizedBox(height: 12),
+        Row(children: [2, 4, 6, 8].map((w) {
+          final sel = _weeks == w;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => setState(() => _weeks = w),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: sel ? AdminTheme.secondaryColor.withValues(alpha: 0.15) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: sel ? AdminTheme.secondaryColor : theme.dividerColor),
                 ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 14),
-          AdminButton(
-            text: 'Generar Disponibilidad',
-            icon: Iconsax.calendar_add,
-            isLoading: _isGenerating,
-            color: AdminTheme.secondaryColor,
-            onPressed: _generateAvailability,
-          ),
-        ],
-      ),
+                child: Text('$w sem', style: TextStyle(color: sel ? AdminTheme.secondaryColor : theme.textTheme.bodySmall?.color, fontWeight: FontWeight.w500, fontSize: 13)),
+              ),
+            ),
+          );
+        }).toList()),
+        const SizedBox(height: 14),
+        AdminButton(text: 'Generar Disponibilidad', icon: Iconsax.calendar_add, isLoading: _isGenerating, color: AdminTheme.secondaryColor, onPressed: _generate),
+      ]),
     ).animate().fadeIn(duration: 300.ms, delay: 140.ms);
   }
 
-  Widget _buildScheduleList(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget _scheduleList(ThemeData theme) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('schedule').orderBy('date').snapshots(),
+      stream: _fs.collection('schedule').orderBy('date').snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(
-              child: Text(
-                'Sin fechas programadas',
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
+            decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(14)),
+            child: Center(child: Text('Sin fechas programadas', style: theme.textTheme.bodySmall)),
           );
         }
-        return Column(
-          children: docs.asMap().entries.map((entry) {
-            final data = entry.value.data() as Map<String, dynamic>;
-            final dateStr = data['date'] as String? ?? '';
-            final slots = List<String>.from(data['slots'] ?? [])..sort();
-            return GestureDetector(
-              onTap: () => showEditDateSheet(
-                context,
-                _firestore,
-                entry.value.id,
-                slots,
-              ),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(12),
+        return Column(children: docs.asMap().entries.map((entry) {
+          final data = entry.value.data() as Map<String, dynamic>;
+          final dateStr = data['date'] as String? ?? '';
+          final slots = List<String>.from(data['slots'] ?? [])..sort();
+          return GestureDetector(
+            onTap: () => showEditDateSheet(context, _fs, entry.value.id, slots),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12)),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: AdminTheme.primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Iconsax.calendar_1, color: AdminTheme.primaryColor, size: 18),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AdminTheme.primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Iconsax.calendar_1,
-                        color: AdminTheme.primaryColor,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            formatDateLabel(dateStr),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            '${slots.length} horarios',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Iconsax.arrow_right_3,
-                      size: 18,
-                      color: theme.textTheme.bodySmall?.color,
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(
-                    duration: 250.ms,
-                    delay: (200 + entry.key * 30).ms,
-                  ),
-            );
-          }).toList(),
-        );
+                const SizedBox(width: 14),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(formatDateLabel(dateStr), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  Text('${slots.length} horarios', style: theme.textTheme.bodySmall?.copyWith(fontSize: 12)),
+                ])),
+                Icon(Iconsax.arrow_right_3, size: 18, color: theme.textTheme.bodySmall?.color),
+              ]),
+            ).animate().fadeIn(duration: 250.ms, delay: (200 + entry.key * 30).ms),
+          );
+        }).toList());
       },
     );
   }

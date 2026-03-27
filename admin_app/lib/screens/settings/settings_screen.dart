@@ -265,42 +265,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ).animate().fadeIn(duration: 300.ms);
   }
 
-  Widget _field(
-    TextEditingController ctrl,
-    String label,
-    IconData icon, {
-    bool isNum = false,
-  }) {
+  Widget _field(TextEditingController ctrl, String label, IconData icon, {bool isNum = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: ctrl,
-        keyboardType: isNum ? TextInputType.number : null,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, size: 20),
-        ),
-      ),
+      child: TextField(controller: ctrl, keyboardType: isNum ? TextInputType.number : null, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20))),
     );
   }
 
   List<Widget> _priceFields(String pfx) {
     const btus = ['12000', '18000', '24000', '36000'];
     const labels = ['12K BTU', '18K BTU', '24K BTU', '36K BTU'];
-    return List.generate(
-      btus.length,
-      (i) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-          controller: _ctrl('$pfx${btus[i]}', 0),
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: labels[i],
-            prefixIcon: const Icon(Iconsax.money, size: 20),
-            prefixText: '\$ ',
-          ),
-        ),
-      ),
-    );
+    return List.generate(btus.length, (i) => Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(controller: _ctrl('$pfx${btus[i]}', 0), keyboardType: TextInputType.number, decoration: InputDecoration(labelText: labels[i], prefixIcon: const Icon(Iconsax.money, size: 20), prefixText: '\$ ')),
+    ));
   }
 }
