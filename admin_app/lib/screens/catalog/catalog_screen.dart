@@ -6,6 +6,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'package:alx_clima_admin/widgets/glass_card.dart';
 import 'catalog_helpers.dart';
+import 'catalog_brands.dart';
+import 'catalog_types.dart';
 
 class CatalogScreen extends StatelessWidget {
   const CatalogScreen({super.key});

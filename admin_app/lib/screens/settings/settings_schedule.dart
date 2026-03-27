@@ -14,15 +14,7 @@ class WorkScheduleCard extends StatefulWidget {
 }
 
 class _WorkScheduleCardState extends State<WorkScheduleCard> {
-  static const _dayNames = [
-    'Lun',
-    'Mar',
-    'Mié',
-    'Jue',
-    'Vie',
-    'Sáb',
-    'Dom',
-  ];
+  static const _dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
   Set<int> _workDays = {1, 2, 3, 4, 5};
   int _startHour = 9;
@@ -33,15 +25,10 @@ class _WorkScheduleCardState extends State<WorkScheduleCard> {
 
   Future<void> _load() async {
     if (_loaded) return;
-    final doc = await FirebaseFirestore.instance
-        .collection('config')
-        .doc('workSchedule')
-        .get();
+    final doc = await FirebaseFirestore.instance.collection('config').doc('workSchedule').get();
     if (doc.exists) {
       final d = doc.data()!;
-      _workDays = ((d['workDays'] as List?) ?? [1, 2, 3, 4, 5])
-          .cast<int>()
-          .toSet();
+      _workDays = ((d['workDays'] as List?) ?? [1, 2, 3, 4, 5]).cast<int>().toSet();
       _startHour = d['startHour'] ?? 9;
       _endHour = d['endHour'] ?? 18;
     }
@@ -49,13 +36,8 @@ class _WorkScheduleCardState extends State<WorkScheduleCard> {
   }
 
   Future<void> _saveConfig() async {
-    await FirebaseFirestore.instance
-        .collection('config')
-        .doc('workSchedule')
-        .set({
-      'workDays': _workDays.toList()..sort(),
-      'startHour': _startHour,
-      'endHour': _endHour,
+    await FirebaseFirestore.instance.collection('config').doc('workSchedule').set({
+      'workDays': _workDays.toList()..sort(), 'startHour': _startHour, 'endHour': _endHour,
     });
   }
 
@@ -90,18 +72,11 @@ class _WorkScheduleCardState extends State<WorkScheduleCard> {
 
     if (mounted) {
       setState(() => _generating = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Horarios generados para $_daysAhead días',
-            style: GoogleFonts.exo2(fontSize: 13),
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Horarios generados para $_daysAhead días', style: GoogleFonts.exo2(fontSize: 13)),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
     }
   }
 
@@ -267,27 +242,12 @@ class _WorkScheduleCardState extends State<WorkScheduleCard> {
         DropdownButtonFormField<int>(
           value: value,
           isDense: true,
-          decoration: const InputDecoration(
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 10,
-            ),
-          ),
+          decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
           style: GoogleFonts.exo2(fontSize: 13),
-          items: List.generate(
-            24,
-            (h) => DropdownMenuItem(
-              value: h,
-              child: Text(
-                '${h.toString().padLeft(2, '0')}:00',
-                style: GoogleFonts.exo2(fontSize: 13),
-              ),
-            ),
-          ),
-          onChanged: (v) {
-            if (v != null) onChanged(v);
-          },
+          items: List.generate(24, (h) => DropdownMenuItem(
+            value: h, child: Text('${h.toString().padLeft(2, '0')}:00', style: GoogleFonts.exo2(fontSize: 13)),
+          )),
+          onChanged: (v) { if (v != null) onChanged(v); },
         ),
       ],
     );
@@ -297,34 +257,15 @@ class _WorkScheduleCardState extends State<WorkScheduleCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Días',
-          style: GoogleFonts.exo2(fontSize: 11, letterSpacing: 0.3),
-        ),
+        Text('Días', style: GoogleFonts.exo2(fontSize: 11, letterSpacing: 0.3)),
         const SizedBox(height: 4),
         DropdownButtonFormField<int>(
           value: _daysAhead,
           isDense: true,
-          decoration: const InputDecoration(
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 10,
-            ),
-          ),
+          decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
           style: GoogleFonts.exo2(fontSize: 13),
-          items: [15, 30, 60, 90]
-              .map((d) => DropdownMenuItem(
-                    value: d,
-                    child: Text(
-                      '$d',
-                      style: GoogleFonts.exo2(fontSize: 13),
-                    ),
-                  ))
-              .toList(),
-          onChanged: (v) {
-            if (v != null) setState(() => _daysAhead = v);
-          },
+          items: [15, 30, 60, 90].map((d) => DropdownMenuItem(value: d, child: Text('$d', style: GoogleFonts.exo2(fontSize: 13)))).toList(),
+          onChanged: (v) { if (v != null) setState(() => _daysAhead = v); },
         ),
       ],
     );

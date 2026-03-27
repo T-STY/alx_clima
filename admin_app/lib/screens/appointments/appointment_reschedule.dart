@@ -7,24 +7,16 @@ import 'package:alx_clima_admin/config/theme.dart';
 import 'appointment_actions.dart';
 
 Future<void> rescheduleAppointment(
-  BuildContext context,
-  QueryDocumentSnapshot doc,
+  BuildContext context, QueryDocumentSnapshot doc,
 ) async {
-  final scheduleSnap =
-      await FirebaseFirestore.instance.collection('schedule').get();
-
+  final scheduleSnap = await FirebaseFirestore.instance.collection('schedule').get();
   final available = <String, List<String>>{};
   for (final sDoc in scheduleSnap.docs) {
     final slots = (sDoc.data()['slots'] as List?)?.cast<String>() ?? [];
-    if (slots.isNotEmpty) {
-      available[sDoc.id] = slots;
-    }
+    if (slots.isNotEmpty) available[sDoc.id] = slots;
   }
-
   final dates = available.keys.toList()..sort();
-
   if (!context.mounted) return;
-
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -60,10 +52,7 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final slots = _selectedDate != null
-        ? (widget.available[_selectedDate] ?? [])
-        : <String>[];
-
+    final slots = _selectedDate != null ? (widget.available[_selectedDate] ?? []) : <String>[];
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: BackdropFilter(
@@ -73,11 +62,8 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
             maxHeight: MediaQuery.of(context).size.height * 0.8,
           ),
           decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF0B0D14).withValues(alpha: 0.92)
-                : Colors.white.withValues(alpha: 0.92),
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(24)),
+            color: isDark ? const Color(0xFF0B0D14).withValues(alpha: 0.92) : Colors.white.withValues(alpha: 0.92),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -147,11 +133,7 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
                           final selected = _selectedSlots.contains(slot);
                           return GestureDetector(
                             onTap: () => setState(() {
-                              if (selected) {
-                                _selectedSlots.remove(slot);
-                              } else {
-                                _selectedSlots.add(slot);
-                              }
+                              selected ? _selectedSlots.remove(slot) : _selectedSlots.add(slot);
                             }),
                             child: _pill(slot, selected, isDark),
                           );
