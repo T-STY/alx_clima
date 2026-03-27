@@ -24,18 +24,25 @@ class AdminButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final btnColor = color ?? AdminTheme.primaryColor;
-    final minSize = expand ? const Size(double.infinity, 48) : const Size(0, 48);
+    final minSize = expand
+        ? const Size(double.infinity, 44)
+        : const Size(0, 38);
+    final radius = BorderRadius.circular(10);
+    final pad = EdgeInsets.symmetric(
+      vertical: expand ? 10 : 8,
+      horizontal: expand ? 16 : 14,
+    );
 
     if (isOutlined) {
       return OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: btnColor, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: BorderSide(color: btnColor.withValues(alpha: 0.5)),
+          shape: RoundedRectangleBorder(borderRadius: radius),
           minimumSize: minSize,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: pad,
         ),
-        child: _content(btnColor),
+        child: _body(btnColor),
       );
     }
 
@@ -43,27 +50,40 @@ class AdminButton extends StatelessWidget {
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: btnColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: radius),
         minimumSize: minSize,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: pad,
       ),
-      child: _content(Colors.white),
+      child: _body(Colors.white),
     );
   }
 
-  Widget _content(Color c) {
+  Widget _body(Color c) {
     if (isLoading) {
-      return SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: c));
+      return SizedBox(
+        width: 18,
+        height: 18,
+        child: CircularProgressIndicator(strokeWidth: 2, color: c),
+      );
     }
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 18, color: c),
-          const SizedBox(width: 8),
+          Icon(icon, size: 16, color: c),
+          const SizedBox(width: 6),
         ],
-        Text(text, style: TextStyle(color: c, fontWeight: FontWeight.w600)),
+        Text(
+          text,
+          style: TextStyle(
+            color: c,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
       ],
     );
   }

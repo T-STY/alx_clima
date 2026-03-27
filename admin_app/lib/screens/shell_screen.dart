@@ -9,93 +9,108 @@ class AdminShell extends StatelessWidget {
   final Widget child;
   const AdminShell({super.key, required this.child});
 
-  static const _navItems = [
-    _NavItem(icon: Iconsax.home_2, activeIcon: Iconsax.home_25, label: 'Inicio', path: '/dashboard'),
-    _NavItem(icon: Iconsax.calendar, activeIcon: Iconsax.calendar_1, label: 'Citas', path: '/appointments'),
-    _NavItem(icon: Iconsax.clock, activeIcon: Iconsax.clock, label: 'Horarios', path: '/schedule'),
-    _NavItem(icon: Iconsax.box_1, activeIcon: Iconsax.box_1, label: 'Catálogo', path: '/catalog'),
-    _NavItem(icon: Iconsax.people, activeIcon: Iconsax.people, label: 'Clientes', path: '/clients'),
-    _NavItem(icon: Iconsax.setting_2, activeIcon: Iconsax.setting_2, label: 'Ajustes', path: '/settings'),
+  static const _items = [
+    _Nav(icon: Iconsax.home_2, activeIcon: Iconsax.home_25, label: 'Inicio', path: '/dashboard'),
+    _Nav(icon: Iconsax.calendar, activeIcon: Iconsax.calendar_1, label: 'Citas', path: '/appointments'),
+    _Nav(icon: Iconsax.clock, activeIcon: Iconsax.clock, label: 'Horarios', path: '/schedule'),
+    _Nav(icon: Iconsax.box_1, activeIcon: Iconsax.box_1, label: 'Catálogo', path: '/catalog'),
+    _Nav(icon: Iconsax.people, activeIcon: Iconsax.people, label: 'Clientes', path: '/clients'),
+    _Nav(icon: Iconsax.setting_2, activeIcon: Iconsax.setting_2, label: 'Ajustes', path: '/settings'),
   ];
 
-  int _currentIndex(BuildContext context) {
-    final location = GoRouterState.of(context).matchedLocation;
-    for (var i = 0; i < _navItems.length; i++) {
-      if (location.startsWith(_navItems[i].path)) return i;
+  int _activeIndex(BuildContext context) {
+    final loc = GoRouterState.of(context).matchedLocation;
+    for (var i = 0; i < _items.length; i++) {
+      if (loc.startsWith(_items[i].path)) return i;
     }
     return 0;
   }
 
   @override
   Widget build(BuildContext context) {
-    final index = _currentIndex(context);
-    final themeProvider = context.watch<ThemeProvider>();
+    final idx = _activeIndex(context);
+    final tp = context.watch<ThemeProvider>();
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.color;
 
     return Scaffold(
       body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
+          color: theme.colorScheme.surface,
+          border: Border(
+            top: BorderSide(color: theme.dividerColor, width: 0.5),
+          ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: SizedBox(
+            height: 58,
             child: Row(
               children: [
-                ..._navItems.asMap().entries.map((entry) {
-                  final i = entry.key;
-                  final item = entry.value;
-                  final isActive = index == i;
+                ..._items.asMap().entries.map((e) {
+                  final i = e.key;
+                  final item = e.value;
+                  final active = idx == i;
                   return Expanded(
                     child: GestureDetector(
                       onTap: () => context.go(item.path),
                       behavior: HitTestBehavior.opaque,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isActive ? item.activeIcon : item.icon,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: active
+                                  ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              active ? item.activeIcon : item.icon,
                               size: 20,
-                              color: isActive ? AdminTheme.primaryColor : Theme.of(context).textTheme.bodySmall?.color,
+                              color: active
+                                  ? theme.colorScheme.primary
+                                  : muted,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              item.label,
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: isActive ? AdminTheme.primaryColor : Theme.of(context).textTheme.bodySmall?.color,
-                                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                              ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.label,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                              color: active
+                                  ? theme.colorScheme.primary
+                                  : muted,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 }),
                 GestureDetector(
-                  onTap: () => themeProvider.toggle(),
+                  onTap: () => tp.toggle(),
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          themeProvider.isDark ? Iconsax.sun_1 : Iconsax.moon,
+                          tp.isDark ? Iconsax.sun_1 : Iconsax.moon,
                           size: 20,
-                          color: Theme.of(context).textTheme.bodySmall?.color,
+                          color: muted,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          themeProvider.isDark ? 'Claro' : 'Oscuro',
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: Theme.of(context).textTheme.bodySmall?.color,
-                          ),
+                          tp.isDark ? 'Claro' : 'Oscuro',
+                          style: TextStyle(fontSize: 9, color: muted),
                         ),
                       ],
                     ),
@@ -110,10 +125,15 @@ class AdminShell extends StatelessWidget {
   }
 }
 
-class _NavItem {
+class _Nav {
   final IconData icon;
   final IconData activeIcon;
   final String label;
   final String path;
-  const _NavItem({required this.icon, required this.activeIcon, required this.label, required this.path});
+  const _Nav({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.path,
+  });
 }

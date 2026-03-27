@@ -11,143 +11,258 @@ import 'package:alx_clima_admin/widgets/stat_card.dart';
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
-  String _capitalize(String s) =>
-      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+  String _cap(String s) {
+    if (s.isEmpty) return s;
+    return '${s[0].toUpperCase()}${s.substring(1)}';
+  }
+
+  String _formatToday() {
+    final raw = DateFormat('EEEE dd \'de\' MMMM, yyyy', 'es').format(DateTime.now());
+    final parts = raw.split(' ');
+    if (parts.length >= 4) {
+      parts[0] = _cap(parts[0]);
+      parts[3] = _cap(parts[3]);
+    }
+    return parts.join(' ');
+  }
+
+  (Color, String) _statusInfo(String status) {
+    switch (status) {
+      case 'confirmed':
+        return (AdminTheme.successColor, 'Confirmada');
+      case 'cancelled':
+        return (AdminTheme.errorColor, 'Cancelada');
+      case 'completed':
+        return (AdminTheme.accentColor, 'Completada');
+      case 'modified':
+        return (AdminTheme.primaryColor, 'Modificada');
+      default:
+        return (AdminTheme.warningColor, 'Pendiente');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final firestore = FirebaseFirestore.instance;
+    final fs = FirebaseFirestore.instance;
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Panel de Control',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ).animate().fadeIn(duration: 400.ms),
-              const SizedBox(height: 2),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
+              ).animate().fadeIn(duration: 300.ms),
+              const SizedBox(height: 4),
               Text(
-                _capitalize(DateFormat('EEEE dd MMMM yyyy', 'es').format(DateTime.now())),
-                style: Theme.of(context).textTheme.bodyMedium,
+                _formatToday(),
+                style: theme.textTheme.bodySmall?.copyWith(fontSize: 13),
               ),
-              const SizedBox(height: 20),
-
+              const SizedBox(height: 24),
               StreamBuilder<QuerySnapshot>(
-                stream: firestore
+                stream: fs
                     .collection('appointments')
                     .orderBy('createdAt', descending: true)
                     .snapshots(),
-                builder: (context, snapshot) {
-                  final docs = snapshot.data?.docs ?? [];
-                  final todayAppts = docs.where((d) {
-                    final data = d.data() as Map<String, dynamic>;
-                    return data['date'] == today && data['status'] != 'cancelled';
-                  }).length;
-                  final pendingAppts = docs.where((d) {
-                    final data = d.data() as Map<String, dynamic>;
-                    return data['status'] == 'pending';
-                  }).length;
-                  final confirmedAppts = docs.where((d) {
-                    final data = d.data() as Map<String, dynamic>;
-                    return data['status'] == 'confirmed';
-                  }).length;
-                  final completedAppts = docs.where((d) {
-                    final data = d.data() as Map<String, dynamic>;
-                    return data['status'] == 'completed';
-                  }).length;
-
+                builder: (context, snap) {
+                  final docs = snap.data?.docs ?? [];
+                  int todayCount = 0;
+                  int pending = 0;
+                  int confirmed = 0;
+                  int completed = 0;
+                  for (final d in docs) {
+                    final m = d.data() as Map<String, dynamic>;
+                    final st = m['status'] ?? 'pending';
+                    if (m['date'] == today && st != 'cancelled') todayCount++;
+                    if (st == 'pending') pending++;
+                    if (st == 'confirmed') confirmed++;
+                    if (st == 'completed') completed++;
+                  }
                   return Column(
                     children: [
-                      Row(children: [
-                        Expanded(child: StatCard(icon: Iconsax.calendar_tick, value: '$todayAppts', label: 'Hoy', color: AdminTheme.primaryColor)),
-                        const SizedBox(width: 10),
-                        Expanded(child: StatCard(icon: Iconsax.clock, value: '$pendingAppts', label: 'Pendientes', color: AdminTheme.warningColor)),
-                      ]),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: StatCard(
+                              icon: Iconsax.calendar_tick,
+                              value: '$todayCount',
+                              label: 'Hoy',
+                              color: AdminTheme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: StatCard(
+                              icon: Iconsax.clock,
+                              value: '$pending',
+                              label: 'Pendientes',
+                              color: AdminTheme.warningColor,
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 10),
-                      Row(children: [
-                        Expanded(child: StatCard(icon: Iconsax.tick_circle, value: '$confirmedAppts', label: 'Confirmadas', color: AdminTheme.successColor)),
-                        const SizedBox(width: 10),
-                        Expanded(child: StatCard(icon: Iconsax.tick_square, value: '$completedAppts', label: 'Completadas', color: AdminTheme.accentColor)),
-                      ]),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: StatCard(
+                              icon: Iconsax.tick_circle,
+                              value: '$confirmed',
+                              label: 'Confirmadas',
+                              color: AdminTheme.successColor,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: StatCard(
+                              icon: Iconsax.tick_square,
+                              value: '$completed',
+                              label: 'Completadas',
+                              color: AdminTheme.accentColor,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
-                  ).animate().fadeIn(duration: 400.ms, delay: 100.ms);
+                  ).animate().fadeIn(duration: 300.ms, delay: 80.ms);
                 },
               ),
-
-              const SizedBox(height: 24),
-
+              const SizedBox(height: 28),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Citas Recientes', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                  TextButton(onPressed: () => context.go('/appointments'), child: const Text('Ver todas')),
-                ],
-              ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
-
-              const SizedBox(height: 8),
-
-              StreamBuilder<QuerySnapshot>(
-                stream: firestore.collection('appointments').orderBy('createdAt', descending: true).limit(5).snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                  final docs = snapshot.data!.docs;
-                  if (docs.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(14),
+                  Expanded(
+                    child: Text(
+                      'Citas Recientes',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: theme.textTheme.bodyLarge?.color,
                       ),
-                      child: Center(child: Text('Sin citas registradas', style: Theme.of(context).textTheme.bodyMedium)),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.go('/appointments'),
+                    child: Text(
+                      'Ver todas',
+                      style: TextStyle(
+                        color: AdminTheme.primaryColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              StreamBuilder<QuerySnapshot>(
+                stream: fs
+                    .collection('appointments')
+                    .orderBy('createdAt', descending: true)
+                    .limit(5)
+                    .snapshots(),
+                builder: (context, snap) {
+                  if (!snap.hasData) {
+                    return const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(child: CircularProgressIndicator()),
                     );
                   }
-
+                  final docs = snap.data!.docs;
+                  if (docs.isEmpty) {
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Sin citas registradas',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                    );
+                  }
                   return Column(
                     children: docs.asMap().entries.map((entry) {
                       final data = entry.value.data() as Map<String, dynamic>;
                       final customer = data['customer'] as Map<String, dynamic>? ?? {};
                       final status = data['status'] ?? 'pending';
-
-                      Color statusColor;
-                      String statusLabel;
-                      switch (status) {
-                        case 'confirmed': statusColor = AdminTheme.successColor; statusLabel = 'Confirmada'; break;
-                        case 'cancelled': statusColor = AdminTheme.errorColor; statusLabel = 'Cancelada'; break;
-                        case 'completed': statusColor = Colors.grey; statusLabel = 'Completada'; break;
-                        default: statusColor = AdminTheme.warningColor; statusLabel = 'Pendiente';
-                      }
-
+                      final info = _statusInfo(status);
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(14),
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Theme.of(context).dividerColor),
+                          color: theme.cardColor,
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           children: [
-                            Container(width: 4, height: 36, decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(2))),
-                            const SizedBox(width: 12),
-                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(customer['name'] ?? 'Sin nombre', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                              Text('${data['date']} \u00b7 ${data['timeSlotDisplay'] ?? ''}', style: Theme.of(context).textTheme.bodySmall),
-                            ])),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
-                              child: Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                              width: 3,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: info.$1,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    customer['name'] ?? 'Sin nombre',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${data['date']} \u00b7 ${data['timeSlotDisplay'] ?? ''}',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: info.$1.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                info.$2,
+                                style: TextStyle(
+                                  color: info.$1,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ).animate().fadeIn(duration: 300.ms, delay: (200 + entry.key * 50).ms);
+                      ).animate().fadeIn(
+                            duration: 250.ms,
+                            delay: (120 + entry.key * 40).ms,
+                          );
                     }).toList(),
                   );
                 },
