@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
@@ -10,21 +12,89 @@ class AuthProvider extends ChangeNotifier {
 
   User? _user;
   bool _isLoading = true;
+  bool _isSuspended = false;
   String? _error;
+  StreamSubscription? _suspensionSub;
+  StreamSubscription? _notificationSub;
+  List<Map<String, dynamic>> _notifications = [];
 
   AuthProvider() {
     _authService.authStateChanges.listen(_onAuthStateChanged);
   }
 
+  @override
+  void dispose() {
+    _suspensionSub?.cancel();
+    _notificationSub?.cancel();
+    super.dispose();
+  }
+
   User? get user => _user;
   bool get isLoading => _isLoading;
-  bool get isSignedIn => _user != null;
+  bool get isSignedIn => _user != null && !_isSuspended;
+  bool get isSuspended => _isSuspended;
   String? get error => _error;
+  List<Map<String, dynamic>> get notifications => _notifications;
+  int get unreadNotificationCount =>
+      _notifications.where((n) => n['read'] != true).length;
 
   void _onAuthStateChanged(User? user) {
+    _suspensionSub?.cancel();
+    _notificationSub?.cancel();
     _user = user;
+    _isSuspended = false;
+    _notifications = [];
     _isLoading = false;
+
+    if (user != null) {
+      _listenToSuspension(user.uid);
+      _listenToNotifications(user.uid);
+    }
+
     notifyListeners();
+  }
+
+  void _listenToSuspension(String uid) {
+    _suspensionSub = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .listen((doc) {
+      final data = doc.data();
+      final suspended = data?['suspended'] == true;
+      if (suspended != _isSuspended) {
+        _isSuspended = suspended;
+        notifyListeners();
+      }
+    });
+  }
+
+  void _listenToNotifications(String uid) {
+    _notificationSub = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .orderBy('createdAt', descending: true)
+        .limit(20)
+        .snapshots()
+        .listen((snap) {
+      _notifications = snap.docs.map((doc) {
+        final data = doc.data();
+        data['docId'] = doc.id;
+        return data;
+      }).toList();
+      notifyListeners();
+    });
+  }
+
+  Future<void> markNotificationRead(String docId) async {
+    if (_user == null) return;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_user!.uid)
+        .collection('notifications')
+        .doc(docId)
+        .update({'read': true});
   }
 
   Future<bool> signIn(String email, String password) async {

@@ -10,6 +10,7 @@ import 'package:alx_clima/config/constants.dart';
 import 'package:alx_clima/config/theme.dart';
 import 'package:alx_clima/data/care_tips.dart';
 import 'package:alx_clima/providers/appointment_provider.dart';
+import 'package:alx_clima/providers/auth_provider.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
 import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/section_header.dart';
@@ -141,7 +142,179 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+        _buildNotificationBell(context),
       ],
+    );
+  }
+
+  Widget _buildNotificationBell(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final unread = auth.unreadNotificationCount;
+
+    return GestureDetector(
+      onTap: () => _showNotifications(context, auth),
+      child: Stack(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Iconsax.notification, size: 22),
+          ),
+          if (unread > 0)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: const BoxDecoration(
+                  color: AppTheme.errorColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '$unread',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showNotifications(BuildContext context, AuthProvider auth) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final notifications = auth.notifications;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Notificaciones',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              if (notifications.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: Text(
+                      'Sin notificaciones',
+                      style: Theme.of(ctx).textTheme.bodyMedium,
+                    ),
+                  ),
+                )
+              else
+                ...notifications.take(10).map((n) {
+                  final isRead = n['read'] == true;
+                  return GestureDetector(
+                    onTap: () {
+                      if (!isRead) {
+                        auth.markNotificationRead(n['docId']);
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isRead
+                            ? AppTheme.surfaceColor
+                            : AppTheme.primaryColor
+                                .withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: isRead
+                            ? null
+                            : Border.all(
+                                color: AppTheme.primaryColor
+                                    .withValues(alpha: 0.2),
+                              ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            n['type'] == 'reschedule'
+                                ? Iconsax.calendar_edit
+                                : Iconsax.notification,
+                            size: 18,
+                            color: isRead
+                                ? AppTheme.textSecondary
+                                : AppTheme.primaryColor,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  n['title'] ?? '',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: isRead
+                                        ? AppTheme.textSecondary
+                                        : null,
+                                  ),
+                                ),
+                                Text(
+                                  n['message'] ?? '',
+                                  style: Theme.of(ctx)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(fontSize: 12),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!isRead)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppTheme.primaryColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        );
+      },
     );
   }
 

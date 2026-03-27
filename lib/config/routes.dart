@@ -15,6 +15,7 @@ import 'package:alx_clima/screens/quote/installation_details_screen.dart';
 import 'package:alx_clima/screens/quote/quote_summary_screen.dart';
 import 'package:alx_clima/screens/quote/quote_type_screen.dart';
 import 'package:alx_clima/screens/shell_screen.dart';
+import 'package:alx_clima/screens/suspended/suspended_screen.dart';
 import 'package:alx_clima/screens/tips/care_tips_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -25,14 +26,18 @@ GoRouter buildRouter(AuthProvider authProvider) {
     initialLocation: '/home',
     refreshListenable: authProvider,
     redirect: (context, state) {
-      final isSignedIn = authProvider.isSignedIn;
       final isLoading = authProvider.isLoading;
       final isOnLogin = state.matchedLocation == '/login';
+      final isOnSuspended = state.matchedLocation == '/suspended';
+      final hasUser = authProvider.user != null;
+      final isSuspended = authProvider.isSuspended;
 
       if (isLoading) return null;
 
-      if (!isSignedIn && !isOnLogin) return '/login';
-      if (isSignedIn && isOnLogin) return '/home';
+      if (!hasUser && !isOnLogin) return '/login';
+      if (hasUser && isSuspended && !isOnSuspended) return '/suspended';
+      if (hasUser && !isSuspended && isOnSuspended) return '/home';
+      if (hasUser && !isSuspended && isOnLogin) return '/home';
 
       return null;
     },
@@ -40,6 +45,10 @@ GoRouter buildRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/suspended',
+        builder: (context, state) => const SuspendedScreen(),
       ),
 
       StatefulShellRoute.indexedStack(

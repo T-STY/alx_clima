@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
 
 import 'package:alx_clima_admin/config/theme.dart';
+import 'package:alx_clima_admin/widgets/admin_button.dart';
 
 List<Map<String, dynamic>> parseEquipment(dynamic equipField) {
   final result = <Map<String, dynamic>>[];
@@ -81,11 +83,8 @@ void showAppointmentDetail(BuildContext context, Map<String, dynamic> data) {
             if ((customer['address'] ?? '').isNotEmpty)
               _row(ctx, Iconsax.home_2, customer['address']),
             Divider(height: 20, color: theme.dividerColor),
-            _row(
-              ctx,
-              Iconsax.calendar_1,
-              '${data['date']} \u00b7 ${data['timeSlotDisplay'] ?? ''}',
-            ),
+            _row(ctx, Iconsax.calendar_1,
+                '${data['date']} \u00b7 ${data['timeSlotDisplay'] ?? ''}'),
             _row(ctx, Iconsax.setting_2, data['serviceTypeDisplay'] ?? ''),
             if ((data['notes'] ?? '').isNotEmpty)
               _row(ctx, Iconsax.note_text, data['notes']),
@@ -104,11 +103,8 @@ void showAppointmentDetail(BuildContext context, Map<String, dynamic> data) {
                   ),
                   child: Row(
                     children: [
-                      const Icon(
-                        Iconsax.cpu_setting,
-                        size: 14,
-                        color: AdminTheme.primaryColor,
-                      ),
+                      const Icon(Iconsax.cpu_setting,
+                          size: 14, color: AdminTheme.primaryColor),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -117,13 +113,10 @@ void showAppointmentDetail(BuildContext context, Map<String, dynamic> data) {
                         ),
                       ),
                       if ((eq['location'] ?? '').isNotEmpty)
-                        Text(
-                          eq['location'],
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: theme.textTheme.bodySmall?.color,
-                          ),
-                        ),
+                        Text(eq['location'],
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: theme.textTheme.bodySmall?.color)),
                     ],
                   ),
                 )),
@@ -188,35 +181,253 @@ Future<void> rescheduleAppointment(
   Map<String, dynamic> data,
   DocumentReference ref,
 ) async {
-  await ref.update({
-    'status': 'modified',
-    'adminNote': 'Reagendada por el técnico',
-    'modifiedAt': FieldValue.serverTimestamp(),
-  });
-  final userId = data['userId'] as String?;
-  if (userId != null) {
-    await firestore
-        .collection('users')
-        .doc(userId)
-        .collection('notifications')
-        .add({
-      'type': 'reschedule',
-      'title': 'Cita Reagendada',
-      'message':
-          'Tu cita del ${data['date']} ha sido modificada por el técnico. Por favor agenda una nueva fecha.',
-      'createdAt': FieldValue.serverTimestamp(),
-      'read': false,
-    });
+  final scaffoldMessenger = ScaffoldMessenger.of(context);
+  final navigator = Navigator.of(context);
+
+  final availableSnap = await firestore.collection('schedule').get();
+  final availableDates = <String, List<String>>{};
+  for (final doc in availableSnap.docs) {
+    final slots = (doc.data()['slots'] as List?)?.cast<String>() ?? [];
+    if (slots.isNotEmpty) {
+      availableDates[doc.id] = [...slots]..sort();
+    }
   }
-  await cancelAppointment(firestore, data, ref);
-  if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
+
+  if (availableDates.isEmpty) {
+    scaffoldMessenger.showSnackBar(
       SnackBar(
-        content: const Text('Cita reagendada. Se notificó al cliente.'),
-        backgroundColor: AdminTheme.successColor,
+        content: const Text('No hay fechas disponibles para reagendar'),
+        backgroundColor: AdminTheme.errorColor,
       ),
     );
+    return;
   }
+
+  if (!context.mounted) return;
+
+  String? selectedDate;
+  String? selectedSlot;
+
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (ctx, setS) {
+          final theme = Theme.of(ctx);
+          final sortedDates = availableDates.keys.toList()..sort();
+          final slots = selectedDate != null
+              ? (availableDates[selectedDate] ?? [])
+              : <String>[];
+
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.dividerColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Reagendar Cita',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Selecciona nueva fecha y horario',
+                  style: theme.textTheme.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                Text('Fecha',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 40,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: sortedDates.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final d = sortedDates[i];
+                      final sel = selectedDate == d;
+                      return GestureDetector(
+                        onTap: () => setS(() {
+                          selectedDate = d;
+                          selectedSlot = null;
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: sel
+                                ? AdminTheme.primaryColor
+                                : theme.cardColor,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: sel
+                                  ? AdminTheme.primaryColor
+                                  : theme.dividerColor,
+                            ),
+                          ),
+                          child: Text(
+                            d,
+                            style: TextStyle(
+                              color: sel ? Colors.white : null,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                if (selectedDate != null) ...[
+                  const SizedBox(height: 16),
+                  Text('Horario',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: slots.map((s) {
+                      final sel = selectedSlot == s;
+                      return GestureDetector(
+                        onTap: () => setS(() => selectedSlot = s),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: sel
+                                ? AdminTheme.primaryColor
+                                    .withValues(alpha: 0.15)
+                                : theme.cardColor,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: sel
+                                  ? AdminTheme.primaryColor
+                                  : theme.dividerColor,
+                            ),
+                          ),
+                          child: Text(
+                            s,
+                            style: TextStyle(
+                              color: sel
+                                  ? AdminTheme.primaryColor
+                                  : null,
+                              fontWeight:
+                                  sel ? FontWeight.w600 : FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                AdminButton(
+                  text: 'Confirmar Reagendación',
+                  icon: Iconsax.tick_circle,
+                  onPressed: (selectedDate != null && selectedSlot != null)
+                      ? () async {
+                          await cancelAppointment(firestore, data, ref);
+
+                          final newData = Map<String, dynamic>.from(data);
+                          newData['date'] = selectedDate;
+                          newData['timeSlots'] = [selectedSlot];
+                          newData['timeSlotDisplay'] = selectedSlot;
+                          newData['status'] = 'confirmed';
+                          newData['createdAt'] =
+                              FieldValue.serverTimestamp();
+                          newData['adminNote'] =
+                              'Reagendada por el técnico';
+                          newData.remove('appointmentId');
+                          newData['appointmentId'] =
+                              'apt-${DateTime.now().millisecondsSinceEpoch}';
+
+                          await firestore
+                              .collection('appointments')
+                              .add(newData);
+
+                          final schedRef = firestore
+                              .collection('schedule')
+                              .doc(selectedDate);
+                          final schedDoc = await schedRef.get();
+                          if (schedDoc.exists) {
+                            final existing =
+                                (schedDoc.data()?['slots'] as List?)
+                                        ?.cast<String>() ??
+                                    [];
+                            existing.remove(selectedSlot);
+                            if (existing.isEmpty) {
+                              await schedRef.delete();
+                            } else {
+                              await schedRef
+                                  .update({'slots': existing});
+                            }
+                          }
+
+                          await firestore
+                              .collection('bookedSlots')
+                              .add({
+                            'date': selectedDate,
+                            'slot': selectedSlot,
+                            'userId': data['userId'],
+                            'bookedAt': FieldValue.serverTimestamp(),
+                          });
+
+                          final userId = data['userId'] as String?;
+                          if (userId != null) {
+                            await firestore
+                                .collection('users')
+                                .doc(userId)
+                                .collection('notifications')
+                                .add({
+                              'type': 'reschedule',
+                              'title': 'Cita Reagendada',
+                              'message':
+                                  'Tu cita ha sido reagendada para el $selectedDate a las $selectedSlot.',
+                              'createdAt': FieldValue.serverTimestamp(),
+                              'read': false,
+                            });
+                          }
+
+                          if (ctx.mounted) Navigator.of(ctx).pop();
+
+                          scaffoldMessenger.showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                  'Cita reagendada exitosamente'),
+                              backgroundColor: AdminTheme.successColor,
+                            ),
+                          );
+                        }
+                      : null,
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
 }
 
 Future<void> completeAppointment(
@@ -237,7 +448,8 @@ Future<void> completeAppointment(
       'equipmentId': eq['id'] ?? '',
       'serviceDate': FieldValue.serverTimestamp(),
       'serviceType': data['serviceType'] ?? 'maintenance',
-      'description': '${data['serviceTypeDisplay'] ?? 'Servicio'} completado',
+      'description':
+          '${data['serviceTypeDisplay'] ?? 'Servicio'} completado',
       'technicianNotes': data['notes'] ?? '',
       'cost': 0,
     });
