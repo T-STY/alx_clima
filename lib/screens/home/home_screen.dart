@@ -108,20 +108,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildWelcomeHeader(BuildContext context) {
     return Row(
       children: [
-        GestureDetector(
-          onTap: () => context.push('/admin'),
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.asset(
-                'assets/images/logo.png',
-                fit: BoxFit.cover,
-              ),
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.asset(
+              'assets/images/logo.png',
+              fit: BoxFit.cover,
             ),
           ),
         ),

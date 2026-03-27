@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:alx_clima/providers/auth_provider.dart';
-import 'package:alx_clima/screens/admin/admin_panel_screen.dart';
 import 'package:alx_clima/screens/auth/login_screen.dart';
 import 'package:alx_clima/screens/contact/contact_screen.dart';
 import 'package:alx_clima/screens/dashboard/dashboard_screen.dart';
@@ -141,11 +140,6 @@ GoRouter buildRouter(AuthProvider authProvider) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/tips',
         builder: (context, state) => const CareTipsScreen(),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: '/admin',
-        builder: (context, state) => const AdminPanelScreen(),
       ),
     ],
   );
