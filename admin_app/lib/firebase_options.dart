@@ -10,9 +10,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       default:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions no configurado para esta plataforma.',
-        );
+        return android;
     }
   }
 
