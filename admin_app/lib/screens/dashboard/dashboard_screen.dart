@@ -62,7 +62,7 @@ class DashboardScreen extends StatelessWidget {
                   confirmed,
                   completed,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
@@ -103,7 +103,7 @@ class DashboardScreen extends StatelessWidget {
         crossAxisCount: 2,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: 1.6,
+        childAspectRatio: 1.8,
         mainAxisSpacing: 4,
         crossAxisSpacing: 4,
         children: stats

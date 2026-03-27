@@ -21,7 +21,7 @@ void showClientDetail(BuildContext context, DocumentSnapshot doc) {
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(ctx).size.height * 0.85,
+            maxHeight: MediaQuery.of(ctx).size.height * 0.92,
           ),
           decoration: BoxDecoration(
             color: isDark
@@ -45,7 +45,7 @@ void showClientDetail(BuildContext context, DocumentSnapshot doc) {
               Flexible(
                 child: ListView(
                   shrinkWrap: true,
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
                   children: [
                     Text(
                       data['name'] ?? 'Cliente',

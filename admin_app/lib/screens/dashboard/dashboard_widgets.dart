@@ -64,7 +64,7 @@ class StatCard extends StatelessWidget {
                 Text(
                   data.value,
                   style: GoogleFonts.exo2(
-                    fontSize: 26,
+                    fontSize: 22,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

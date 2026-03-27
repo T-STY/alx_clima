@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
@@ -84,8 +85,76 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             _sectionLabel(context, 'Horario de trabajo'),
             const WorkScheduleCard(),
+            const SizedBox(height: 32),
+            _sectionLabel(context, 'Sesión'),
+            GlassCard(
+              child: GestureDetector(
+                onTap: () => _showLogoutDialog(context),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AdminTheme.errorColor.withValues(alpha: 0.12),
+                      ),
+                      child: const Icon(
+                        Iconsax.logout,
+                        size: 18,
+                        color: AdminTheme.errorColor,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Cerrar Sesión',
+                      style: GoogleFonts.exo2(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AdminTheme.errorColor,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Iconsax.arrow_right_3,
+                      size: 16,
+                      color: AdminTheme.errorColor.withValues(alpha: 0.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Cerrar Sesión', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
+        content: Text(
+          '¿Estás seguro de que deseas cerrar sesión?',
+          style: GoogleFonts.exo2(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Cancelar', style: GoogleFonts.exo2()),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              FirebaseAuth.instance.signOut();
+            },
+            child: Text(
+              'Cerrar Sesión',
+              style: GoogleFonts.exo2(color: AdminTheme.errorColor),
+            ),
+          ),
+        ],
       ),
     );
   }

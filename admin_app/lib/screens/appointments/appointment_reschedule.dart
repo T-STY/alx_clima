@@ -78,7 +78,7 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
                 child: Text(
                   'Reagendar cita',
                   style: GoogleFonts.exo2(
