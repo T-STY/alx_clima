@@ -36,6 +36,13 @@ class AdminTheme {
   static const Color successColor = Color(0xFF22C55E);
   static const Color warningColor = Color(0xFFF59E0B);
 
+  static const Color backgroundColor = Color(0xFF0F1117);
+  static const Color surfaceColor = Color(0xFF1A1D27);
+  static const Color cardColor = Color(0xFF222536);
+  static const Color textPrimary = Color(0xFFF1F3F9);
+  static const Color textSecondary = Color(0xFF8B8FA3);
+  static const Color dividerColor = Color(0xFF2E3247);
+
   static ThemeData get darkTheme {
     final base = GoogleFonts.exo2TextTheme(ThemeData.dark().textTheme);
     return _buildTheme(
