@@ -11,80 +11,35 @@ class AdminButton extends StatelessWidget {
   final bool expand;
 
   const AdminButton({
-    super.key,
-    required this.text,
-    this.icon,
-    this.onPressed,
-    this.isOutlined = false,
-    this.isLoading = false,
-    this.color,
-    this.expand = true,
+    super.key, required this.text, this.icon, this.onPressed,
+    this.isOutlined = false, this.isLoading = false, this.color, this.expand = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final btnColor = color ?? AdminTheme.primaryColor;
-    final minSize = expand
-        ? const Size(double.infinity, 44)
-        : const Size(0, 38);
-    final radius = BorderRadius.circular(10);
-    final pad = EdgeInsets.symmetric(
-      vertical: expand ? 10 : 8,
-      horizontal: expand ? 16 : 14,
-    );
-
+    final c = color ?? AdminTheme.primaryColor;
+    final sz = expand ? const Size(double.infinity, 46) : const Size(0, 40);
+    final r = BorderRadius.circular(11);
+    final p = EdgeInsets.symmetric(vertical: expand ? 11 : 9, horizontal: expand ? 18 : 16);
     if (isOutlined) {
       return OutlinedButton(
         onPressed: isLoading ? null : onPressed,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: btnColor.withValues(alpha: 0.5)),
-          shape: RoundedRectangleBorder(borderRadius: radius),
-          minimumSize: minSize,
-          padding: pad,
-        ),
-        child: _body(btnColor),
+        style: OutlinedButton.styleFrom(side: BorderSide(color: c.withValues(alpha: 0.4)), shape: RoundedRectangleBorder(borderRadius: r), minimumSize: sz, padding: p),
+        child: _body(c),
       );
     }
-
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: btnColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: radius),
-        minimumSize: minSize,
-        padding: pad,
-      ),
+      style: ElevatedButton.styleFrom(backgroundColor: c, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: r), minimumSize: sz, padding: p, disabledBackgroundColor: c.withValues(alpha: 0.5)),
       child: _body(Colors.white),
     );
   }
 
   Widget _body(Color c) {
-    if (isLoading) {
-      return SizedBox(
-        width: 18,
-        height: 18,
-        child: CircularProgressIndicator(strokeWidth: 2, color: c),
-      );
-    }
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (icon != null) ...[
-          Icon(icon, size: 16, color: c),
-          const SizedBox(width: 6),
-        ],
-        Text(
-          text,
-          style: TextStyle(
-            color: c,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-        ),
-      ],
-    );
+    if (isLoading) return SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: c));
+    return Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+      if (icon != null) ...[Icon(icon, size: 16, color: c), const SizedBox(width: 7)],
+      Text(text, style: TextStyle(color: c, fontWeight: FontWeight.w600, fontSize: 13, letterSpacing: 0.1)),
+    ]);
   }
 }

@@ -18,23 +18,27 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.5),
+          width: 0.5,
+        ),
       ),
       child: Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 18),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,13 +47,18 @@ class StatCard extends StatelessWidget {
                 Text(
                   value,
                   style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 24,
+                    letterSpacing: -0.5,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   label,
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    letterSpacing: 0.3,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
