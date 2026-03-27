@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:alx_clima_admin/config/theme.dart';
 
 class StatCard extends StatelessWidget {
   final IconData icon;
@@ -18,14 +17,13 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AdminTheme.cardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AdminTheme.dividerColor),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -33,22 +31,30 @@ class StatCard extends StatelessWidget {
               color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 18),
           ),
-          const SizedBox(height: 14),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AdminTheme.textPrimary,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AdminTheme.textSecondary,
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+              ],
+            ),
           ),
         ],
       ),

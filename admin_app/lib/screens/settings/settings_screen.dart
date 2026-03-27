@@ -105,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
 
               _section(context, 'Precios - Solo Instalación', Iconsax.money, [
-                Text('Cliente ya tiene equipo', style: TextStyle(color: AdminTheme.textSecondary, fontSize: 12)),
+                Text('Cliente ya tiene equipo', style: TextStyle(color: Theme.of(context).textTheme.bodySmall!.color!, fontSize: 12)),
                 const SizedBox(height: 8),
                 ..._priceFields('io'),
               ]),
@@ -113,7 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
 
               _section(context, 'Precios - Equipo + Instalación', Iconsax.money, [
-                Text('Compra equipo contigo', style: TextStyle(color: AdminTheme.textSecondary, fontSize: 12)),
+                Text('Compra equipo contigo', style: TextStyle(color: Theme.of(context).textTheme.bodySmall!.color!, fontSize: 12)),
                 const SizedBox(height: 8),
                 ..._priceFields('fp'),
               ]),
@@ -151,15 +151,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AdminTheme.cardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AdminTheme.dividerColor),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Icon(icon, size: 18, color: AdminTheme.primaryColor),
           const SizedBox(width: 8),
-          Text(title, style: TextStyle(color: AdminTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 15)),
+          Text(title, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge!.color!, fontWeight: FontWeight.w600, fontSize: 15)),
         ]),
         const SizedBox(height: 16),
         ...children,

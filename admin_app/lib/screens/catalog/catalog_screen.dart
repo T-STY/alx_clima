@@ -649,6 +649,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 trailing: AdminButton(
                   text: 'Agregar al Catálogo',
                   icon: Iconsax.add,
+                  expand: false,
                   onPressed: _showAddCatalogSheet,
                 ),
               ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
@@ -748,6 +749,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   text: 'Nueva Marca',
                   icon: Iconsax.add,
                   isOutlined: true,
+                  expand: false,
                   onPressed: _showAddBrandSheet,
                 ),
               ).animate().fadeIn(duration: 400.ms, delay: 200.ms),

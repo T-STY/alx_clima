@@ -8,6 +8,7 @@ class AdminButton extends StatelessWidget {
   final bool isOutlined;
   final bool isLoading;
   final Color? color;
+  final bool expand;
 
   const AdminButton({
     super.key,
@@ -17,20 +18,21 @@ class AdminButton extends StatelessWidget {
     this.isOutlined = false,
     this.isLoading = false,
     this.color,
+    this.expand = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final btnColor = color ?? AdminTheme.primaryColor;
+    final minSize = expand ? const Size(double.infinity, 48) : const Size(0, 48);
 
     if (isOutlined) {
       return OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: btnColor, width: 1.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          minimumSize: minSize,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         ),
         child: _content(btnColor),
@@ -41,9 +43,8 @@ class AdminButton extends StatelessWidget {
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: btnColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        minimumSize: minSize,
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       ),
       child: _content(Colors.white),
@@ -52,11 +53,7 @@ class AdminButton extends StatelessWidget {
 
   Widget _content(Color c) {
     if (isLoading) {
-      return SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2, color: c),
-      );
+      return SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: c));
     }
     return Row(
       mainAxisSize: MainAxisSize.min,
