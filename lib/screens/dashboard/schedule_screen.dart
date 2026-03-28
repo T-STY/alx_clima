@@ -104,8 +104,21 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     if (_pricingConfig == null) return 0;
 
     if (_selectedServiceType == ServiceType.maintenance) {
-      final maintenancePrice = _pricingConfig!['maintenance'] as num? ?? 0;
-      return maintenancePrice * _selectedEquipmentIds.length;
+      final maintenanceMap =
+          _pricingConfig!['maintenance'] as Map<String, dynamic>? ?? {};
+      num total = 0;
+      for (final id in _selectedEquipmentIds) {
+        final eq = dashboard.getEquipmentById(id);
+        final btu = eq?.btuCapacity ?? 0;
+        final price = maintenanceMap['$btu'] as num? ?? 0;
+        total += price;
+      }
+      if (_selectedEquipmentIds.length > 1) {
+        final discount =
+            _pricingConfig!['multiUnitDiscount'] as num? ?? 0;
+        total = (total * (1.0 - discount.toDouble())).round();
+      }
+      return total;
     }
 
     if (_selectedServiceType == ServiceType.installation) {
@@ -1109,6 +1122,28 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       appointmentProvider.scheduleAppointment(appointment);
     }
 
+    final quoteProvider = context.read<QuoteProvider>();
+    final quoteBreakdown = <String, dynamic>{
+      'equipmentPrice': quoteProvider.totalEquipmentCost,
+      'installationPrice': quoteProvider.totalInstallCost,
+      'totalPrice': quoteProvider.grandTotal,
+      'perEquipment': resolvedIds.map((id) {
+        final eq = dashboard.getEquipmentById(id);
+        final qi =
+            _quoteItems.where((q) => q.equipment.id == id).firstOrNull;
+        return {
+          'id': eq?.id ?? id,
+          'name': eq?.equipmentName ?? qi?.equipment.name ?? '',
+          'btuCapacity':
+              eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0,
+          'equipmentCost': qi?.equipment.price ?? 0,
+          'installCost': qi != null
+              ? quoteProvider.getInstallCostForItem(qi)
+              : 0,
+        };
+      }).toList(),
+    };
+
     await _firebaseService.createGlobalAppointment({
       'appointmentId': mainAptId,
       'userId': FirebaseAuth.instance.currentUser?.uid,
@@ -1130,6 +1165,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       'equipment': equipmentList,
       'totalUserEquipment': dashboard.totalEquipment,
       'estimatedCost': _calculateEstimatedCost(dashboard),
+      'quoteBreakdown': quoteBreakdown,
     });
 
     if (widget.rescheduleId != null) {

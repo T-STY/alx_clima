@@ -18,7 +18,8 @@ Future<void> invoiceAndComplete(
   final equipment = parseEquipment(data);
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
-  final costCtrl = TextEditingController(text: '0');
+  final estimated = data['estimatedCost'] ?? data['quoteBreakdown']?['totalPrice'] ?? 0;
+  final costCtrl = TextEditingController(text: '$estimated');
   final notesCtrl = TextEditingController();
 
   final confirmed = await showModalBottomSheet<bool>(

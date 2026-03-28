@@ -16,7 +16,7 @@ class _PricingPageState extends State<PricingPage> {
   static const _btus = ['12000', '18000', '24000', '36000'];
   static const _btuLabels = ['12K', '18K', '24K', '36K'];
 
-  final _maintenanceCtrl = TextEditingController();
+  final _maintenanceCtrls = <String, TextEditingController>{};
   final _installCtrls = <String, TextEditingController>{};
   final _fullCtrls = <String, TextEditingController>{};
   final _secondFloorCtrl = TextEditingController();
@@ -28,6 +28,7 @@ class _PricingPageState extends State<PricingPage> {
   void initState() {
     super.initState();
     for (final b in _btus) {
+      _maintenanceCtrls[b] = TextEditingController();
       _installCtrls[b] = TextEditingController();
       _fullCtrls[b] = TextEditingController();
     }
@@ -35,12 +36,10 @@ class _PricingPageState extends State<PricingPage> {
 
   @override
   void dispose() {
-    _maintenanceCtrl.dispose();
-    for (final c in _installCtrls.values) {
-      c.dispose();
-    }
-    for (final c in _fullCtrls.values) {
-      c.dispose();
+    for (final m in [_maintenanceCtrls, _installCtrls, _fullCtrls]) {
+      for (final c in m.values) {
+        c.dispose();
+      }
     }
     _secondFloorCtrl.dispose();
     _diffFloorCtrl.dispose();
@@ -56,10 +55,12 @@ class _PricingPageState extends State<PricingPage> {
         .get();
     if (doc.exists) {
       final d = doc.data()!;
-      _maintenanceCtrl.text = '${d['maintenance'] ?? ''}';
+      final maintenance =
+          d['maintenance'] as Map<String, dynamic>? ?? {};
       final install = d['installOnly'] as Map<String, dynamic>? ?? {};
       final full = d['fullPackage'] as Map<String, dynamic>? ?? {};
       for (final b in _btus) {
+        _maintenanceCtrls[b]!.text = '${maintenance[b] ?? ''}';
         _installCtrls[b]!.text = '${install[b] ?? ''}';
         _fullCtrls[b]!.text = '${full[b] ?? ''}';
       }
@@ -71,9 +72,11 @@ class _PricingPageState extends State<PricingPage> {
   }
 
   Future<void> _save() async {
+    final maintenanceMap = <String, num>{};
     final installMap = <String, num>{};
     final fullMap = <String, num>{};
     for (final b in _btus) {
+      maintenanceMap[b] = num.tryParse(_maintenanceCtrls[b]!.text) ?? 0;
       installMap[b] = num.tryParse(_installCtrls[b]!.text) ?? 0;
       fullMap[b] = num.tryParse(_fullCtrls[b]!.text) ?? 0;
     }
@@ -82,7 +85,7 @@ class _PricingPageState extends State<PricingPage> {
         .collection('config')
         .doc('pricing')
         .set({
-      'maintenance': num.tryParse(_maintenanceCtrl.text) ?? 0,
+      'maintenance': maintenanceMap,
       'installOnly': installMap,
       'fullPackage': fullMap,
       'secondFloorSurcharge': num.tryParse(_secondFloorCtrl.text) ?? 0,
@@ -126,9 +129,7 @@ class _PricingPageState extends State<PricingPage> {
             padding: const EdgeInsets.fromLTRB(0, 8, 0, 100),
             children: [
               _sectionHeader(Iconsax.setting_4, 'Mantenimiento'),
-              GlassCard(
-                child: _priceField(_maintenanceCtrl, 'Precio mantenimiento'),
-              ),
+              GlassCard(child: _btuGrid(_maintenanceCtrls)),
               const SizedBox(height: 8),
               _sectionHeader(Iconsax.cpu_setting, 'Solo Instalación'),
               GlassCard(child: _btuGrid(_installCtrls)),
@@ -139,12 +140,18 @@ class _PricingPageState extends State<PricingPage> {
               _sectionHeader(Iconsax.arrow_up_3, 'Recargos'),
               GlassCard(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _priceField(_secondFloorCtrl, 'Recargo 2do piso (ej. 0.3)'),
+                    _labeledField(
+                      'Segundo piso',
+                      _secondFloorCtrl,
+                      'Ej. 0.3',
+                    ),
                     const SizedBox(height: 10),
-                    _priceField(
+                    _labeledField(
+                      'Compresor en piso diferente',
                       _diffFloorCtrl,
-                      'Recargo piso diferente (ej. 0.3)',
+                      'Ej. 0.3',
                     ),
                   ],
                 ),
@@ -152,9 +159,15 @@ class _PricingPageState extends State<PricingPage> {
               const SizedBox(height: 8),
               _sectionHeader(Iconsax.discount_shape, 'Descuentos'),
               GlassCard(
-                child: _priceField(
-                  _multiCtrl,
-                  'Desc. múltiples unidades (ej. 0.1)',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _labeledField(
+                      'Descuento multi-equipo',
+                      _multiCtrl,
+                      'Ej. 0.1',
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 20),
@@ -169,11 +182,9 @@ class _PricingPageState extends State<PricingPage> {
     );
   }
 
-  Widget _sectionHeader(IconData icon, String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 12, 22, 4),
-      child: Row(
-        children: [
+  Widget _sectionHeader(IconData icon, String title) => Padding(
+        padding: const EdgeInsets.fromLTRB(22, 12, 22, 4),
+        child: Row(children: [
           Container(
             width: 32,
             height: 32,
@@ -184,18 +195,13 @@ class _PricingPageState extends State<PricingPage> {
             child: Icon(icon, size: 16, color: Colors.white),
           ),
           const SizedBox(width: 10),
-          Text(
-            title,
-            style: GoogleFonts.exo2(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AdminTheme.primaryColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+          Text(title, style: GoogleFonts.exo2(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AdminTheme.primaryColor,
+          )),
+        ]),
+      );
 
   Widget _btuGrid(Map<String, TextEditingController> ctrls) {
     return GridView.count(
@@ -208,6 +214,7 @@ class _PricingPageState extends State<PricingPage> {
       children: List.generate(_btus.length, (i) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               '${_btuLabels[i]} BTU',
@@ -240,40 +247,52 @@ class _PricingPageState extends State<PricingPage> {
     );
   }
 
-  Widget _priceField(TextEditingController ctrl, String hint) {
-    return TextField(
-      controller: ctrl,
-      keyboardType: TextInputType.number,
-      style: GoogleFonts.exo2(fontSize: 14),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.exo2(fontSize: 14),
-        prefixIcon: const Icon(Iconsax.dollar_circle, size: 18),
-      ),
+  static final _labelStyle = GoogleFonts.exo2(
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    color: AdminTheme.secondaryColor,
+  );
+
+  Widget _labeledField(String label, TextEditingController ctrl, String hint) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: _labelStyle),
+        const SizedBox(height: 4),
+        TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          style: GoogleFonts.exo2(fontSize: 14),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.exo2(fontSize: 14),
+            prefixIcon: const Icon(Iconsax.dollar_circle, size: 18),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _saveButton() {
-    return GestureDetector(
-      onTap: _save,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: AdminTheme.primaryGradient,
-        ),
-        child: Center(
-          child: Text(
-            'Guardar',
-            style: GoogleFonts.exo2(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+  Widget _saveButton() => GestureDetector(
+        onTap: _save,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: AdminTheme.primaryGradient,
+          ),
+          child: Center(
+            child: Text(
+              'Guardar',
+              style: GoogleFonts.exo2(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
