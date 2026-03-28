@@ -87,6 +87,19 @@ class FutureServicesScreen extends StatelessWidget {
                   .fadeIn(duration: 400.ms, delay: 290.ms)
                   .slideX(begin: 0.05, end: 0),
 
+              const SizedBox(height: 10),
+
+              _ServiceCard(
+                icon: Iconsax.document_text,
+                title: 'Mis Facturas',
+                subtitle: 'Consulta y descarga tus facturas de servicio',
+                color: AppTheme.warningColor,
+                onTap: () => context.push('/invoices'),
+              )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 360.ms)
+                  .slideX(begin: 0.05, end: 0),
+
               const SizedBox(height: 32),
 
               Text(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -93,7 +94,9 @@ Future<void> invoiceAndComplete(
   );
 
   if (shouldPrint == true && context.mounted) {
-    await Printing.layoutPdf(onLayout: (_) async => pdfBytes);
+    await Printing.layoutPdf(
+      onLayout: (_) async => Uint8List.fromList(pdfBytes),
+    );
   }
 }
 

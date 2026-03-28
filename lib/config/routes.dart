@@ -16,6 +16,7 @@ import 'package:alx_clima/screens/quote/quote_summary_screen.dart';
 import 'package:alx_clima/screens/quote/quote_type_screen.dart';
 import 'package:alx_clima/screens/shell_screen.dart';
 import 'package:alx_clima/screens/suspended/suspended_screen.dart';
+import 'package:alx_clima/screens/invoices/invoices_screen.dart';
 import 'package:alx_clima/screens/tips/care_tips_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -149,6 +150,11 @@ GoRouter buildRouter(AuthProvider authProvider) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/tips',
         builder: (context, state) => const CareTipsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/invoices',
+        builder: (context, state) => const InvoicesScreen(),
       ),
     ],
   );
