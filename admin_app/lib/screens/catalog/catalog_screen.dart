@@ -121,21 +121,22 @@ class _EquipmentGrid extends StatelessWidget {
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 0.72,
-            ),
-            itemCount: docs.length,
-            itemBuilder: (context, i) {
-              return _ProductCard(doc: docs[i])
-                  .animate()
-                  .fadeIn(duration: 250.ms, delay: (i * 50).ms)
-                  .slideY(begin: 0.08, end: 0);
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth = (constraints.maxWidth - 8) / 2;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: List.generate(docs.length, (i) {
+                  return SizedBox(
+                    width: cardWidth,
+                    child: _ProductCard(doc: docs[i])
+                        .animate()
+                        .fadeIn(duration: 250.ms, delay: (i * 50).ms)
+                        .slideY(begin: 0.08, end: 0),
+                  );
+                }),
+              );
             },
           ),
         );

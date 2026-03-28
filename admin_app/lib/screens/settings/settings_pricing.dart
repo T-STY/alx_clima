@@ -204,17 +204,18 @@ class _PricingPageState extends State<PricingPage> {
       );
 
   Widget _btuGrid(Map<String, TextEditingController> ctrls) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 2.2,
-      children: List.generate(_btus.length, (i) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = (constraints.maxWidth - 10) / 2;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: List.generate(_btus.length, (i) {
+            return SizedBox(
+              width: w,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               '${_btuLabels[i]} BTU',
@@ -242,8 +243,11 @@ class _PricingPageState extends State<PricingPage> {
               ),
             ),
           ],
+        ),
+            );
+          }),
         );
-      }),
+      },
     );
   }
 

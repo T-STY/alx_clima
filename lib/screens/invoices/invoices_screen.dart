@@ -7,6 +7,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 
 import 'package:alx_clima/config/theme.dart';
 
@@ -229,14 +230,10 @@ class InvoicesScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'PDF descargado. Busca en tus archivos.'),
-                          backgroundColor: AppTheme.successColor,
-                        ),
+                      await Printing.layoutPdf(
+                        onLayout: (_) async => pdfBytes,
                       );
                     },
                     style: ElevatedButton.styleFrom(
