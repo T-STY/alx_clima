@@ -179,6 +179,7 @@ class AddClientEquipmentButton extends StatelessWidget {
                     DropdownButtonFormField<String>(
                       value: selectedBrand,
                       dropdownColor: Theme.of(ctx).cardColor,
+                      menuMaxHeight: 250,
                       decoration: InputDecoration(
                         hintText: 'Seleccionar marca',
                         hintStyle: GoogleFonts.exo2(fontSize: 14),
@@ -208,6 +209,7 @@ class AddClientEquipmentButton extends StatelessWidget {
                     DropdownButtonFormField<String>(
                       value: selectedModel,
                       dropdownColor: Theme.of(ctx).cardColor,
+                      menuMaxHeight: 250,
                       decoration: InputDecoration(
                         hintText: selectedBrand == null
                             ? 'Selecciona una marca'
