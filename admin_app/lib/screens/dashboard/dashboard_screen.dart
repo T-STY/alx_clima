@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'dashboard_widgets.dart';
+import 'metrics_section.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -76,6 +77,20 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 RecentAppointmentsList(appointments: recentList),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Métricas',
+                    style: GoogleFonts.exo2(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const MetricsSection(),
               ],
             );
           },

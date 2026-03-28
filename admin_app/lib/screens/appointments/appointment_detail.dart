@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'appointment_actions.dart';
 import 'appointment_reschedule.dart';
+import 'invoice_service.dart';
 
 void showAppointmentDetail(BuildContext context, QueryDocumentSnapshot doc) {
   final data = doc.data() as Map<String, dynamic>;
@@ -181,8 +182,10 @@ Widget _buildActions(
   } else if (status == 'confirmed') {
     actions.addAll([
       _gradientButton('Completar', Iconsax.verify, () async {
-        await completeAppointment(doc);
-        if (context.mounted) Navigator.pop(context);
+        Navigator.pop(context);
+        if (context.mounted) {
+          await invoiceAndComplete(context, doc);
+        }
       }),
       const SizedBox(height: 10),
       _glassButton(isDark, 'Cancelar', Iconsax.close_circle, () async {

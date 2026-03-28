@@ -5,9 +5,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:alx_clima_admin/config/theme.dart';
-import 'package:alx_clima_admin/widgets/glass_card.dart';
-import 'appointment_actions.dart';
-import 'appointment_detail.dart';
+import 'agenda_widgets.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -19,6 +17,13 @@ class AppointmentsScreen extends StatefulWidget {
 class _AppointmentsScreenState extends State<AppointmentsScreen> {
   String _view = 'agenda';
   String _filter = 'active';
+  late DateTime _selectedDay;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDay = DateTime.now();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,9 +94,24 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: sel ? Colors.white : Theme.of(context).textTheme.bodySmall?.color),
+            Icon(
+              icon,
+              size: 14,
+              color: sel
+                  ? Colors.white
+                  : Theme.of(context).textTheme.bodySmall?.color,
+            ),
             const SizedBox(width: 4),
-            Text(label, style: GoogleFonts.exo2(fontSize: 11, fontWeight: FontWeight.w500, color: sel ? Colors.white : Theme.of(context).textTheme.bodySmall?.color)),
+            Text(
+              label,
+              style: GoogleFonts.exo2(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: sel
+                    ? Colors.white
+                    : Theme.of(context).textTheme.bodySmall?.color,
+              ),
+            ),
           ],
         ),
       ),
@@ -107,7 +127,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       ('completed', 'Completadas'),
       ('cancelled', 'Canceladas'),
     ];
-
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: 34,
       child: ListView.separated(
@@ -127,9 +147,22 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(17),
                 gradient: selected ? AdminTheme.primaryGradient : null,
-                color: selected ? null : Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.7),
+                color: selected
+                    ? null
+                    : isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : Colors.white.withValues(alpha: 0.7),
               ),
-              child: Text(label, style: GoogleFonts.exo2(fontSize: 12, fontWeight: FontWeight.w500, color: selected ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color)),
+              child: Text(
+                label,
+                style: GoogleFonts.exo2(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: selected
+                      ? Colors.white
+                      : Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+              ),
             ),
           );
         },
@@ -138,14 +171,14 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 
   Widget _buildContent() {
-    Query query = FirebaseFirestore.instance.collection('appointments').orderBy('date', descending: false);
-
+    Query query = FirebaseFirestore.instance
+        .collection('appointments')
+        .orderBy('date', descending: false);
     if (_filter == 'active') {
       query = query.where('status', whereIn: ['pending', 'confirmed']);
     } else if (_filter != 'all') {
       query = query.where('status', isEqualTo: _filter);
     }
-
     return StreamBuilder<QuerySnapshot>(
       stream: query.snapshots(),
       builder: (context, snapshot) {
@@ -154,88 +187,60 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         }
         final docs = snapshot.data?.docs ?? [];
         if (docs.isEmpty) {
-          return Center(child: Text('Sin citas', style: GoogleFonts.exo2(fontSize: 14)));
+          return Center(
+            child: Text('Sin citas', style: GoogleFonts.exo2(fontSize: 14)),
+          );
         }
-
-        if (_view == 'agenda') {
-          return _buildAgendaView(docs);
-        }
+        if (_view == 'agenda') return _buildAgendaView(docs);
         return _buildListView(docs);
       },
     );
   }
 
   Widget _buildAgendaView(List<QueryDocumentSnapshot> docs) {
-    final grouped = <String, List<QueryDocumentSnapshot>>{};
-    for (final doc in docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final date = data['date'] as String? ?? 'Sin fecha';
-      grouped.putIfAbsent(date, () => []).add(doc);
-    }
+    final today = DateTime.now();
+    final days = List.generate(7, (i) =>
+        DateTime(today.year, today.month, today.day).add(Duration(days: i)));
+    final selStr = DateFormat('yyyy-MM-dd').format(_selectedDay);
+    final dayDocs = docs.where((d) {
+      final data = d.data() as Map<String, dynamic>;
+      return data['date'] == selStr;
+    }).toList();
+    final hours = List.generate(10, (i) => i + 9);
 
-    final sortedDates = grouped.keys.toList()..sort();
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-      itemCount: sortedDates.length,
-      itemBuilder: (context, i) {
-        final date = sortedDates[i];
-        final appts = grouped[date]!;
-        appts.sort((a, b) {
-          final statusOrder = {'pending': 0, 'confirmed': 1, 'completed': 2, 'cancelled': 3};
-          final aData = a.data() as Map<String, dynamic>;
-          final bData = b.data() as Map<String, dynamic>;
-          final aOrder = statusOrder[aData['status']] ?? 4;
-          final bOrder = statusOrder[bData['status']] ?? 4;
-          return aOrder.compareTo(bOrder);
-        });
-
-        final isToday = date == today;
-        String dateLabel;
-        try {
-          final parsed = DateTime.parse(date);
-          final dayName = DateFormat('EEEE', 'es').format(parsed);
-          dateLabel = '${dayName[0].toUpperCase()}${dayName.substring(1)}, ${DateFormat('d MMM', 'es').format(parsed)}';
-        } catch (_) {
-          dateLabel = date;
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
-              child: Row(
-                children: [
-                  Text(
-                    dateLabel,
-                    style: GoogleFonts.exo2(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.2),
-                  ),
-                  if (isToday) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        gradient: AdminTheme.primaryGradient,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text('Hoy', style: GoogleFonts.exo2(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
-                    ),
-                  ],
-                  const Spacer(),
-                  Text('${appts.length} cita${appts.length > 1 ? 's' : ''}', style: GoogleFonts.exo2(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5))),
-                ],
-              ),
-            ),
-            ...appts.asMap().entries.map((entry) {
-              return _AppointmentRow(doc: entry.value)
-                  .animate()
-                  .fadeIn(duration: 200.ms, delay: (entry.key * 30).ms);
-            }),
-          ],
-        );
-      },
+    return Column(
+      children: [
+        DaySelector(
+          days: days,
+          selectedDay: _selectedDay,
+          today: today,
+          onDaySelected: (d) => setState(() => _selectedDay = d),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(0, 0, 16, 100),
+            itemCount: hours.length,
+            itemBuilder: (context, i) {
+              final h = hours[i];
+              final hStr = '${h.toString().padLeft(2, '0')}:00';
+              final nStr = '${(h + 1).toString().padLeft(2, '0')}:00';
+              final slot = '$hStr - $nStr';
+              final matched = dayDocs.where((d) {
+                final data = d.data() as Map<String, dynamic>;
+                final slots =
+                    (data['timeSlots'] as List?)?.cast<String>() ?? [];
+                return slots.contains(slot);
+              }).toList();
+              return TimeSlotRow(
+                hourLabel: hStr,
+                appointments: matched,
+                isLast: i == hours.length - 1,
+              ).animate().fadeIn(duration: 200.ms, delay: (i * 30).ms);
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -243,59 +248,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(0, 4, 0, 100),
       itemCount: docs.length,
-      itemBuilder: (context, i) {
-        return _AppointmentRow(doc: docs[i])
-            .animate()
-            .fadeIn(duration: 250.ms, delay: (i * 40).ms)
-            .slideX(begin: 0.05, end: 0);
-      },
-    );
-  }
-}
-
-class _AppointmentRow extends StatelessWidget {
-  final QueryDocumentSnapshot doc;
-  const _AppointmentRow({required this.doc});
-
-  @override
-  Widget build(BuildContext context) {
-    final data = doc.data() as Map<String, dynamic>;
-    final customer = data['customer'] as Map<String, dynamic>? ?? {};
-    final status = data['status'] ?? '';
-    final info = statusInfo(status);
-
-    return GestureDetector(
-      onTap: () => showAppointmentDetail(context, doc),
-      child: GlassCard(
-        child: Row(
-          children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: info.$1),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(customer['name'] ?? 'Cliente', style: GoogleFonts.exo2(fontSize: 15, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${data['timeSlotDisplay'] ?? ''} · ${data['serviceTypeDisplay'] ?? ''}',
-                    style: GoogleFonts.exo2(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5)),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: info.$1.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-              child: Text(info.$2, style: GoogleFonts.exo2(fontSize: 11, fontWeight: FontWeight.w500, color: info.$1)),
-            ),
-          ],
-        ),
-      ),
+      itemBuilder: (context, i) => AppointmentListRow(doc: docs[i])
+          .animate()
+          .fadeIn(duration: 250.ms, delay: (i * 40).ms)
+          .slideX(begin: 0.05, end: 0),
     );
   }
 }

@@ -34,8 +34,39 @@ class CatalogScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _sectionHeader(context, 'Equipos en venta'),
             const SizedBox(height: 8),
-            _EquipmentList(),
-            const SizedBox(height: 24),
+            _EquipmentGrid(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: GestureDetector(
+                onTap: () => showAddCatalogSheet(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: AdminTheme.primaryGradient,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Iconsax.add, size: 18, color: Colors.white),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Agregar equipo',
+                        style: GoogleFonts.exo2(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             _sectionHeader(context, 'Marcas y modelos'),
             const SizedBox(height: 8),
             const CatalogBrandsSection(),
@@ -64,7 +95,7 @@ class CatalogScreen extends StatelessWidget {
   }
 }
 
-class _EquipmentList extends StatelessWidget {
+class _EquipmentGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
@@ -74,100 +105,164 @@ class _EquipmentList extends StatelessWidget {
           .snapshots(),
       builder: (context, snapshot) {
         final docs = snapshot.data?.docs ?? [];
+        if (docs.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: GlassCard(
+              child: Center(
+                child: Text(
+                  'Sin equipos en catálogo',
+                  style: GoogleFonts.exo2(fontSize: 14),
+                ),
+              ),
+            ),
+          );
+        }
 
-        return GlassCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              ...List.generate(docs.length, (i) {
-                final data = docs[i].data() as Map<String, dynamic>;
-                return Column(
-                  children: [
-                    if (i > 0)
-                      Divider(
-                        height: 1,
-                        indent: 16,
-                        endIndent: 16,
-                        color: Theme.of(context)
-                            .dividerColor
-                            .withValues(alpha: 0.1),
-                      ),
-                    ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      title: Text(
-                        '${data['brand'] ?? ''} ${data['name'] ?? ''}',
-                        style: GoogleFonts.exo2(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '${data['btuCapacity'] ?? ''} BTU · \$${data['price'] ?? 0}',
-                        style: GoogleFonts.exo2(
-                          fontSize: 12,
-                          color: AdminTheme.secondaryColor,
-                        ),
-                      ),
-                      trailing: const Icon(
-                        Iconsax.edit_2,
-                        size: 18,
-                        color: AdminTheme.primaryColor,
-                      ),
-                      onTap: () => showEditCatalogSheet(context, docs[i]),
-                    ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 0.72,
+            ),
+            itemCount: docs.length,
+            itemBuilder: (context, i) {
+              return _ProductCard(doc: docs[i])
+                  .animate()
+                  .fadeIn(duration: 250.ms, delay: (i * 50).ms)
+                  .slideY(begin: 0.08, end: 0);
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProductCard extends StatelessWidget {
+  final QueryDocumentSnapshot doc;
+  const _ProductCard({required this.doc});
+
+  @override
+  Widget build(BuildContext context) {
+    final data = doc.data() as Map<String, dynamic>;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brand = data['brand'] ?? '';
+    final name = data['name'] ?? '';
+    final btu = data['btuCapacity'] ?? 0;
+    final price = data['price'] ?? 0;
+
+    return GestureDetector(
+      onTap: () => showEditCatalogSheet(context, doc),
+      child: GlassCard(
+        margin: EdgeInsets.zero,
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 100,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+                gradient: LinearGradient(
+                  colors: [
+                    AdminTheme.primaryColor.withValues(alpha: 0.15),
+                    AdminTheme.secondaryColor.withValues(alpha: 0.08),
                   ],
-                );
-              })
-                  .animate(interval: 50.ms)
-                  .fadeIn(duration: 200.ms),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Icon(
+                Iconsax.cpu_setting,
+                size: 40,
+                color: isDark
+                    ? AdminTheme.secondaryColor.withValues(alpha: 0.6)
+                    : AdminTheme.primaryColor.withValues(alpha: 0.4),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
-                      child: GestureDetector(
-                        onTap: () => showAddCatalogSheet(context),
-                        child: Container(
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AdminTheme.accentColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        brand,
+                        style: GoogleFonts.exo2(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: AdminTheme.accentColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      name,
+                      style: GoogleFonts.exo2(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
+                            horizontal: 5,
+                            vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            gradient: AdminTheme.primaryGradient,
+                            color: AdminTheme.secondaryColor
+                                .withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Iconsax.add,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Agregar equipo',
-                                style: GoogleFonts.exo2(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            '$btu BTU',
+                            style: GoogleFonts.exo2(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: AdminTheme.secondaryColor,
+                            ),
                           ),
                         ),
-                      ),
+                        const Spacer(),
+                        Text(
+                          '\$$price',
+                          style: GoogleFonts.exo2(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AdminTheme.primaryColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
