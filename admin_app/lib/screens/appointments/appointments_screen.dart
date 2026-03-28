@@ -30,7 +30,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 80),
+        padding: const EdgeInsets.only(bottom: 90),
         child: GestureDetector(
           onTap: () => showManualAppointmentSheet(context),
           child: Container(

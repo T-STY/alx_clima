@@ -38,14 +38,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       .fadeIn(duration: 500.ms)
                       .slideY(begin: -0.1, end: 0),
 
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 35),
 
                   if (dashboard.totalEquipment > 0) ...[
                     _buildQuickStats(context, dashboard)
                         .animate()
                         .fadeIn(duration: 500.ms, delay: 100.ms)
                         .slideY(begin: 0.1, end: 0),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 25),
                   ],
 
                   _buildActionGrid(context, dashboard),
@@ -91,8 +91,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         Container(
-          width: 48,
-          height: 48,
+          width: 58,
+          height: 58,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -461,7 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final displayTips = tips.take(4).toList();
 
     return SizedBox(
-      height: 140,
+      height: 170,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: displayTips.length,
@@ -501,7 +501,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Text(
                     tip.description,
                     style: Theme.of(context).textTheme.bodySmall,
-                    maxLines: 2,
+                    maxLines: 4,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.justify,
                   ),
