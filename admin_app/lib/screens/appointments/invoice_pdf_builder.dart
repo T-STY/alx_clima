@@ -117,21 +117,28 @@ Future<List<int>> buildInvoicePdf(
                     _cell('Precio', bold: true),
                   ],
                 ),
-                ...equipment.map(
-                  (eq) {
+                ...equipment.asMap().entries.map(
+                  (entry) {
+                    final eq = entry.value;
                     final breakdown = data['quoteBreakdown'] as Map<String, dynamic>?;
                     final perEquip = (breakdown?['perEquipment'] as List?) ?? [];
-                    final matchedBreakdown = perEquip.where((pe) =>
-                        pe['name'] == eq['name'] && pe['brand'] == eq['brand']).firstOrNull;
-                    final price = (matchedBreakdown?['equipmentCost'] as num?) ??
-                        (eq['equipmentCost'] as num?) ??
-                        (eq['price'] as num?) ?? 0;
+                    num price = 0;
+                    if (entry.key < perEquip.length) {
+                      price = (perEquip[entry.key]['equipmentCost'] as num?) ?? 0;
+                    }
+                    if (price == 0) {
+                      price = (eq['price'] as num?) ??
+                          (eq['equipmentCost'] as num?) ?? 0;
+                    }
+                    if (price == 0 && equipmentCost > 0 && equipment.isNotEmpty) {
+                      price = equipmentCost / equipment.length;
+                    }
                     return pw.TableRow(
                       children: [
                         _cell('${eq['brand'] ?? ''}'),
                         _cell('${eq['name'] ?? ''}'),
                         _cell('${eq['btuCapacity'] ?? ''}'),
-                        _cell(price > 0 ? _fmtMoney(price.toDouble()) : '-'),
+                        _cell(price > 0 ? _fmtMoney(price.toDouble()) : 'N/A'),
                       ],
                     );
                   },
@@ -139,30 +146,7 @@ Future<List<int>> buildInvoicePdf(
               ],
             ),
             pw.SizedBox(height: 12),
-            pw.Text(
-              'Garantías',
-              style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(height: 4),
-            if (warranty.isNotEmpty)
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(bottom: 2),
-                child: pw.Text(
-                  'Técnico: $warranty',
-                  style: pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700),
-                ),
-              ),
-            ...equipment.map((eq) {
-              final mfgWarranty = eq['manufacturerWarrantyDetails'] as String? ?? '';
-              if (mfgWarranty.isEmpty) return pw.SizedBox.shrink();
-              return pw.Padding(
-                padding: const pw.EdgeInsets.only(bottom: 2),
-                child: pw.Text(
-                  '${eq['brand']} ${eq['name']}: $mfgWarranty',
-                  style: pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700),
-                ),
-              );
-            }),
+            _buildWarrantySection(warranty, equipment, data),
             pw.SizedBox(height: 16),
             _buildPdfBreakdown(data, total, equipmentCost, serviceFee),
             if (notes.isNotEmpty) ...[
@@ -315,6 +299,54 @@ pw.Widget _buildPdfBreakdown(
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: rows,
+  );
+}
+
+pw.Widget _buildWarrantySection(
+  String techWarranty,
+  List<Map<String, dynamic>> equipment,
+  Map<String, dynamic> data,
+) {
+  final rows = <pw.Widget>[];
+  final breakdown = data['quoteBreakdown'] as Map<String, dynamic>?;
+  final perEquip = (breakdown?['perEquipment'] as List?) ?? [];
+
+  if (techWarranty.isNotEmpty) {
+    rows.add(pw.Text(
+      'Garantía del técnico: $techWarranty',
+      style: pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700),
+    ));
+  }
+
+  for (var i = 0; i < equipment.length; i++) {
+    final eq = equipment[i];
+    var mfgWarranty = eq['manufacturerWarrantyDetails'] as String? ?? '';
+    if (mfgWarranty.isEmpty && i < perEquip.length) {
+      mfgWarranty = (perEquip[i] as Map?)?['manufacturerWarrantyDetails'] as String? ?? '';
+    }
+    if (mfgWarranty.isNotEmpty) {
+      rows.add(pw.Padding(
+        padding: const pw.EdgeInsets.only(top: 2),
+        child: pw.Text(
+          '${eq['brand'] ?? ''} ${eq['name'] ?? ''}: $mfgWarranty',
+          style: pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700),
+        ),
+      ));
+    }
+  }
+
+  if (rows.isEmpty) return pw.SizedBox.shrink();
+
+  return pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      pw.Text(
+        'Garantías',
+        style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+      ),
+      pw.SizedBox(height: 4),
+      ...rows,
+    ],
   );
 }
 
