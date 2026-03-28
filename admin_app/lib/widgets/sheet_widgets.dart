@@ -87,17 +87,19 @@ Widget sheetDropdown<T>(
   ValueChanged<T?> onChanged,
   bool isDark,
 ) {
+  final textColor = isDark ? Colors.white : Colors.black;
   return DropdownButtonFormField<T>(
     value: value,
+    dropdownColor: isDark ? const Color(0xFF1A1D27) : Colors.white,
     decoration: InputDecoration(
       hintText: label,
       hintStyle: GoogleFonts.exo2(fontSize: 14),
     ),
-    style: GoogleFonts.exo2(fontSize: 14),
+    style: GoogleFonts.exo2(fontSize: 14, color: textColor),
     items: items
         .map((e) => DropdownMenuItem(
               value: e,
-              child: Text('$e', style: GoogleFonts.exo2(fontSize: 14)),
+              child: Text('$e', style: GoogleFonts.exo2(fontSize: 14, color: textColor)),
             ))
         .toList(),
     onChanged: onChanged,

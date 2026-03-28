@@ -184,13 +184,11 @@ class _ProductCard extends StatelessWidget {
                     : _gradientFallback(isDark),
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -219,7 +217,7 @@ class _ProductCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
                         Container(
@@ -253,7 +251,6 @@ class _ProductCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                ),
               ),
             ),
           ],

@@ -226,8 +226,7 @@ class _PricingPageState extends State<PricingPage> {
               ),
             ),
             const SizedBox(height: 4),
-            Expanded(
-              child: TextField(
+            TextField(
                 controller: ctrls[_btus[i]],
                 keyboardType: TextInputType.number,
                 style: GoogleFonts.exo2(fontSize: 13),
@@ -241,7 +240,6 @@ class _PricingPageState extends State<PricingPage> {
                   ),
                 ),
               ),
-            ),
           ],
         ),
             );
