@@ -181,11 +181,14 @@ Widget _buildActions(
     ]);
   } else if (status == 'confirmed') {
     actions.addAll([
-      _gradientButton('Completar', Iconsax.verify, () async {
-        Navigator.pop(context);
-        if (context.mounted) {
-          await invoiceAndComplete(context, doc);
-        }
+      _gradientButton('Completar y Facturar', Iconsax.verify, () {
+        final parentCtx = context;
+        Navigator.pop(ctx);
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (parentCtx.mounted) {
+            invoiceAndComplete(parentCtx, doc);
+          }
+        });
       }),
       const SizedBox(height: 10),
       _glassButton(isDark, 'Cancelar', Iconsax.close_circle, () async {

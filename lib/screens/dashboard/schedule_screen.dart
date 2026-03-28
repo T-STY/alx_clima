@@ -122,6 +122,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
 
     if (_selectedServiceType == ServiceType.installation) {
+      if (widget.fromQuote) {
+        final quoteProvider = context.read<QuoteProvider>();
+        return quoteProvider.grandTotal;
+      }
       final quoteProvider = context.read<QuoteProvider>();
       final isSolo =
           quoteProvider.installationType == InstallationType.installOnly;
@@ -136,6 +140,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         final btu = eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0;
         final price = priceMap['$btu'] as num? ?? 0;
         total += price;
+        if (!isSolo) {
+          total += qi?.equipment.price ?? eq?.btuCapacity.toDouble() ?? 0;
+        }
       }
       return total;
     }
