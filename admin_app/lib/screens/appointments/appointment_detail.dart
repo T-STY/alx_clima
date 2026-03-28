@@ -329,10 +329,11 @@ Widget _buildActions(
   } else if (status == 'confirmed') {
     actions.addAll([
       _gradientButton('Completar y Facturar', Iconsax.verify, () async {
+        final overlay = Navigator.of(context).overlay?.context;
         Navigator.pop(context);
-        await Future.delayed(const Duration(milliseconds: 300));
-        final navCtx = routerKey.currentContext;
-        if (navCtx != null) {
+        await Future.delayed(const Duration(milliseconds: 350));
+        final navCtx = overlay ?? routerKey.currentContext;
+        if (navCtx != null && navCtx.mounted) {
           invoiceAndComplete(navCtx, doc);
         }
       }),
