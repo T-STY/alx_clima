@@ -178,7 +178,7 @@ class _ProductCard extends StatelessWidget {
                 child: imageUrl.isNotEmpty
                     ? Image.network(
                         imageUrl,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => _gradientFallback(isDark),
                       )
                     : _gradientFallback(isDark),

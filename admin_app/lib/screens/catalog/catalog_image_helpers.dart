@@ -25,7 +25,7 @@ Widget catalogImagePickerArea({
       borderRadius: BorderRadius.circular(14),
       child: Image.file(
         pickedFile,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         width: double.infinity,
         height: double.infinity,
       ),
@@ -35,7 +35,7 @@ Widget catalogImagePickerArea({
       borderRadius: BorderRadius.circular(14),
       child: Image.network(
         existingUrl,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         width: double.infinity,
         height: double.infinity,
       ),

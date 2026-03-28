@@ -25,13 +25,13 @@ Widget _imagePickerArea({
   } else if (pickedFile != null) {
     child = ClipRRect(
       borderRadius: BorderRadius.circular(14),
-      child: Image.file(pickedFile, fit: BoxFit.cover,
+      child: Image.file(pickedFile, fit: BoxFit.contain,
           width: double.infinity, height: double.infinity),
     );
   } else if (existingUrl != null && existingUrl.isNotEmpty) {
     child = ClipRRect(
       borderRadius: BorderRadius.circular(14),
-      child: Image.network(existingUrl, fit: BoxFit.cover,
+      child: Image.network(existingUrl, fit: BoxFit.contain,
           width: double.infinity, height: double.infinity),
     );
   } else {

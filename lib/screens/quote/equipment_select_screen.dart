@@ -267,6 +267,28 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                if (equipment.imageUrl.isNotEmpty)
+                  Container(
+                    height: 140,
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceColor,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        equipment.imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Iconsax.cpu_setting,
+                          size: 48,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
                 Text(
                   equipment.name,
                   style: Theme.of(context).textTheme.titleLarge,
@@ -467,7 +489,7 @@ class _EquipmentCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                       child: Image.network(
                         equipment.imageUrl,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                         width: 68,
                         height: 68,
                         errorBuilder: (_, __, ___) => const Icon(

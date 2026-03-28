@@ -103,17 +103,22 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  gradient: AdminTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: AdminTheme.primaryColor.withValues(alpha: 0.3),
+                      color: AdminTheme.primaryColor.withValues(alpha: 0.2),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
                     ),
                   ],
                 ),
-                child: const Icon(Iconsax.wind, color: Colors.white, size: 36),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
               Text(

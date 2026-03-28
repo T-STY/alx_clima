@@ -132,7 +132,7 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                                               BorderRadius.circular(12),
                                           child: Image.network(
                                             item.equipment.imageUrl,
-                                            fit: BoxFit.cover,
+                                            fit: BoxFit.contain,
                                             width: 48,
                                             height: 48,
                                             errorBuilder:
