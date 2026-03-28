@@ -3,10 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'package:alx_clima_admin/widgets/glass_card.dart';
+import 'all_invoices_page.dart';
 import 'settings_company.dart';
 import 'settings_pricing.dart';
 import 'settings_schedule.dart';
@@ -84,7 +84,7 @@ class SettingsScreen extends StatelessWidget {
               title: 'Facturas',
               subtitle: 'Ver todas las facturas generadas',
               onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => const _AllInvoicesPage(),
+                builder: (_) => const AllInvoicesPage(),
               )),
             ),
 
@@ -224,40 +224,33 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Cerrar sesión', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
-        content: Text('¿Estás seguro?', style: GoogleFonts.exo2()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar', style: GoogleFonts.exo2()),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              FirebaseAuth.instance.signOut();
-            },
-            child: Text('Cerrar sesión', style: GoogleFonts.exo2(color: AdminTheme.errorColor)),
-          ),
-        ],
-      ),
-    );
-  }
+  void _showLogoutDialog(BuildContext context) => showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Cerrar sesión', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
+      content: Text('¿Estás seguro?', style: GoogleFonts.exo2()),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: Text('Cancelar', style: GoogleFonts.exo2()),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            FirebaseAuth.instance.signOut();
+          },
+          child: Text('Cerrar sesión', style: GoogleFonts.exo2(color: AdminTheme.errorColor)),
+        ),
+      ],
+    ),
+  );
 
   void _showMetricsTargets(BuildContext context) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('config')
-        .doc('metricsTargets')
-        .get();
-    final data = doc.data() ?? {};
+    final ref = FirebaseFirestore.instance.collection('config').doc('metricsTargets');
+    final data = (await ref.get()).data() ?? {};
     final monthlyCtrl = TextEditingController(text: '${data['monthly'] ?? 50000}');
     final yearlyCtrl = TextEditingController(text: '${data['yearly'] ?? 500000}');
-
     if (!context.mounted) return;
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -293,10 +286,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('config')
-                  .doc('metricsTargets')
-                  .set({
+              await ref.set({
                 'monthly': num.tryParse(monthlyCtrl.text) ?? 50000,
                 'yearly': num.tryParse(yearlyCtrl.text) ?? 500000,
               });
@@ -305,95 +295,6 @@ class SettingsScreen extends StatelessWidget {
             child: Text('Guardar', style: GoogleFonts.exo2(color: AdminTheme.primaryColor)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AllInvoicesPage extends StatelessWidget {
-  const _AllInvoicesPage();
-
-  @override
-  Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Facturas', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_left),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('invoices')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final docs = snapshot.data?.docs ?? [];
-          if (docs.isEmpty) {
-            return Center(
-              child: Text('Sin facturas', style: GoogleFonts.exo2(fontSize: 14)),
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            itemCount: docs.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, i) {
-              final data = docs[i].data() as Map<String, dynamic>;
-              final total = (data['total'] as num?)?.toDouble() ?? 0;
-
-              return GlassCard(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AdminTheme.primaryColor.withValues(alpha: 0.12),
-                      ),
-                      child: const Icon(Iconsax.document_text, size: 18, color: AdminTheme.primaryColor),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            data['customerName'] ?? 'Cliente',
-                            style: GoogleFonts.exo2(fontSize: 14, fontWeight: FontWeight.w600),
-                          ),
-                          Text(
-                            data['date'] ?? '',
-                            style: GoogleFonts.exo2(
-                              fontSize: 12,
-                              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      fmt.format(total),
-                      style: GoogleFonts.exo2(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AdminTheme.primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
       ),
     );
   }

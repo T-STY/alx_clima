@@ -1,9 +1,12 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'client_equipment.dart';
 
@@ -246,32 +249,40 @@ class _ClientInvoices extends StatelessWidget {
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 6),
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Iconsax.document_text,
-                        size: 14, color: AdminTheme.primaryColor),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        data['date'] ?? '',
-                        style: GoogleFonts.exo2(fontSize: 13),
+              child: GestureDetector(
+                onTap: () {
+                  final pdfBase64 = data['pdfBase64'] as String?;
+                  if (pdfBase64 == null || pdfBase64.isEmpty) return;
+                  final bytes = Uint8List.fromList(base64Decode(pdfBase64));
+                  Printing.layoutPdf(onLayout: (_) async => bytes);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Iconsax.document_text,
+                          size: 14, color: AdminTheme.primaryColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          data['date'] ?? '',
+                          style: GoogleFonts.exo2(fontSize: 13),
+                        ),
                       ),
-                    ),
-                    Text(
-                      fmt.format(total),
-                      style: GoogleFonts.exo2(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AdminTheme.primaryColor,
+                      Text(
+                        fmt.format(total),
+                        style: GoogleFonts.exo2(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AdminTheme.primaryColor,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );

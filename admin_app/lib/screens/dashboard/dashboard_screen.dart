@@ -33,14 +33,17 @@ class DashboardScreen extends StatelessWidget {
             final completed =
                 docs.where((d) => d['status'] == 'completed').length;
 
-            final recent = List<QueryDocumentSnapshot>.from(docs);
-            recent.sort((a, b) {
+            final activeDocs = docs.where((d) {
+              final status = d['status'] as String?;
+              return status == 'pending' || status == 'confirmed';
+            }).toList();
+            activeDocs.sort((a, b) {
               final aDate = a['createdAt'] as Timestamp?;
               final bDate = b['createdAt'] as Timestamp?;
               if (aDate == null || bDate == null) return 0;
               return bDate.compareTo(aDate);
             });
-            final recentList = recent.take(8).toList();
+            final recentList = activeDocs.take(8).toList();
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(0, 16, 0, 100),
@@ -67,7 +70,7 @@ class DashboardScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    'Citas recientes',
+                    'Citas activas',
                     style: GoogleFonts.exo2(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,

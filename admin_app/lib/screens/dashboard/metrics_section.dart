@@ -116,7 +116,9 @@ class MetricsSection extends StatelessWidget {
 
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
-      final total = (data['total'] as num?)?.toDouble() ?? 0;
+      final total = (data['serviceFee'] as num?)?.toDouble()
+          ?? (data['total'] as num?)?.toDouble()
+          ?? 0;
       final dateStr = data['date'] as String? ?? '';
 
       DateTime? date;

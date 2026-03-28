@@ -7,13 +7,13 @@ Future<List<int>> buildInvoicePdf(
   Map<String, dynamic> customer,
   List<Map<String, dynamic>> equipment,
   double total,
-  String notes,
-) async {
+  String notes, {
+  double equipmentCost = 0,
+  double serviceFee = 0,
+}) async {
   final pdf = pw.Document();
-  final companySnap = await FirebaseFirestore.instance
-      .collection('company')
-      .doc('info')
-      .get();
+  final companySnap =
+      await FirebaseFirestore.instance.collection('company').doc('info').get();
   final company = companySnap.data() ?? {};
   final companyName = company['name'] ?? 'ALX Clima';
   final companyPhone = company['phone'] ?? '';
@@ -134,7 +134,7 @@ Future<List<int>> buildInvoicePdf(
               ],
             ),
             pw.SizedBox(height: 16),
-            _buildPdfBreakdown(data, total),
+            _buildPdfBreakdown(data, total, equipmentCost, serviceFee),
             if (notes.isNotEmpty) ...[
               pw.SizedBox(height: 12),
               pw.Text(
@@ -202,8 +202,14 @@ pw.Widget _cell(String text, {bool bold = false}) {
   );
 }
 
-pw.Widget _buildPdfBreakdown(Map<String, dynamic> data, double total) {
+pw.Widget _buildPdfBreakdown(
+  Map<String, dynamic> data,
+  double total,
+  double equipmentCost,
+  double serviceFee,
+) {
   final breakdown = data['quoteBreakdown'] as Map<String, dynamic>?;
+  final serviceLabel = data['serviceTypeDisplay'] as String? ?? 'Servicio';
   String fmt(num v) => '\$${v.toStringAsFixed(2)}';
 
   final rows = <pw.Widget>[];
@@ -230,7 +236,7 @@ pw.Widget _buildPdfBreakdown(Map<String, dynamic> data, double total) {
       }
       final instCost = (eq['installCost'] as num?) ?? 0;
       if (instCost > 0) {
-        rows.add(_pdfRow('  Instalación', fmt(instCost)));
+        rows.add(_pdfRow('  $serviceLabel', fmt(instCost)));
       }
       if (eq['floorLevel'] == 'second') {
         rows.add(_pdfRow('  Recargo segundo piso', 'Incluido'));
@@ -243,17 +249,15 @@ pw.Widget _buildPdfBreakdown(Map<String, dynamic> data, double total) {
     if (breakdown['multiUnitDiscount'] == true) {
       rows.add(_pdfRow('Descuento multi-equipo', 'Aplicado'));
     }
+  }
 
-    rows.add(pw.Divider(color: PdfColors.grey400));
+  rows.add(pw.Divider(color: PdfColors.grey400));
 
-    final eqTotal = (breakdown['equipmentPrice'] as num?) ?? 0;
-    if (eqTotal > 0) {
-      rows.add(_pdfRow('Subtotal equipos', fmt(eqTotal)));
-    }
-    final instTotal = (breakdown['installationPrice'] as num?) ?? 0;
-    if (instTotal > 0) {
-      rows.add(_pdfRow('Subtotal instalación', fmt(instTotal)));
-    }
+  if (equipmentCost > 0) {
+    rows.add(_pdfRow('Subtotal equipos', fmt(equipmentCost)));
+  }
+  if (serviceFee > 0) {
+    rows.add(_pdfRow(serviceLabel, fmt(serviceFee)));
   }
 
   rows.add(pw.SizedBox(height: 4));
