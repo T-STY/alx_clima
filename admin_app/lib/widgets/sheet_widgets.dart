@@ -91,6 +91,7 @@ Widget sheetDropdown<T>(
   return DropdownButtonFormField<T>(
     value: value,
     dropdownColor: isDark ? const Color(0xFF1A1D27) : Colors.white,
+    menuMaxHeight: 250,
     decoration: InputDecoration(
       hintText: label,
       hintStyle: GoogleFonts.exo2(fontSize: 14),
