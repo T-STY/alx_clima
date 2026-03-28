@@ -126,14 +126,26 @@ void showClientDetail(BuildContext context, DocumentSnapshot doc) {
 }
 
 String _buildAddress(Map<String, dynamic> data) {
-  final parts = [
-    data['street'],
-    data['exteriorNumber'],
-    data['colonia'],
-    data['city'],
-    data['state'],
-    data['postalCode'],
-  ].where((p) => p != null && p.toString().isNotEmpty);
+  final parts = <String>[];
+  final street = data['street'] as String? ?? '';
+  final ext = data['exteriorNumber'] as String? ?? '';
+  final interior = data['interiorNumber'] as String? ?? '';
+  final colonia = data['colonia'] as String? ?? '';
+  final city = data['city'] as String? ?? '';
+  final state = data['state'] as String? ?? '';
+  final postalCode = data['postalCode'] as String? ?? '';
+
+  if (street.isNotEmpty) {
+    var line = street;
+    if (ext.isNotEmpty) line += ' #$ext';
+    if (interior.isNotEmpty) line += ', Int. $interior';
+    parts.add(line);
+  }
+  if (colonia.isNotEmpty) parts.add('Col. $colonia');
+  if (city.isNotEmpty) parts.add(city);
+  if (state.isNotEmpty) parts.add(state);
+  if (postalCode.isNotEmpty) parts.add('C.P. $postalCode');
+
   return parts.join(', ');
 }
 
