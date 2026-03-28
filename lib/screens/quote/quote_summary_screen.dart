@@ -126,18 +126,38 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                                     borderRadius:
                                         BorderRadius.circular(12),
                                   ),
-                                  child: Image.network(
-                                    'https://img.icons8.com/ios/100/air-conditioner.png',
-                                    width: 32,
-                                    height: 32,
-                                    errorBuilder:
-                                        (_, __, ___) => const Icon(
-                                      Iconsax.cpu_setting,
-                                      color:
-                                          AppTheme.textSecondary,
-                                      size: 24,
-                                    ),
-                                  ),
+                                  child: item.equipment.imageUrl.isNotEmpty
+                                      ? ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          child: Image.network(
+                                            item.equipment.imageUrl,
+                                            fit: BoxFit.cover,
+                                            width: 48,
+                                            height: 48,
+                                            errorBuilder:
+                                                (_, __, ___) =>
+                                                    const Icon(
+                                              Iconsax.cpu_setting,
+                                              color: AppTheme
+                                                  .textSecondary,
+                                              size: 24,
+                                            ),
+                                          ),
+                                        )
+                                      : Image.network(
+                                          'https://img.icons8.com/ios/100/air-conditioner.png',
+                                          width: 32,
+                                          height: 32,
+                                          errorBuilder:
+                                              (_, __, ___) =>
+                                                  const Icon(
+                                            Iconsax.cpu_setting,
+                                            color: AppTheme
+                                                .textSecondary,
+                                            size: 24,
+                                          ),
+                                        ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(

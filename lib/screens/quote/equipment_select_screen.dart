@@ -90,6 +90,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
       btuCapacity: data['btuCapacity'] ?? 12000,
       price: (data['price'] ?? 0).toDouble(),
       description: data['description'] ?? '',
+      imageUrl: data['imageUrl'] ?? '',
       manufacturerWarrantyYears:
           (data['manufacturerWarrantyYears'] ?? 1).toDouble(),
       manufacturerWarrantyDetails:
@@ -461,17 +462,32 @@ class _EquipmentCard extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Image.network(
-                  'https://img.icons8.com/ios/100/air-conditioner.png',
-                  errorBuilder: (_, __, ___) => const Icon(
-                    Iconsax.cpu_setting,
-                    color: AppTheme.textSecondary,
-                    size: 28,
-                  ),
-                ),
-              ),
+              child: equipment.imageUrl.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Image.network(
+                        equipment.imageUrl,
+                        fit: BoxFit.cover,
+                        width: 68,
+                        height: 68,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Iconsax.cpu_setting,
+                          color: AppTheme.textSecondary,
+                          size: 28,
+                        ),
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Image.network(
+                        'https://img.icons8.com/ios/100/air-conditioner.png',
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Iconsax.cpu_setting,
+                          color: AppTheme.textSecondary,
+                          size: 28,
+                        ),
+                      ),
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(

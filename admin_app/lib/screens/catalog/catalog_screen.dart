@@ -156,6 +156,7 @@ class _ProductCard extends StatelessWidget {
     final name = data['name'] ?? '';
     final btu = data['btuCapacity'] ?? 0;
     final price = data['price'] ?? 0;
+    final imageUrl = data['imageUrl'] as String? ?? '';
 
     return GestureDetector(
       onTap: () => showEditCatalogSheet(context, doc),
@@ -165,33 +166,26 @@ class _ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 100,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-                gradient: LinearGradient(
-                  colors: [
-                    AdminTheme.primaryColor.withValues(alpha: 0.15),
-                    AdminTheme.secondaryColor.withValues(alpha: 0.08),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
               ),
-              child: Icon(
-                Iconsax.cpu_setting,
-                size: 40,
-                color: isDark
-                    ? AdminTheme.secondaryColor.withValues(alpha: 0.6)
-                    : AdminTheme.primaryColor.withValues(alpha: 0.4),
+              child: SizedBox(
+                height: 100,
+                width: double.infinity,
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _gradientFallback(isDark),
+                      )
+                    : _gradientFallback(isDark),
               ),
             ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -261,6 +255,30 @@ class _ProductCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _gradientFallback(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AdminTheme.primaryColor.withValues(alpha: 0.15),
+            AdminTheme.secondaryColor.withValues(alpha: 0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Iconsax.cpu_setting,
+          size: 40,
+          color: isDark
+              ? AdminTheme.secondaryColor.withValues(alpha: 0.6)
+              : AdminTheme.primaryColor.withValues(alpha: 0.4),
         ),
       ),
     );
