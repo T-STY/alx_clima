@@ -62,7 +62,7 @@ class DashboardScreen extends StatelessWidget {
                   confirmed,
                   completed,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
@@ -74,7 +74,7 @@ class DashboardScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 RecentAppointmentsList(appointments: recentList),
               ],
             );

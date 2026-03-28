@@ -158,7 +158,7 @@ class _WorkSchedulePageState extends State<WorkSchedulePage> {
                   );
                 }),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
@@ -184,7 +184,7 @@ class _WorkSchedulePageState extends State<WorkSchedulePage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
               GestureDetector(
                 onTap: _generating ? null : _generate,
                 child: Container(
@@ -253,10 +253,11 @@ class _WorkSchedulePageState extends State<WorkSchedulePage> {
         DropdownButtonFormField<int>(
           value: value,
           isDense: true,
-          decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
-          style: GoogleFonts.exo2(fontSize: 13),
+          dropdownColor: Theme.of(context).cardColor,
+          decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+          style: GoogleFonts.exo2(fontSize: 13, color: isDark ? Colors.white : Colors.black),
           items: List.generate(24, (h) => DropdownMenuItem(
-            value: h, child: Text('${h.toString().padLeft(2, '0')}:00', style: GoogleFonts.exo2(fontSize: 13)),
+            value: h, child: Text('${h.toString().padLeft(2, '0')}:00', style: GoogleFonts.exo2(fontSize: 13, color: isDark ? Colors.white : Colors.black)),
           )),
           onChanged: (v) { if (v != null) onChanged(v); },
         ),
@@ -273,9 +274,10 @@ class _WorkSchedulePageState extends State<WorkSchedulePage> {
         DropdownButtonFormField<int>(
           value: _daysAhead,
           isDense: true,
-          decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
-          style: GoogleFonts.exo2(fontSize: 13),
-          items: [15, 30, 60, 90].map((d) => DropdownMenuItem(value: d, child: Text('$d', style: GoogleFonts.exo2(fontSize: 13)))).toList(),
+          dropdownColor: Theme.of(context).cardColor,
+          decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+          style: GoogleFonts.exo2(fontSize: 13, color: isDark ? Colors.white : Colors.black),
+          items: [15, 30, 60, 90].map((d) => DropdownMenuItem(value: d, child: Text('$d días', style: GoogleFonts.exo2(fontSize: 13, color: isDark ? Colors.white : Colors.black)))).toList(),
           onChanged: (v) { if (v != null) setState(() => _daysAhead = v); },
         ),
       ],
