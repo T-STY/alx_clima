@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
@@ -22,7 +21,7 @@ class SettingsScreen extends StatelessWidget {
       body: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(0, 16, 0, 100),
+          padding: const EdgeInsets.fromLTRB(0, 16, 0, 120),
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -35,7 +34,41 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            _sectionLabel(context, 'General'),
+            _settingsTile(
+              context,
+              icon: Iconsax.building,
+              color: AdminTheme.primaryColor,
+              title: 'Información de la empresa',
+              subtitle: 'Nombre, teléfono, correo, horario',
+              onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const CompanyInfoPage(),
+              )),
+            ),
+            _settingsTile(
+              context,
+              icon: Iconsax.money_3,
+              color: AdminTheme.successColor,
+              title: 'Precios de instalación',
+              subtitle: 'Tarifas por BTU, recargos, descuentos',
+              onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const PricingPage(),
+              )),
+            ),
+            _settingsTile(
+              context,
+              icon: Iconsax.calendar,
+              color: AdminTheme.secondaryColor,
+              title: 'Horario de trabajo',
+              subtitle: 'Días laborales, horario, generar disponibilidad',
+              onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const WorkSchedulePage(),
+              )),
+            ),
+
+            const SizedBox(height: 24),
             _sectionLabel(context, 'Apariencia'),
             GlassCard(
               child: Row(
@@ -60,12 +93,18 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      isDark ? 'Modo oscuro' : 'Modo claro',
-                      style: GoogleFonts.exo2(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Modo oscuro', style: GoogleFonts.exo2(fontSize: 14, fontWeight: FontWeight.w500)),
+                        Text(
+                          isDark ? 'Activado' : 'Desactivado',
+                          style: GoogleFonts.exo2(
+                            fontSize: 12,
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Switch.adaptive(
@@ -76,53 +115,17 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
             ),
+
             const SizedBox(height: 24),
-            _sectionLabel(context, 'Información de la empresa'),
-            const CompanyInfoCard(),
-            const SizedBox(height: 24),
-            _sectionLabel(context, 'Precios'),
-            const PricingCard(),
-            const SizedBox(height: 24),
-            _sectionLabel(context, 'Horario de trabajo'),
-            const WorkScheduleCard(),
-            const SizedBox(height: 32),
-            _sectionLabel(context, 'Sesión'),
-            GlassCard(
-              child: GestureDetector(
-                onTap: () => _showLogoutDialog(context),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AdminTheme.errorColor.withValues(alpha: 0.12),
-                      ),
-                      child: const Icon(
-                        Iconsax.logout,
-                        size: 18,
-                        color: AdminTheme.errorColor,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Cerrar Sesión',
-                      style: GoogleFonts.exo2(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AdminTheme.errorColor,
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      Iconsax.arrow_right_3,
-                      size: 16,
-                      color: AdminTheme.errorColor.withValues(alpha: 0.5),
-                    ),
-                  ],
-                ),
-              ),
+            _sectionLabel(context, 'Cuenta'),
+            _settingsTile(
+              context,
+              icon: Iconsax.logout,
+              color: AdminTheme.errorColor,
+              title: 'Cerrar sesión',
+              subtitle: FirebaseAuth.instance.currentUser?.email ?? '',
+              onTap: () => _showLogoutDialog(context),
+              isDestructive: true,
             ),
           ],
         ),
@@ -130,31 +133,58 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Cerrar Sesión', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
-        content: Text(
-          '¿Estás seguro de que deseas cerrar sesión?',
-          style: GoogleFonts.exo2(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancelar', style: GoogleFonts.exo2()),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              FirebaseAuth.instance.signOut();
-            },
-            child: Text(
-              'Cerrar Sesión',
-              style: GoogleFonts.exo2(color: AdminTheme.errorColor),
+  Widget _settingsTile(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return GlassCard(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.12),
+              ),
+              child: Icon(icon, size: 18, color: color),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.exo2(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDestructive ? color : null,
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.exo2(
+                        fontSize: 12,
+                        color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (!isDestructive)
+              Icon(Iconsax.arrow_right_3, size: 16, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.3)),
+          ],
+        ),
       ),
     );
   }
@@ -165,10 +195,34 @@ class SettingsScreen extends StatelessWidget {
       child: Text(
         text,
         style: GoogleFonts.exo2(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.3,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+          color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5),
         ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Cerrar sesión', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
+        content: Text('¿Estás seguro?', style: GoogleFonts.exo2()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancelar', style: GoogleFonts.exo2()),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              FirebaseAuth.instance.signOut();
+            },
+            child: Text('Cerrar sesión', style: GoogleFonts.exo2(color: AdminTheme.errorColor)),
+          ),
+        ],
       ),
     );
   }

@@ -5,14 +5,14 @@ import 'package:iconsax/iconsax.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'package:alx_clima_admin/widgets/glass_card.dart';
 
-class CompanyInfoCard extends StatefulWidget {
-  const CompanyInfoCard({super.key});
+class CompanyInfoPage extends StatefulWidget {
+  const CompanyInfoPage({super.key});
 
   @override
-  State<CompanyInfoCard> createState() => _CompanyInfoCardState();
+  State<CompanyInfoPage> createState() => _CompanyInfoPageState();
 }
 
-class _CompanyInfoCardState extends State<CompanyInfoCard> {
+class _CompanyInfoPageState extends State<CompanyInfoPage> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _whatsAppCtrl = TextEditingController();
@@ -81,12 +81,20 @@ class _CompanyInfoCardState extends State<CompanyInfoCard> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _load(),
-      builder: (context, _) {
-        return GlassCard(
-          child: Column(
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Empresa', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
+        leading: IconButton(icon: const Icon(Iconsax.arrow_left), onPressed: () => Navigator.pop(context)),
+      ),
+      body: FutureBuilder(
+        future: _load(),
+        builder: (context, _) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
             children: [
+              GlassCard(
+                child: Column(
+                  children: [
               _field(_nameCtrl, 'Nombre', Iconsax.building),
               const SizedBox(height: 10),
               _field(_phoneCtrl, 'Teléfono', Iconsax.call),
@@ -102,8 +110,11 @@ class _CompanyInfoCardState extends State<CompanyInfoCard> {
               _saveButton(_save),
             ],
           ),
-        );
-      },
+        ),
+      ],
+    );
+        },
+      ),
     );
   }
 }

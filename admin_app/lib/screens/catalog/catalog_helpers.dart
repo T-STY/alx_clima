@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:alx_clima_admin/widgets/sheet_widgets.dart';
 
 void showAddCatalogSheet(BuildContext context) {
@@ -129,13 +130,38 @@ void showEditCatalogSheet(BuildContext context, DocumentSnapshot doc) {
       'Editar ${data['brand']} ${data['name']}',
       Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          sheetInput(priceCtrl, 'Precio', isDark,
-              keyboard: TextInputType.number),
-          const SizedBox(height: 12),
-          sheetInput(warrantyCtrl, 'Garantía', isDark),
-          const SizedBox(height: 12),
-          sheetInput(descCtrl, 'Descripción', isDark),
+          Text('Precio', style: GoogleFonts.exo2(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? Colors.white70 : Colors.black54)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: priceCtrl,
+            keyboardType: TextInputType.number,
+            style: GoogleFonts.exo2(fontSize: 14),
+            decoration: InputDecoration(
+              prefixText: '\$ ',
+              prefixStyle: GoogleFonts.exo2(fontSize: 14, fontWeight: FontWeight.w600),
+              hintText: '0.00',
+              hintStyle: GoogleFonts.exo2(fontSize: 14),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('Garantía del fabricante', style: GoogleFonts.exo2(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? Colors.white70 : Colors.black54)),
+          const SizedBox(height: 6),
+          sheetInput(warrantyCtrl, 'Texto de garantía', isDark),
+          const SizedBox(height: 16),
+          Text('Descripción', style: GoogleFonts.exo2(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? Colors.white70 : Colors.black54)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: descCtrl,
+            maxLines: null,
+            minLines: 3,
+            style: GoogleFonts.exo2(fontSize: 14),
+            decoration: InputDecoration(
+              hintText: 'Descripción del equipo',
+              hintStyle: GoogleFonts.exo2(fontSize: 14),
+            ),
+          ),
           const SizedBox(height: 20),
           Row(
             children: [

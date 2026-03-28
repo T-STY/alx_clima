@@ -6,14 +6,14 @@ import 'package:intl/intl.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'package:alx_clima_admin/widgets/glass_card.dart';
 
-class WorkScheduleCard extends StatefulWidget {
-  const WorkScheduleCard({super.key});
+class WorkSchedulePage extends StatefulWidget {
+  const WorkSchedulePage({super.key});
 
   @override
-  State<WorkScheduleCard> createState() => _WorkScheduleCardState();
+  State<WorkSchedulePage> createState() => _WorkSchedulePageState();
 }
 
-class _WorkScheduleCardState extends State<WorkScheduleCard> {
+class _WorkSchedulePageState extends State<WorkSchedulePage> {
   static const _dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
   Set<int> _workDays = {1, 2, 3, 4, 5};
@@ -84,13 +84,21 @@ class _WorkScheduleCardState extends State<WorkScheduleCard> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return FutureBuilder(
-      future: _load(),
-      builder: (context, _) {
-        return GlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Horario de trabajo', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
+        leading: IconButton(icon: const Icon(Iconsax.arrow_left), onPressed: () => Navigator.pop(context)),
+      ),
+      body: FutureBuilder(
+        future: _load(),
+        builder: (context, _) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
             children: [
+              GlassCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
               Text(
                 'Días laborales',
                 style: GoogleFonts.exo2(
@@ -220,8 +228,11 @@ class _WorkScheduleCardState extends State<WorkScheduleCard> {
               ),
             ],
           ),
-        );
-      },
+        ),
+      ],
+    );
+        },
+      ),
     );
   }
 

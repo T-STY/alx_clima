@@ -5,14 +5,14 @@ import 'package:iconsax/iconsax.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'package:alx_clima_admin/widgets/glass_card.dart';
 
-class PricingCard extends StatefulWidget {
-  const PricingCard({super.key});
+class PricingPage extends StatefulWidget {
+  const PricingPage({super.key});
 
   @override
-  State<PricingCard> createState() => _PricingCardState();
+  State<PricingPage> createState() => _PricingPageState();
 }
 
-class _PricingCardState extends State<PricingCard> {
+class _PricingPageState extends State<PricingPage> {
   static const _btus = ['12000', '18000', '24000', '36000'];
 
   final _installCtrls = <String, TextEditingController>{};
@@ -105,13 +105,21 @@ class _PricingCardState extends State<PricingCard> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _load(),
-      builder: (context, _) {
-        return GlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Precios', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
+        leading: IconButton(icon: const Icon(Iconsax.arrow_left), onPressed: () => Navigator.pop(context)),
+      ),
+      body: FutureBuilder(
+        future: _load(),
+        builder: (context, _) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
             children: [
+              GlassCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
               _label('Solo instalación'),
               const SizedBox(height: 8),
               ..._btus.map((b) => _btuRow(b, _installCtrls[b]!)),
@@ -129,8 +137,11 @@ class _PricingCardState extends State<PricingCard> {
               _saveButton(_save),
             ],
           ),
-        );
-      },
+        ),
+      ],
+    );
+        },
+      ),
     );
   }
 

@@ -59,7 +59,7 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.8,
+            maxHeight: MediaQuery.of(context).size.height * 0.88,
           ),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF0B0D14).withValues(alpha: 0.92) : Colors.white.withValues(alpha: 0.92),
@@ -78,7 +78,7 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                 child: Text(
                   'Reagendar cita',
                   style: GoogleFonts.exo2(
@@ -87,10 +87,11 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
               Flexible(
                 child: ListView(
                   shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
                   children: [
                     Text(
                       'Fecha disponible',
