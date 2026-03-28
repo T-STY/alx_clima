@@ -987,7 +987,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Costo estimado: \$${_calculateEstimatedCost(dashboard).toStringAsFixed(0)}',
+                  'Costo estimado: \$${widget.fromQuote ? context.read<QuoteProvider>().grandTotal.toStringAsFixed(0) : _calculateEstimatedCost(dashboard).toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppTheme.primaryColor,
@@ -1178,7 +1178,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       },
       'equipment': equipmentList,
       'totalUserEquipment': dashboard.totalEquipment,
-      'estimatedCost': _calculateEstimatedCost(dashboard),
+      'estimatedCost': widget.fromQuote
+          ? quoteProvider.grandTotal
+          : _calculateEstimatedCost(dashboard),
       'quoteBreakdown': quoteBreakdown,
     });
 

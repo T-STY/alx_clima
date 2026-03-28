@@ -127,23 +127,7 @@ Future<List<int>> buildInvoicePdf(
               ],
             ),
             pw.SizedBox(height: 16),
-            pw.Align(
-              alignment: pw.Alignment.centerRight,
-              child: pw.Container(
-                padding: const pw.EdgeInsets.all(12),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.blue50,
-                  borderRadius: pw.BorderRadius.circular(6),
-                ),
-                child: pw.Text(
-                  'Total: \$${total.toStringAsFixed(2)} MXN',
-                  style: pw.TextStyle(
-                    fontSize: 16,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
+            _buildPdfBreakdown(data, total),
             if (notes.isNotEmpty) ...[
               pw.SizedBox(height: 12),
               pw.Text(
@@ -207,6 +191,101 @@ pw.Widget _cell(String text, {bool bold = false}) {
         fontSize: 10,
         fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
       ),
+    ),
+  );
+}
+
+pw.Widget _buildPdfBreakdown(Map<String, dynamic> data, double total) {
+  final breakdown = data['quoteBreakdown'] as Map<String, dynamic>?;
+  String fmt(num v) => '\$${v.toStringAsFixed(2)}';
+
+  final rows = <pw.Widget>[];
+
+  if (breakdown != null) {
+    rows.add(pw.Text(
+      'Desglose de costos',
+      style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+    ));
+    rows.add(pw.SizedBox(height: 6));
+
+    final perEquip = (breakdown['perEquipment'] as List?) ?? [];
+    for (final eq in perEquip) {
+      rows.add(pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 2),
+        child: pw.Text(
+          '${eq['brand'] ?? ''} ${eq['name'] ?? ''} (${eq['btuCapacity'] ?? 0} BTU)',
+          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+        ),
+      ));
+      final eqCost = (eq['equipmentCost'] as num?) ?? 0;
+      if (eqCost > 0) {
+        rows.add(_pdfRow('  Equipo', fmt(eqCost)));
+      }
+      final instCost = (eq['installCost'] as num?) ?? 0;
+      if (instCost > 0) {
+        rows.add(_pdfRow('  Instalación', fmt(instCost)));
+      }
+      if (eq['floorLevel'] == 'second') {
+        rows.add(_pdfRow('  Recargo segundo piso', 'Incluido'));
+      }
+      if (eq['compressorSameFloor'] == false) {
+        rows.add(_pdfRow('  Recargo compresor diferente', 'Incluido'));
+      }
+    }
+
+    if (breakdown['multiUnitDiscount'] == true) {
+      rows.add(_pdfRow('Descuento multi-equipo', 'Aplicado'));
+    }
+
+    rows.add(pw.Divider(color: PdfColors.grey400));
+
+    final eqTotal = (breakdown['equipmentPrice'] as num?) ?? 0;
+    if (eqTotal > 0) {
+      rows.add(_pdfRow('Subtotal equipos', fmt(eqTotal)));
+    }
+    final instTotal = (breakdown['installationPrice'] as num?) ?? 0;
+    if (instTotal > 0) {
+      rows.add(_pdfRow('Subtotal instalación', fmt(instTotal)));
+    }
+  }
+
+  rows.add(pw.SizedBox(height: 4));
+  rows.add(pw.Container(
+    padding: const pw.EdgeInsets.all(10),
+    decoration: pw.BoxDecoration(
+      color: PdfColors.blue50,
+      borderRadius: pw.BorderRadius.circular(6),
+    ),
+    child: pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(
+          'TOTAL',
+          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.Text(
+          '${fmt(total)} MXN',
+          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+        ),
+      ],
+    ),
+  ));
+
+  return pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: rows,
+  );
+}
+
+pw.Widget _pdfRow(String label, String value) {
+  return pw.Padding(
+    padding: const pw.EdgeInsets.only(bottom: 2),
+    child: pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(label, style: const pw.TextStyle(fontSize: 10)),
+        pw.Text(value, style: const pw.TextStyle(fontSize: 10)),
+      ],
     ),
   );
 }

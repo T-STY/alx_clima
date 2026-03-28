@@ -126,6 +126,7 @@ void showAppointmentDetail(BuildContext context, QueryDocumentSnapshot doc) {
                             ),
                           )),
                     ],
+                    _buildQuoteBreakdown(data, isDark),
                     const SizedBox(height: 24),
                     _buildActions(ctx, doc, status),
                   ],
@@ -135,6 +136,107 @@ void showAppointmentDetail(BuildContext context, QueryDocumentSnapshot doc) {
           ),
         ),
       ),
+    ),
+  );
+}
+
+Widget _buildQuoteBreakdown(Map<String, dynamic> data, bool isDark) {
+  final breakdown = data['quoteBreakdown'] as Map<String, dynamic>?;
+  final estimatedCost = data['estimatedCost'];
+  if (breakdown == null && estimatedCost == null) return const SizedBox.shrink();
+
+  String fmt(num v) => '\$${v.toStringAsFixed(0)}';
+
+  final rows = <Widget>[];
+
+  if (breakdown != null) {
+    final perEquip = (breakdown['perEquipment'] as List?) ?? [];
+    for (final eq in perEquip) {
+      rows.add(_breakdownRow(
+        '${eq['brand'] ?? ''} ${eq['name'] ?? ''} (${eq['btuCapacity'] ?? 0} BTU)',
+        null,
+        isHeader: true,
+      ));
+      final eqCost = (eq['equipmentCost'] as num?) ?? 0;
+      if (eqCost > 0) rows.add(_breakdownRow('  Equipo', fmt(eqCost)));
+      final instCost = (eq['installCost'] as num?) ?? 0;
+      if (instCost > 0) rows.add(_breakdownRow('  Instalación', fmt(instCost)));
+      if (eq['floorLevel'] == 'second') {
+        rows.add(_breakdownRow('  Recargo segundo piso', 'Incluido'));
+      }
+      if (eq['compressorSameFloor'] == false) {
+        rows.add(_breakdownRow('  Recargo compresor', 'Incluido'));
+      }
+    }
+    if (breakdown['multiUnitDiscount'] == true) {
+      rows.add(_breakdownRow('Descuento multi-equipo', 'Aplicado'));
+    }
+    rows.add(Divider(height: 16, color: isDark ? Colors.white12 : Colors.black12));
+    final eqPrice = (breakdown['equipmentPrice'] as num?) ?? 0;
+    if (eqPrice > 0) rows.add(_breakdownRow('Equipos', fmt(eqPrice)));
+    final instPrice = (breakdown['installationPrice'] as num?) ?? 0;
+    rows.add(_breakdownRow('Instalación', fmt(instPrice)));
+    rows.add(const SizedBox(height: 4));
+    final total = (breakdown['totalPrice'] as num?) ?? 0;
+    rows.add(_breakdownRow('Total', fmt(total), isBold: true));
+  } else if (estimatedCost != null) {
+    rows.add(_breakdownRow('Costo estimado', fmt(estimatedCost as num), isBold: true));
+  }
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const SizedBox(height: 16),
+      Text(
+        'Cotización',
+        style: GoogleFonts.exo2(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.3,
+        ),
+      ),
+      const SizedBox(height: 8),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.04)
+              : AdminTheme.primaryColor.withValues(alpha: 0.04),
+        ),
+        child: Column(children: rows),
+      ),
+    ],
+  );
+}
+
+Widget _breakdownRow(String label, String? value, {bool isBold = false, bool isHeader = false}) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.exo2(
+              fontSize: isHeader ? 13 : 12,
+              fontWeight: isHeader || isBold ? FontWeight.w600 : FontWeight.w400,
+              color: isBold ? AdminTheme.primaryColor : null,
+            ),
+          ),
+        ),
+        if (value != null)
+          Text(
+            value,
+            style: GoogleFonts.exo2(
+              fontSize: 12,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+              color: isBold ? AdminTheme.primaryColor : null,
+            ),
+          ),
+      ],
     ),
   );
 }

@@ -18,7 +18,8 @@ Future<void> invoiceAndComplete(
   final equipment = parseEquipment(data);
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
-  final estimated = data['estimatedCost'] ?? data['quoteBreakdown']?['totalPrice'] ?? 0;
+  final breakdown = data['quoteBreakdown'] as Map<String, dynamic>?;
+  final estimated = breakdown?['totalPrice'] ?? data['estimatedCost'] ?? 0;
   final costCtrl = TextEditingController(text: '$estimated');
   final notesCtrl = TextEditingController();
 
