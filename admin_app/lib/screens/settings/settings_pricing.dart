@@ -206,7 +206,7 @@ class _PricingPageState extends State<PricingPage> {
   Widget _btuGrid(Map<String, TextEditingController> ctrls) {
     return Builder(
       builder: (context) {
-        final w = (MediaQuery.of(context).size.width - 74) / 2;
+        final w = (MediaQuery.of(context).size.width) / 1;
         return Wrap(
           spacing: 10,
           runSpacing: 10,
