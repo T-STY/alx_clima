@@ -74,7 +74,7 @@ class InvoicesScreen extends StatelessWidget {
               final date = data['date'] ?? '';
               final total = (data['total'] ?? 0).toDouble();
               final currencyFormat =
-                  NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+                  NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
               return GestureDetector(
                 onTap: () => _viewInvoice(context, data),
@@ -152,7 +152,7 @@ class InvoicesScreen extends StatelessWidget {
     final pdfBytes = Uint8List.fromList(base64Decode(pdfBase64));
     final total = (data['total'] ?? 0).toDouble();
     final currencyFormat =
-        NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+        NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
     showModalBottomSheet(
       context: context,

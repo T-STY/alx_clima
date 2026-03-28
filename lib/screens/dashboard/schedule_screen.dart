@@ -1109,6 +1109,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         'location': eq?.location ?? qi?.location ?? '',
         'type': eq?.type.displayName ?? qi?.equipment.type.displayName ?? '',
         'price': qi?.equipment.price ?? 0,
+        'manufacturerWarrantyDetails': qi?.equipment.manufacturerWarrantyDetails ?? eq?.warrantyDetails ?? '',
       };
     }).toList();
 

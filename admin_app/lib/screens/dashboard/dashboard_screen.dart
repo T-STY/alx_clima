@@ -111,25 +111,29 @@ class DashboardScreen extends StatelessWidget {
     final stats = [
       StatData('Hoy', '$today', Iconsax.calendar_1, AdminTheme.primaryColor),
       StatData('Pendientes', '$pending', Iconsax.clock, AdminTheme.warningColor),
-      StatData('Confirmadas', '$confirmed', Iconsax.tick_circle, AdminTheme.secondaryColor),
-      StatData('Completadas', '$completed', Iconsax.verify, AdminTheme.successColor),
+      StatData('Confirm.', '$confirmed', Iconsax.tick_circle, AdminTheme.secondaryColor),
+      StatData('Complet.', '$completed', Iconsax.verify, AdminTheme.successColor),
     ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: 1.8,
-        mainAxisSpacing: 4,
-        crossAxisSpacing: 4,
-        children: stats
-            .map((s) => StatCard(data: s))
-            .toList()
-            .animate(interval: 80.ms)
-            .fadeIn(duration: 300.ms)
-            .slideY(begin: 0.1, end: 0),
+      child: Builder(
+        builder: (context) {
+          final w = (MediaQuery.of(context).size.width - 28) / 2;
+          return Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: stats.asMap().entries.map((e) {
+              return SizedBox(
+                width: w,
+                child: StatCard(data: e.value)
+                    .animate()
+                    .fadeIn(duration: 300.ms, delay: (e.key * 80).ms)
+                    .slideY(begin: 0.1, end: 0),
+              );
+            }).toList(),
+          );
+        },
       ),
     );
   }
