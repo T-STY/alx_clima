@@ -1130,10 +1130,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
 
     final quoteProvider = context.read<QuoteProvider>();
+    final hasDiscount = quoteProvider.items.length > 1;
     final quoteBreakdown = <String, dynamic>{
       'equipmentPrice': quoteProvider.totalEquipmentCost,
       'installationPrice': quoteProvider.totalInstallCost,
       'totalPrice': quoteProvider.grandTotal,
+      'multiUnitDiscount': hasDiscount,
+      'installationType': quoteProvider.installationType.name,
       'perEquipment': resolvedIds.map((id) {
         final eq = dashboard.getEquipmentById(id);
         final qi =
@@ -1141,12 +1144,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         return {
           'id': eq?.id ?? id,
           'name': eq?.equipmentName ?? qi?.equipment.name ?? '',
+          'brand': eq?.brand ?? qi?.equipment.brand ?? '',
           'btuCapacity':
               eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0,
           'equipmentCost': qi?.equipment.price ?? 0,
           'installCost': qi != null
               ? quoteProvider.getInstallCostForItem(qi)
               : 0,
+          'floorLevel': qi?.installationDetails.floorLevel.name ?? 'first',
+          'compressorSameFloor': qi?.installationDetails.compressorSameFloor ?? true,
+          'location': qi?.location ?? eq?.location ?? '',
         };
       }).toList(),
     };

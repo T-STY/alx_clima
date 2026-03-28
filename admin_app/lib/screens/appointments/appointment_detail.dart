@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:alx_clima_admin/config/theme.dart';
+import 'package:alx_clima_admin/config/routes.dart';
 import 'appointment_actions.dart';
 import 'appointment_reschedule.dart';
 import 'invoice_service.dart';
@@ -181,14 +182,13 @@ Widget _buildActions(
     ]);
   } else if (status == 'confirmed') {
     actions.addAll([
-      _gradientButton('Completar y Facturar', Iconsax.verify, () {
-        final parentCtx = context;
-        Navigator.pop(ctx);
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (parentCtx.mounted) {
-            invoiceAndComplete(parentCtx, doc);
-          }
-        });
+      _gradientButton('Completar y Facturar', Iconsax.verify, () async {
+        Navigator.pop(context);
+        await Future.delayed(const Duration(milliseconds: 300));
+        final navCtx = routerKey.currentContext;
+        if (navCtx != null) {
+          invoiceAndComplete(navCtx, doc);
+        }
       }),
       const SizedBox(height: 10),
       _glassButton(isDark, 'Cancelar', Iconsax.close_circle, () async {
