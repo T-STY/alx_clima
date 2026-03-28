@@ -20,7 +20,7 @@ Future<void> showPdfActions(
     backgroundColor: Colors.transparent,
     builder: (ctx) {
       return Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 110),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isDark
