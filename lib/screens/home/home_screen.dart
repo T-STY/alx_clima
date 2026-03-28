@@ -88,46 +88,46 @@ class _HomeScreenState extends State<HomeScreen> {
     final name = context.read<DashboardProvider>().profile?.name ?? '';
     final displayName = name.isNotEmpty ? _titleCase(name) : '';
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/images/logo.png',
-              fit: BoxFit.cover,
+        Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
-          ),
+            const Spacer(),
+            _buildNotificationBell(context),
+          ],
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Bienvenido',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
+        const SizedBox(height: 14),
+        Text(
+          'Bienvenido',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
               ),
-              if (displayName.isNotEmpty)
-                Text(
-                  displayName,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
         ),
-        _buildNotificationBell(context),
+        if (displayName.isNotEmpty)
+          Text(
+            displayName,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        const SizedBox(height: 16),
       ],
     );
   }
