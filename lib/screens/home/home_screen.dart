@@ -31,26 +31,26 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
                   _buildWelcomeHeader(context)
                       .animate()
                       .fadeIn(duration: 500.ms)
                       .slideY(begin: -0.1, end: 0),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 14),
 
                   if (dashboard.totalEquipment > 0) ...[
                     _buildQuickStats(context, dashboard)
                         .animate()
                         .fadeIn(duration: 500.ms, delay: 100.ms)
                         .slideY(begin: 0.1, end: 0),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 14),
                   ],
 
                   _buildActionGrid(context, dashboard),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
 
                   SectionHeader(
                     title: 'Consejos de Mantenimiento',
@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       .fadeIn(duration: 500.ms, delay: 500.ms)
                       .slideX(begin: 0.05, end: 0),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 100),
                 ],
               ),
             );
@@ -81,33 +81,36 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         Container(
-          width: 48,
-          height: 48,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             child: Image.asset(
               'assets/images/logo.png',
               fit: BoxFit.cover,
             ),
           ),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Bienvenido a ${AppConstants.appName}',
-                style: Theme.of(context).textTheme.headlineSmall,
+                'ALX-Clima',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 'Tu solución en climatización',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppTheme.textSecondary,
+                      fontSize: 11,
                     ),
               ),
             ],
@@ -127,12 +130,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Stack(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: AppTheme.surfaceColor,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Iconsax.notification, size: 22),
+            child: const Icon(Iconsax.notification, size: 18),
           ),
           if (unread > 0)
             Positioned(
@@ -358,7 +361,7 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisCount: 2,
         crossAxisSpacing: 14,
         mainAxisSpacing: 14,
-        childAspectRatio: 1.15,
+        childAspectRatio: 1.35,
       ),
       itemCount: actions.length,
       itemBuilder: (context, index) {
