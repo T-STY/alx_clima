@@ -156,7 +156,7 @@ class _InvoiceConfirmSheet extends StatelessWidget {
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
                 children: [
                   _row(Iconsax.user, customer['name'] ?? ''),
                   _row(Iconsax.call, customer['phone'] ?? ''),

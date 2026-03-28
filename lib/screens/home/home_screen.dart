@@ -4,15 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import 'package:alx_clima/config/constants.dart';
 import 'package:alx_clima/config/theme.dart';
 import 'package:alx_clima/data/care_tips.dart';
 import 'package:alx_clima/providers/appointment_provider.dart';
 import 'package:alx_clima/providers/auth_provider.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
-import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/section_header.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -23,25 +20,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _companyPhone = AppConstants.technicianPhone;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCompanyPhone();
-  }
-
-  Future<void> _loadCompanyPhone() async {
-    try {
-      final data = await FirebaseService().getCompanyInfo();
-      if (data != null && mounted) {
-        setState(() {
-          _companyPhone = data['phone'] ?? _companyPhone;
-        });
-      }
-    } catch (_) {}
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,13 +66,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       .animate()
                       .fadeIn(duration: 500.ms, delay: 500.ms)
                       .slideX(begin: 0.05, end: 0),
-
-                  const SizedBox(height: 32),
-
-                  _buildEmergencyButton(context)
-                      .animate()
-                      .fadeIn(duration: 500.ms, delay: 600.ms)
-                      .slideY(begin: 0.1, end: 0),
 
                   const SizedBox(height: 32),
                 ],
@@ -529,44 +500,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildEmergencyButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () async {
-        try {
-          await launchUrl(Uri(scheme: 'tel', path: _companyPhone));
-        } catch (_) {}
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-        decoration: BoxDecoration(
-          color: AppTheme.errorColor.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppTheme.errorColor.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Iconsax.call,
-              color: AppTheme.errorColor,
-              size: 22,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              '¿Emergencia? Llámanos',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppTheme.errorColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _StatCard extends StatelessWidget {

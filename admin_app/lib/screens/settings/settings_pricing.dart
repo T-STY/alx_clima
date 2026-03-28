@@ -14,7 +14,9 @@ class PricingPage extends StatefulWidget {
 
 class _PricingPageState extends State<PricingPage> {
   static const _btus = ['12000', '18000', '24000', '36000'];
+  static const _btuLabels = ['12K', '18K', '24K', '36K'];
 
+  final _maintenanceCtrl = TextEditingController();
   final _installCtrls = <String, TextEditingController>{};
   final _fullCtrls = <String, TextEditingController>{};
   final _secondFloorCtrl = TextEditingController();
@@ -33,6 +35,7 @@ class _PricingPageState extends State<PricingPage> {
 
   @override
   void dispose() {
+    _maintenanceCtrl.dispose();
     for (final c in _installCtrls.values) {
       c.dispose();
     }
@@ -53,6 +56,7 @@ class _PricingPageState extends State<PricingPage> {
         .get();
     if (doc.exists) {
       final d = doc.data()!;
+      _maintenanceCtrl.text = '${d['maintenance'] ?? ''}';
       final install = d['installOnly'] as Map<String, dynamic>? ?? {};
       final full = d['fullPackage'] as Map<String, dynamic>? ?? {};
       for (final b in _btus) {
@@ -78,12 +82,11 @@ class _PricingPageState extends State<PricingPage> {
         .collection('config')
         .doc('pricing')
         .set({
+      'maintenance': num.tryParse(_maintenanceCtrl.text) ?? 0,
       'installOnly': installMap,
       'fullPackage': fullMap,
-      'secondFloorSurcharge':
-          num.tryParse(_secondFloorCtrl.text) ?? 0,
-      'differentFloorSurcharge':
-          num.tryParse(_diffFloorCtrl.text) ?? 0,
+      'secondFloorSurcharge': num.tryParse(_secondFloorCtrl.text) ?? 0,
+      'differentFloorSurcharge': num.tryParse(_diffFloorCtrl.text) ?? 0,
       'multiUnitDiscount': num.tryParse(_multiCtrl.text) ?? 0,
     });
 
@@ -107,82 +110,86 @@ class _PricingPageState extends State<PricingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Precios', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
-        leading: IconButton(icon: const Icon(Iconsax.arrow_left), onPressed: () => Navigator.pop(context)),
+        title: Text(
+          'Precios',
+          style: GoogleFonts.exo2(fontWeight: FontWeight.w600),
+        ),
+        leading: IconButton(
+          icon: const Icon(Iconsax.arrow_left),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: FutureBuilder(
         future: _load(),
         builder: (context, _) {
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 100),
             children: [
+              _sectionHeader(Iconsax.setting_4, 'Mantenimiento'),
+              GlassCard(
+                child: _priceField(_maintenanceCtrl, 'Precio mantenimiento'),
+              ),
+              const SizedBox(height: 8),
+              _sectionHeader(Iconsax.cpu_setting, 'Solo Instalación'),
+              GlassCard(child: _btuGrid(_installCtrls)),
+              const SizedBox(height: 8),
+              _sectionHeader(Iconsax.box_1, 'Equipo + Instalación'),
+              GlassCard(child: _btuGrid(_fullCtrls)),
+              const SizedBox(height: 8),
+              _sectionHeader(Iconsax.arrow_up_3, 'Recargos'),
               GlassCard(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-              _label('Solo instalación'),
+                    _priceField(_secondFloorCtrl, 'Recargo 2do piso (ej. 0.3)'),
+                    const SizedBox(height: 10),
+                    _priceField(
+                      _diffFloorCtrl,
+                      'Recargo piso diferente (ej. 0.3)',
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 8),
-              ..._btus.map((b) => _btuRow(b, _installCtrls[b]!)),
-              const SizedBox(height: 16),
-              _label('Paquete completo'),
-              const SizedBox(height: 8),
-              ..._btus.map((b) => _btuRow(b, _fullCtrls[b]!)),
-              const SizedBox(height: 16),
-              _label('Recargos y descuento'),
-              const SizedBox(height: 8),
-              _surchargeRow('2do piso', _secondFloorCtrl),
-              _surchargeRow('Piso diferente', _diffFloorCtrl),
-              _surchargeRow('Desc. múltiple', _multiCtrl),
-              const SizedBox(height: 16),
-              _saveButton(_save),
+              _sectionHeader(Iconsax.discount_shape, 'Descuentos'),
+              GlassCard(
+                child: _priceField(
+                  _multiCtrl,
+                  'Desc. múltiples unidades (ej. 0.1)',
+                ),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _saveButton(),
+              ),
             ],
-          ),
-        ),
-      ],
-    );
+          );
         },
       ),
     );
   }
 
-  Widget _label(String text) {
-    return Text(
-      text,
-      style: GoogleFonts.exo2(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 0.3,
-        color: AdminTheme.secondaryColor,
-      ),
-    );
-  }
-
-  Widget _btuRow(String btu, TextEditingController ctrl) {
+  Widget _sectionHeader(IconData icon, String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(22, 12, 22, 4),
       child: Row(
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$btu BTU',
-              style: GoogleFonts.exo2(fontSize: 12),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              gradient: AdminTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: Icon(icon, size: 16, color: Colors.white),
           ),
-          Expanded(
-            child: TextField(
-              controller: ctrl,
-              keyboardType: TextInputType.number,
-              style: GoogleFonts.exo2(fontSize: 13),
-              decoration: InputDecoration(
-                hintText: '\$',
-                hintStyle: GoogleFonts.exo2(fontSize: 13),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: GoogleFonts.exo2(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AdminTheme.primaryColor,
             ),
           ),
         ],
@@ -190,60 +197,83 @@ class _PricingPageState extends State<PricingPage> {
     );
   }
 
-  Widget _surchargeRow(String label, TextEditingController ctrl) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: GoogleFonts.exo2(fontSize: 12),
+  Widget _btuGrid(Map<String, TextEditingController> ctrls) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 2.2,
+      children: List.generate(_btus.length, (i) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_btuLabels[i]} BTU',
+              style: GoogleFonts.exo2(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AdminTheme.secondaryColor,
+              ),
             ),
-          ),
-          Expanded(
-            child: TextField(
-              controller: ctrl,
-              keyboardType: TextInputType.number,
-              style: GoogleFonts.exo2(fontSize: 13),
-              decoration: InputDecoration(
-                hintText: '0.0',
-                hintStyle: GoogleFonts.exo2(fontSize: 13),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+            const SizedBox(height: 4),
+            Expanded(
+              child: TextField(
+                controller: ctrls[_btus[i]],
+                keyboardType: TextInputType.number,
+                style: GoogleFonts.exo2(fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: '\$',
+                  hintStyle: GoogleFonts.exo2(fontSize: 13),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        );
+      }),
+    );
+  }
+
+  Widget _priceField(TextEditingController ctrl, String hint) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: TextInputType.number,
+      style: GoogleFonts.exo2(fontSize: 14),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.exo2(fontSize: 14),
+        prefixIcon: const Icon(Iconsax.dollar_circle, size: 18),
       ),
     );
   }
-}
 
-Widget _saveButton(VoidCallback onTap) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        gradient: AdminTheme.primaryGradient,
-      ),
-      child: Center(
-        child: Text(
-          'Guardar',
-          style: GoogleFonts.exo2(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+  Widget _saveButton() {
+    return GestureDetector(
+      onTap: _save,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: AdminTheme.primaryGradient,
+        ),
+        child: Center(
+          child: Text(
+            'Guardar',
+            style: GoogleFonts.exo2(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

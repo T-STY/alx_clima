@@ -337,16 +337,6 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () {
-                        context
-                            .read<QuoteProvider>()
-                            .resetQuote();
-                        context.go('/quote');
-                      },
-                      child: const Text('Nueva Cotización'),
-                    ),
                   ],
                 ),
               ),

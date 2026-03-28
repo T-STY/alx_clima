@@ -266,26 +266,6 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Container(
-                  height: 120,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border:
-                        Border.all(color: AppTheme.dividerColor),
-                  ),
-                  child: Image.network(
-                    'https://img.icons8.com/ios/100/air-conditioner.png',
-                    height: 64,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Iconsax.cpu_setting,
-                      size: 48,
-                      color: AppTheme.primaryColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
                 Text(
                   equipment.name,
                   style: Theme.of(context).textTheme.titleLarge,

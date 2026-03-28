@@ -51,6 +51,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   List<QuoteItem> _quoteItems = [];
 
+  Map<String, dynamic>? _pricingConfig;
+
   late final List<ServiceType> _serviceTypes;
 
   DateTime _calendarMonth = DateTime(
@@ -83,6 +85,49 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       }
     }
     _loadAvailableSlots();
+    _loadPricing();
+  }
+
+  Future<void> _loadPricing() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('config')
+          .doc('pricing')
+          .get();
+      if (doc.exists && mounted) {
+        setState(() => _pricingConfig = doc.data());
+      }
+    } catch (_) {}
+  }
+
+  num _calculateEstimatedCost(DashboardProvider dashboard) {
+    if (_pricingConfig == null) return 0;
+
+    if (_selectedServiceType == ServiceType.maintenance) {
+      final maintenancePrice = _pricingConfig!['maintenance'] as num? ?? 0;
+      return maintenancePrice * _selectedEquipmentIds.length;
+    }
+
+    if (_selectedServiceType == ServiceType.installation) {
+      final quoteProvider = context.read<QuoteProvider>();
+      final isSolo =
+          quoteProvider.installationType == InstallationType.installOnly;
+      final priceKey = isSolo ? 'installOnly' : 'fullPackage';
+      final priceMap =
+          _pricingConfig![priceKey] as Map<String, dynamic>? ?? {};
+      num total = 0;
+      for (final id in _selectedEquipmentIds) {
+        final eq = dashboard.getEquipmentById(id);
+        final qi =
+            _quoteItems.where((q) => q.equipment.id == id).firstOrNull;
+        final btu = eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0;
+        final price = priceMap['$btu'] as num? ?? 0;
+        total += price;
+      }
+      return total;
+    }
+
+    return 0;
   }
 
   @override
@@ -911,6 +956,26 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               'Horario: $_selectedTimeSlot',
               style: Theme.of(context).textTheme.bodySmall,
             ),
+          if (_pricingConfig != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(
+                  Iconsax.dollar_circle,
+                  size: 16,
+                  color: AppTheme.primaryColor,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Costo estimado: \$${_calculateEstimatedCost(dashboard).toStringAsFixed(0)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryColor,
+                      ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -1064,6 +1129,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       },
       'equipment': equipmentList,
       'totalUserEquipment': dashboard.totalEquipment,
+      'estimatedCost': _calculateEstimatedCost(dashboard),
     });
 
     if (widget.rescheduleId != null) {

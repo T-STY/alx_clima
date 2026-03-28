@@ -83,78 +83,127 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Empresa', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
-        leading: IconButton(icon: const Icon(Iconsax.arrow_left), onPressed: () => Navigator.pop(context)),
+        title: Text(
+          'Empresa',
+          style: GoogleFonts.exo2(fontWeight: FontWeight.w600),
+        ),
+        leading: IconButton(
+          icon: const Icon(Iconsax.arrow_left),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: FutureBuilder(
         future: _load(),
         builder: (context, _) {
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 100),
             children: [
+              _sectionHeader(Iconsax.call_calling, 'Contacto'),
               GlassCard(
                 child: Column(
                   children: [
-              _field(_nameCtrl, 'Nombre', Iconsax.building),
-              const SizedBox(height: 10),
-              _field(_phoneCtrl, 'Teléfono', Iconsax.call),
-              const SizedBox(height: 10),
-              _field(_whatsAppCtrl, 'WhatsApp', Iconsax.message),
-              const SizedBox(height: 10),
-              _field(_emailCtrl, 'Email', Iconsax.sms),
-              const SizedBox(height: 10),
-              _field(_hoursCtrl, 'Horario', Iconsax.clock),
-              const SizedBox(height: 10),
-              _field(_warrantyCtrl, 'Garantía técnica', Iconsax.shield_tick),
-              const SizedBox(height: 16),
-              _saveButton(_save),
+                    _field(_nameCtrl, 'Nombre de empresa', Iconsax.building),
+                    const SizedBox(height: 10),
+                    _field(_phoneCtrl, 'Teléfono', Iconsax.call),
+                    const SizedBox(height: 10),
+                    _field(_whatsAppCtrl, 'WhatsApp', Iconsax.message),
+                    const SizedBox(height: 10),
+                    _field(_emailCtrl, 'Email', Iconsax.sms),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              _sectionHeader(Iconsax.briefcase, 'Negocio'),
+              GlassCard(
+                child: Column(
+                  children: [
+                    _field(_hoursCtrl, 'Horario de atención', Iconsax.clock),
+                    const SizedBox(height: 10),
+                    _field(
+                      _warrantyCtrl,
+                      'Garantía técnica',
+                      Iconsax.shield_tick,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _saveButton(),
+              ),
             ],
-          ),
-        ),
-      ],
-    );
+          );
         },
       ),
     );
   }
-}
 
-Widget _field(
-  TextEditingController ctrl,
-  String hint,
-  IconData icon,
-) {
-  return TextField(
-    controller: ctrl,
-    style: GoogleFonts.exo2(fontSize: 14),
-    decoration: InputDecoration(
-      hintText: hint,
-      hintStyle: GoogleFonts.exo2(fontSize: 14),
-      prefixIcon: Icon(icon, size: 18),
-    ),
-  );
-}
-
-Widget _saveButton(VoidCallback onTap) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        gradient: AdminTheme.primaryGradient,
+  Widget _sectionHeader(IconData icon, String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 12, 22, 4),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              gradient: AdminTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 16, color: Colors.white),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: GoogleFonts.exo2(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AdminTheme.primaryColor,
+            ),
+          ),
+        ],
       ),
-      child: Center(
-        child: Text(
-          'Guardar',
-          style: GoogleFonts.exo2(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+    );
+  }
+
+  Widget _field(
+    TextEditingController ctrl,
+    String hint,
+    IconData icon,
+  ) {
+    return TextField(
+      controller: ctrl,
+      style: GoogleFonts.exo2(fontSize: 14),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.exo2(fontSize: 14),
+        prefixIcon: Icon(icon, size: 18),
+      ),
+    );
+  }
+
+  Widget _saveButton() {
+    return GestureDetector(
+      onTap: _save,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: AdminTheme.primaryGradient,
+        ),
+        child: Center(
+          child: Text(
+            'Guardar',
+            style: GoogleFonts.exo2(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
