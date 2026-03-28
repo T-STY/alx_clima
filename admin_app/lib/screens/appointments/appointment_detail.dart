@@ -106,7 +106,9 @@ void showAppointmentDetail(BuildContext context, QueryDocumentSnapshot doc) {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      ...equipment.map((eq) => Padding(
+                      ...equipment.map((eq) {
+                        final price = (eq['price'] as num?) ?? 0;
+                        return Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: Row(
                               children: [
@@ -122,9 +124,19 @@ void showAppointmentDetail(BuildContext context, QueryDocumentSnapshot doc) {
                                     style: GoogleFonts.exo2(fontSize: 13),
                                   ),
                                 ),
+                                if (price > 0)
+                                  Text(
+                                    '\$${price.toStringAsFixed(0)}',
+                                    style: GoogleFonts.exo2(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: AdminTheme.primaryColor,
+                                    ),
+                                  ),
                               ],
                             ),
-                          )),
+                          );
+                      }),
                     ],
                     _buildQuoteBreakdown(data, isDark),
                     const SizedBox(height: 24),

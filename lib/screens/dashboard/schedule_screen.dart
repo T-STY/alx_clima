@@ -1108,6 +1108,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         'btuCapacity': eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0,
         'location': eq?.location ?? qi?.location ?? '',
         'type': eq?.type.displayName ?? qi?.equipment.type.displayName ?? '',
+        'price': qi?.equipment.price ?? 0,
       };
     }).toList();
 

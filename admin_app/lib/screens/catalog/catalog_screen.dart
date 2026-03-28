@@ -121,9 +121,10 @@ class _EquipmentGrid extends StatelessWidget {
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final cardWidth = (constraints.maxWidth - 8) / 2;
+          child: Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width - 40;
+              final cardWidth = (screenWidth - 8) / 2;
               return Wrap(
                 spacing: 8,
                 runSpacing: 8,

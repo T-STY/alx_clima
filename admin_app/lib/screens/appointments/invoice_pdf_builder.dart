@@ -103,7 +103,8 @@ Future<List<int>> buildInvoicePdf(
               columnWidths: {
                 0: const pw.FlexColumnWidth(1),
                 1: const pw.FlexColumnWidth(2),
-                2: const pw.FlexColumnWidth(1),
+                2: const pw.FlexColumnWidth(0.8),
+                3: const pw.FlexColumnWidth(1),
               },
               children: [
                 pw.TableRow(
@@ -113,16 +114,22 @@ Future<List<int>> buildInvoicePdf(
                     _cell('Marca', bold: true),
                     _cell('Modelo', bold: true),
                     _cell('BTU', bold: true),
+                    _cell('Precio', bold: true),
                   ],
                 ),
                 ...equipment.map(
-                  (eq) => pw.TableRow(
-                    children: [
-                      _cell('${eq['brand'] ?? ''}'),
-                      _cell('${eq['name'] ?? ''}'),
-                      _cell('${eq['btuCapacity'] ?? ''}'),
-                    ],
-                  ),
+                  (eq) {
+                    final price = (eq['equipmentCost'] as num?) ??
+                        (eq['price'] as num?) ?? 0;
+                    return pw.TableRow(
+                      children: [
+                        _cell('${eq['brand'] ?? ''}'),
+                        _cell('${eq['name'] ?? ''}'),
+                        _cell('${eq['btuCapacity'] ?? ''}'),
+                        _cell(price > 0 ? '\$${price.toStringAsFixed(0)}' : '-'),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
