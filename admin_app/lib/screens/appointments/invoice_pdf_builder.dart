@@ -130,9 +130,6 @@ Future<List<int>> buildInvoicePdf(
                       price = (eq['price'] as num?) ??
                           (eq['equipmentCost'] as num?) ?? 0;
                     }
-                    if (price == 0 && equipmentCost > 0 && equipment.isNotEmpty) {
-                      price = equipmentCost / equipment.length;
-                    }
                     return pw.TableRow(
                       children: [
                         _cell('${eq['brand'] ?? ''}'),
