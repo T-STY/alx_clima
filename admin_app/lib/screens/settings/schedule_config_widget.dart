@@ -149,7 +149,7 @@ class ScheduleConfigSection extends StatelessWidget {
           items: [15, 30, 60, 90].map((d) => DropdownMenuItem(value: d,
               child: Text('$d días', style: GoogleFonts.exo2(fontSize: 13,
                   color: isDark ? Colors.white : Colors.black)))).toList(),
-          onChanged: (v) { if (v != null) onChanged(v); },
+          onChanged: (v) { if (v != null) onDaysChanged(v); },
         ),
       ],
     );
