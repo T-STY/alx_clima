@@ -1098,9 +1098,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         .map((id) => addedIds[id] ?? id)
         .toList();
 
+    final reverseIds = <String, String>{};
+    for (final entry in addedIds.entries) {
+      reverseIds[entry.value] = entry.key;
+    }
+
     final equipmentList = resolvedIds.map((id) {
       final eq = dashboard.getEquipmentById(id);
-      final qi = _quoteItems.where((q) => q.equipment.id == id).firstOrNull;
+      final originalId = reverseIds[id] ?? id;
+      final qi = _quoteItems.where((q) => q.equipment.id == originalId || q.equipment.id == id).firstOrNull;
       return {
         'id': eq?.id ?? id,
         'name': eq?.equipmentName ?? qi?.equipment.name ?? '',
@@ -1141,8 +1147,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       'installationType': quoteProvider.installationType.name,
       'perEquipment': resolvedIds.map((id) {
         final eq = dashboard.getEquipmentById(id);
+        final origId = reverseIds[id] ?? id;
         final qi =
-            _quoteItems.where((q) => q.equipment.id == id).firstOrNull;
+            _quoteItems.where((q) => q.equipment.id == origId || q.equipment.id == id).firstOrNull;
         return {
           'id': eq?.id ?? id,
           'name': eq?.equipmentName ?? qi?.equipment.name ?? '',
