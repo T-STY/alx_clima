@@ -18,6 +18,16 @@ class MetricsSection extends StatelessWidget {
         final docs = snapshot.data?.docs ?? [];
         final metrics = _computeMetrics(docs);
 
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('config')
+              .doc('metricsTargets')
+              .snapshots(),
+          builder: (context, targetSnap) {
+            final targetData = targetSnap.data?.data() as Map<String, dynamic>? ?? {};
+            final monthlyTarget = (targetData['monthly'] as num?)?.toDouble() ?? 50000;
+            final yearlyTarget = (targetData['yearly'] as num?)?.toDouble() ?? 500000;
+
         return GlassCard(
           tintColor: AdminTheme.successColor,
           child: Column(
@@ -70,18 +80,20 @@ class MetricsSection extends StatelessWidget {
               _TargetBar(
                 label: 'Meta mensual',
                 current: metrics.month,
-                target: 50000,
+                target: monthlyTarget,
                 color: AdminTheme.accentColor,
               ),
               const SizedBox(height: 8),
               _TargetBar(
                 label: 'Meta anual',
                 current: metrics.year,
-                target: 500000,
+                target: yearlyTarget,
                 color: AdminTheme.successColor,
               ),
             ],
           ),
+        );
+          },
         );
       },
     );

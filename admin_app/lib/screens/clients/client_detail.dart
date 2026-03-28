@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'client_equipment.dart';
 
@@ -76,6 +77,17 @@ void showClientDetail(BuildContext context, DocumentSnapshot doc) {
                     ClientEquipmentStream(userId: doc.id),
                     const SizedBox(height: 16),
                     AddClientEquipmentButton(userId: doc.id),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Facturas',
+                      style: GoogleFonts.exo2(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _ClientInvoices(userId: doc.id),
                   ],
                 ),
               ),
@@ -197,6 +209,75 @@ class _SuspendToggleState extends State<_SuspendToggle> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ClientInvoices extends StatelessWidget {
+  final String userId;
+  const _ClientInvoices({required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('invoices')
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final docs = snapshot.data?.docs ?? [];
+        if (docs.isEmpty) {
+          return Text(
+            'Sin facturas',
+            style: GoogleFonts.exo2(
+              fontSize: 12,
+              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5),
+            ),
+          );
+        }
+
+        return Column(
+          children: docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final total = (data['total'] as num?)?.toDouble() ?? 0;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Iconsax.document_text,
+                        size: 14, color: AdminTheme.primaryColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        data['date'] ?? '',
+                        style: GoogleFonts.exo2(fontSize: 13),
+                      ),
+                    ),
+                    Text(
+                      fmt.format(total),
+                      style: GoogleFonts.exo2(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AdminTheme.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }
