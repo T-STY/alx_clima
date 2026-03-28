@@ -139,14 +139,11 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
     );
   }
 
-  Widget _sectionHeader(IconData icon, String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 12, 22, 4),
-      child: Row(
-        children: [
+  Widget _sectionHeader(IconData icon, String title) => Padding(
+        padding: const EdgeInsets.fromLTRB(22, 12, 22, 4),
+        child: Row(children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 32, height: 32,
             decoration: BoxDecoration(
               gradient: AdminTheme.primaryGradient,
               borderRadius: BorderRadius.circular(10),
@@ -154,56 +151,37 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
             child: Icon(icon, size: 16, color: Colors.white),
           ),
           const SizedBox(width: 10),
-          Text(
-            title,
-            style: GoogleFonts.exo2(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AdminTheme.primaryColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+          Text(title, style: GoogleFonts.exo2(
+            fontSize: 14, fontWeight: FontWeight.w600, color: AdminTheme.primaryColor,
+          )),
+        ]),
+      );
 
-  Widget _field(
-    TextEditingController ctrl,
-    String hint,
-    IconData icon,
-  ) {
-    return TextField(
-      controller: ctrl,
-      style: GoogleFonts.exo2(fontSize: 14),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.exo2(fontSize: 14),
-        prefixIcon: Icon(icon, size: 18),
-      ),
-    );
-  }
-
-  Widget _saveButton() {
-    return GestureDetector(
-      onTap: _save,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: AdminTheme.primaryGradient,
+  Widget _field(TextEditingController ctrl, String hint, IconData icon) =>
+      TextField(
+        controller: ctrl,
+        style: GoogleFonts.exo2(fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.exo2(fontSize: 14),
+          prefixIcon: Icon(icon, size: 18),
         ),
-        child: Center(
-          child: Text(
-            'Guardar',
-            style: GoogleFonts.exo2(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+      );
+
+  Widget _saveButton() => GestureDetector(
+        onTap: _save,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: AdminTheme.primaryGradient,
+          ),
+          child: Center(
+            child: Text('Guardar', style: GoogleFonts.exo2(
+              fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white,
+            )),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
