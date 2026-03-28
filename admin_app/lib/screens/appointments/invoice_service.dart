@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:printing/printing.dart';
 import 'package:alx_clima_admin/config/theme.dart';
+import 'package:alx_clima_admin/widgets/pdf_actions.dart';
 import 'appointment_actions.dart';
 import 'invoice_confirm_sheet.dart';
 import 'invoice_pdf_builder.dart';
@@ -81,37 +82,11 @@ Future<void> invoiceAndComplete(
 
   if (!context.mounted) return;
 
-  final shouldPrint = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      backgroundColor: Theme.of(ctx).cardColor,
-      title: Text(
-        'Factura generada',
-        style: GoogleFonts.exo2(fontWeight: FontWeight.w600),
-      ),
-      content: Text(
-        'La cita fue completada y la factura guardada.',
-        style: GoogleFonts.exo2(fontSize: 14),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: Text('Cerrar', style: GoogleFonts.exo2()),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          child: Text(
-            'Imprimir / Compartir',
-            style: GoogleFonts.exo2(color: AdminTheme.primaryColor),
-          ),
-        ),
-      ],
-    ),
-  );
-
-  if (shouldPrint == true && context.mounted) {
-    await Printing.layoutPdf(
-      onLayout: (_) async => Uint8List.fromList(pdfBytes),
+  if (context.mounted) {
+    await showPdfActions(
+      context,
+      Uint8List.fromList(pdfBytes),
+      'factura_${data['date'] ?? 'sin_fecha'}.pdf',
     );
   }
 }

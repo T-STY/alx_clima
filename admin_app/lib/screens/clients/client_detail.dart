@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'package:alx_clima_admin/widgets/address_launcher.dart';
+import 'package:alx_clima_admin/widgets/pdf_actions.dart';
 import 'client_equipment.dart';
 
 void showClientDetail(BuildContext context, DocumentSnapshot doc) {
@@ -289,7 +290,7 @@ class _ClientInvoices extends StatelessWidget {
                   final pdfBase64 = data['pdfBase64'] as String?;
                   if (pdfBase64 == null || pdfBase64.isEmpty) return;
                   final bytes = Uint8List.fromList(base64Decode(pdfBase64));
-                  Printing.layoutPdf(onLayout: (_) async => bytes);
+                  showPdfActions(context, bytes, 'factura_${data['date'] ?? ''}.pdf');
                 },
                 child: Container(
                   padding: const EdgeInsets.all(10),

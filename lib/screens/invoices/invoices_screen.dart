@@ -7,7 +7,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:alx_clima/config/theme.dart';
 
@@ -219,36 +222,79 @@ class InvoicesScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(ctx);
-                      await Printing.layoutPdf(
-                        onLayout: (_) async => pdfBytes,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        final dir = await getTemporaryDirectory();
+                        final file = File(
+                            '${dir.path}/factura_${data['date'] ?? ''}.pdf');
+                        await file.writeAsBytes(pdfBytes);
+                        await Share.shareXFiles(
+                          [XFile(file.path)],
+                          text: 'Factura ALX-Clima',
+                        );
+                      },
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              AppTheme.primaryColor,
+                              AppTheme.secondaryColor,
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Iconsax.share,
+                                color: Colors.white, size: 18),
+                            SizedBox(width: 8),
+                            Text('Compartir',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ),
                       ),
                     ),
-                    icon: const Icon(Iconsax.document_download,
-                        color: Colors.white),
-                    label: const Text('Ver / Compartir PDF',
-                        style: TextStyle(color: Colors.white)),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        await Printing.layoutPdf(
+                          onLayout: (_) async => pdfBytes,
+                        );
+                      },
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: AppTheme.primaryColor, width: 1.5),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Iconsax.printer,
+                                color: AppTheme.primaryColor, size: 18),
+                            SizedBox(width: 8),
+                            Text('Imprimir',
+                                style: TextStyle(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

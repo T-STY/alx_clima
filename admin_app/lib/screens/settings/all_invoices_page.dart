@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
+import 'package:alx_clima_admin/widgets/pdf_actions.dart';
 import 'package:printing/printing.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'package:alx_clima_admin/widgets/glass_card.dart';
@@ -53,7 +54,7 @@ class AllInvoicesPage extends StatelessWidget {
                   final pdfBase64 = data['pdfBase64'] as String?;
                   if (pdfBase64 == null || pdfBase64.isEmpty) return;
                   final bytes = Uint8List.fromList(base64Decode(pdfBase64));
-                  Printing.layoutPdf(onLayout: (_) async => bytes);
+                  showPdfActions(context, bytes, 'factura_${data['date'] ?? ''}.pdf');
                 },
                 child: GlassCard(
                   child: Row(
