@@ -8,6 +8,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import 'package:alx_clima_admin/config/theme.dart';
+import 'package:alx_clima_admin/widgets/address_launcher.dart';
 import 'client_equipment.dart';
 
 void showClientDetail(BuildContext context, DocumentSnapshot doc) {
@@ -61,7 +62,29 @@ void showClientDetail(BuildContext context, DocumentSnapshot doc) {
                     const SizedBox(height: 16),
                     _row(Iconsax.call, data['phone'] ?? ''),
                     _row(Iconsax.sms, data['email'] ?? ''),
-                    _row(Iconsax.location, _buildAddress(data)),
+                    GestureDetector(
+                      onTap: () => launchNavigation(_buildAddress(data)),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            const Icon(Iconsax.location, size: 16, color: AdminTheme.primaryColor),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _buildAddress(data),
+                                style: GoogleFonts.exo2(
+                                  fontSize: 13,
+                                  color: AdminTheme.primaryColor,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                            const Icon(Iconsax.export_1, size: 14, color: AdminTheme.primaryColor),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 20),
                     _SuspendToggle(
                       docRef: doc.reference,

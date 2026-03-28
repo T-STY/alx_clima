@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'package:alx_clima_admin/config/routes.dart';
+import 'package:alx_clima_admin/widgets/address_launcher.dart';
 import 'appointment_actions.dart';
 import 'appointment_reschedule.dart';
 import 'invoice_service.dart';
@@ -84,7 +85,11 @@ void showAppointmentDetail(BuildContext context, QueryDocumentSnapshot doc) {
                     _infoRow(Iconsax.user, customer['name'] ?? ''),
                     _infoRow(Iconsax.call, customer['phone'] ?? ''),
                     _infoRow(Iconsax.sms, customer['email'] ?? ''),
-                    _infoRow(Iconsax.location, customer['address'] ?? ''),
+                    _tappableInfoRow(
+                      Iconsax.location,
+                      customer['address'] ?? '',
+                      () => launchNavigation(customer['address'] ?? ''),
+                    ),
                     const SizedBox(height: 16),
                     _infoRow(Iconsax.clock, data['timeSlotDisplay'] ?? ''),
                     _infoRow(
@@ -265,6 +270,33 @@ Widget _infoRow(IconData icon, String text) {
           child: Text(text, style: GoogleFonts.exo2(fontSize: 13)),
         ),
       ],
+    ),
+  );
+}
+
+Widget _tappableInfoRow(IconData icon, String text, VoidCallback onTap) {
+  if (text.isEmpty) return const SizedBox.shrink();
+  return GestureDetector(
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: AdminTheme.primaryColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.exo2(
+                fontSize: 13,
+                color: AdminTheme.primaryColor,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+          const Icon(Iconsax.export_1, size: 14, color: AdminTheme.primaryColor),
+        ],
+      ),
     ),
   );
 }
