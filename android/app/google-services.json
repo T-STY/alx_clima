@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "985195089189",
+    "project_id": "alx-clima",
+    "storage_bucket": "alx-clima.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:985195089189:android:453b04edb7d09d38ffdecc",
+        "android_client_info": {
+          "package_name": "com.t_sty.mx.alx_clima"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjkg_r5MWLV1Vv8IkMVBuNOI77QxJ7r5U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
