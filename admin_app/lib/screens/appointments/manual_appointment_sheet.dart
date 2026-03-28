@@ -2,25 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:intl/intl.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'package:alx_clima_admin/widgets/sheet_widgets.dart';
 
 void showManualAppointmentSheet(BuildContext context) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
-
   final nameCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
   final notesCtrl = TextEditingController();
-
   String? selectedServiceType;
   String? selectedDate;
   String? selectedSlot;
   Map<String, List<String>> availableSlots = {};
-  List<_ManualEquipment> equipmentList = [_ManualEquipment()];
-  bool isLoading = false;
+  List<_EquipmentEntry> equipmentList = [_EquipmentEntry()];
+  bool slotsLoaded = false;
+  List<Map<String, dynamic>> brands = [];
 
   showModalBottomSheet(
     context: context,
@@ -28,370 +26,303 @@ void showManualAppointmentSheet(BuildContext context) {
     backgroundColor: Colors.transparent,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setSt) {
-        if (availableSlots.isEmpty && !isLoading) {
-          isLoading = true;
-          FirebaseFirestore.instance.collection('schedule').get().then((snap) {
+        if (!slotsLoaded) {
+          slotsLoaded = true;
+          Future.wait([
+            FirebaseFirestore.instance.collection('schedule').get(),
+            FirebaseFirestore.instance.collection('equipmentCatalog').orderBy('order').get(),
+          ]).then((results) {
+            final schedSnap = results[0];
+            final brandSnap = results[1];
             final slots = <String, List<String>>{};
-            for (final doc in snap.docs) {
+            for (final doc in schedSnap.docs) {
               final s = (doc.data()['slots'] as List?)?.cast<String>() ?? [];
               if (s.isNotEmpty) slots[doc.id] = s;
             }
             setSt(() {
               availableSlots = slots;
-              isLoading = false;
+              brands = brandSnap.docs.map((d) {
+                final data = d.data();
+                data['id'] = d.id;
+                return data;
+              }).toList();
             });
           });
         }
 
+        final slotsNeeded = equipmentList.length;
         final sortedDates = availableSlots.keys.toList()..sort();
-        final dateSlots = selectedDate != null
-            ? (availableSlots[selectedDate] ?? [])
-            : <String>[];
+        final dateSlots = selectedDate != null ? (availableSlots[selectedDate] ?? []) : <String>[];
 
-        return frostedSheet(
-          ctx,
-          isDark,
-          'Nueva Cita Manual',
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Datos del cliente',
-                  style: GoogleFonts.exo2(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AdminTheme.primaryColor)),
-              const SizedBox(height: 8),
-              sheetInput(nameCtrl, 'Nombre completo', isDark),
-              const SizedBox(height: 8),
-              sheetInput(phoneCtrl, 'Teléfono', isDark,
-                  keyboard: TextInputType.phone),
-              const SizedBox(height: 8),
-              sheetInput(emailCtrl, 'Correo (opcional)', isDark,
-                  keyboard: TextInputType.emailAddress),
-              const SizedBox(height: 8),
-              sheetInput(addressCtrl, 'Dirección', isDark),
-              const SizedBox(height: 16),
+        final windows = <Map<String, dynamic>>[];
+        if (slotsNeeded <= 1) {
+          for (final s in dateSlots) {
+            windows.add({'display': s, 'slots': [s]});
+          }
+        } else {
+          for (var i = 0; i <= dateSlots.length - slotsNeeded; i++) {
+            bool consecutive = true;
+            for (var j = 0; j < slotsNeeded - 1; j++) {
+              final curEnd = dateSlots[i + j].split(' - ').last.trim();
+              final nextStart = dateSlots[i + j + 1].split(' - ').first.trim();
+              if (curEnd != nextStart) { consecutive = false; break; }
+            }
+            if (consecutive) {
+              final start = dateSlots[i].split(' - ').first.trim();
+              final end = dateSlots[i + slotsNeeded - 1].split(' - ').last.trim();
+              windows.add({
+                'display': '$start - $end',
+                'slots': dateSlots.sublist(i, i + slotsNeeded),
+              });
+            }
+          }
+        }
 
-              Text('Tipo de servicio',
-                  style: GoogleFonts.exo2(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AdminTheme.primaryColor)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ('installation', 'Instalación'),
-                  ('maintenance', 'Mantenimiento'),
-                  ('removal', 'Retiro'),
-                  ('relocation', 'Reubicación'),
-                ].map((e) {
-                  final sel = selectedServiceType == e.$1;
-                  return GestureDetector(
-                    onTap: () => setSt(() => selectedServiceType = e.$1),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: sel ? AdminTheme.primaryGradient : null,
-                        color: sel
-                            ? null
-                            : isDark
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : Colors.white.withValues(alpha: 0.7),
-                        border: sel
-                            ? null
-                            : Border.all(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.1)
-                                    : Colors.black.withValues(alpha: 0.06),
-                              ),
-                      ),
-                      child: Text(
-                        e.$2,
-                        style: GoogleFonts.exo2(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: sel ? Colors.white : null,
-                        ),
-                      ),
+        final textColor = isDark ? Colors.white : Colors.black;
+        final brandNames = brands.map((b) => b['name'] as String).toList();
+
+        return frostedSheet(ctx, isDark, 'Nueva Cita', Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _label('Datos del cliente'),
+            const SizedBox(height: 6),
+            sheetInput(nameCtrl, 'Nombre completo', isDark),
+            const SizedBox(height: 8),
+            sheetInput(phoneCtrl, 'Teléfono', isDark, keyboard: TextInputType.phone),
+            const SizedBox(height: 8),
+            sheetInput(emailCtrl, 'Correo (opcional)', isDark, keyboard: TextInputType.emailAddress),
+            const SizedBox(height: 8),
+            sheetInput(addressCtrl, 'Dirección', isDark),
+            const SizedBox(height: 14),
+
+            _label('Tipo de servicio'),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8, runSpacing: 8,
+              children: [
+                ('installation', 'Instalación'), ('maintenance', 'Mantenimiento'),
+                ('removal', 'Retiro'), ('relocation', 'Reubicación'),
+              ].map((e) {
+                final sel = selectedServiceType == e.$1;
+                return GestureDetector(
+                  onTap: () => setSt(() => selectedServiceType = e.$1),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: sel ? AdminTheme.primaryGradient : null,
+                      color: sel ? null : isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.7),
+                      border: sel ? null : Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06)),
                     ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-
-              Text('Equipos',
-                  style: GoogleFonts.exo2(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AdminTheme.primaryColor)),
-              const SizedBox(height: 8),
-              ...equipmentList.asMap().entries.map((entry) {
-                final i = entry.key;
-                final eq = entry.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
-                          controller: eq.brandCtrl,
-                          style: GoogleFonts.exo2(fontSize: 13),
-                          decoration: InputDecoration(
-                            hintText: 'Marca',
-                            hintStyle: GoogleFonts.exo2(fontSize: 12),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 10),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
-                          controller: eq.modelCtrl,
-                          style: GoogleFonts.exo2(fontSize: 13),
-                          decoration: InputDecoration(
-                            hintText: 'Modelo',
-                            hintStyle: GoogleFonts.exo2(fontSize: 12),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 10),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: TextField(
-                          controller: eq.btuCtrl,
-                          keyboardType: TextInputType.number,
-                          style: GoogleFonts.exo2(fontSize: 13),
-                          decoration: InputDecoration(
-                            hintText: 'BTU',
-                            hintStyle: GoogleFonts.exo2(fontSize: 12),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 10),
-                          ),
-                        ),
-                      ),
-                      if (equipmentList.length > 1)
-                        GestureDetector(
-                          onTap: () => setSt(() => equipmentList.removeAt(i)),
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 4),
-                            child: Icon(Iconsax.close_circle,
-                                size: 16, color: AdminTheme.errorColor),
-                          ),
-                        ),
-                    ],
+                    child: Text(e.$2, style: GoogleFonts.exo2(fontSize: 12, fontWeight: FontWeight.w500, color: sel ? Colors.white : null)),
                   ),
                 );
-              }),
-              GestureDetector(
-                onTap: () =>
-                    setSt(() => equipmentList.add(_ManualEquipment())),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Iconsax.add_circle,
-                        size: 14, color: AdminTheme.primaryColor),
+              }).toList(),
+            ),
+            const SizedBox(height: 14),
+
+            Row(
+              children: [
+                Expanded(child: _label('Equipos (${equipmentList.length})')),
+                GestureDetector(
+                  onTap: () => setSt(() {
+                    equipmentList.add(_EquipmentEntry());
+                    selectedSlot = null;
+                  }),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Iconsax.add_circle, size: 14, color: AdminTheme.primaryColor),
                     const SizedBox(width: 4),
-                    Text('Agregar equipo',
-                        style: GoogleFonts.exo2(
-                            fontSize: 12,
-                            color: AdminTheme.primaryColor,
-                            fontWeight: FontWeight.w500)),
+                    Text('Agregar', style: GoogleFonts.exo2(fontSize: 11, color: AdminTheme.primaryColor, fontWeight: FontWeight.w500)),
+                  ]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ...equipmentList.asMap().entries.map((entry) {
+              final i = entry.key;
+              final eq = entry.value;
+              final models = eq.selectedBrand != null
+                  ? ((brands.where((b) => b['name'] == eq.selectedBrand).firstOrNull?['models'] as List?) ?? []).cast<String>()
+                  : <String>[];
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white.withValues(alpha: 0.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text('Equipo ${i + 1}', style: GoogleFonts.exo2(fontSize: 11, fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        if (equipmentList.length > 1)
+                          GestureDetector(
+                            onTap: () => setSt(() { equipmentList.removeAt(i); selectedSlot = null; }),
+                            child: const Icon(Iconsax.close_circle, size: 14, color: AdminTheme.errorColor),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: eq.selectedBrand,
+                      dropdownColor: Theme.of(ctx).cardColor,
+                      menuMaxHeight: 200,
+                      decoration: InputDecoration(hintText: 'Marca', hintStyle: GoogleFonts.exo2(fontSize: 13), isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                      style: GoogleFonts.exo2(fontSize: 13, color: textColor),
+                      items: brandNames.map((b) => DropdownMenuItem(value: b, child: Text(b, style: GoogleFonts.exo2(fontSize: 13, color: textColor)))).toList(),
+                      onChanged: (v) => setSt(() { eq.selectedBrand = v; eq.selectedModel = null; }),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: eq.selectedModel,
+                      dropdownColor: Theme.of(ctx).cardColor,
+                      menuMaxHeight: 200,
+                      decoration: InputDecoration(hintText: eq.selectedBrand == null ? 'Selecciona marca' : 'Modelo',
+                          hintStyle: GoogleFonts.exo2(fontSize: 13), isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                      style: GoogleFonts.exo2(fontSize: 13, color: textColor),
+                      items: models.map((m) => DropdownMenuItem(value: m, child: Text(m, style: GoogleFonts.exo2(fontSize: 13, color: textColor)))).toList(),
+                      onChanged: eq.selectedBrand == null ? null : (v) => setSt(() => eq.selectedModel = v),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6, runSpacing: 6,
+                      children: [12000, 18000, 24000, 36000].map((btu) {
+                        final sel = eq.selectedBtu == btu;
+                        return GestureDetector(
+                          onTap: () => setSt(() => eq.selectedBtu = btu),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              gradient: sel ? AdminTheme.primaryGradient : null,
+                              color: sel ? null : isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.7),
+                              border: sel ? null : Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06)),
+                            ),
+                            child: Text('${(btu / 1000).toStringAsFixed(0)}K', style: GoogleFonts.exo2(fontSize: 11, fontWeight: FontWeight.w500, color: sel ? Colors.white : null)),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
+              );
+            }),
+            const SizedBox(height: 14),
 
-              Text('Fecha y horario',
-                  style: GoogleFonts.exo2(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AdminTheme.primaryColor)),
-              const SizedBox(height: 8),
-              if (isLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (sortedDates.isEmpty)
-                Text('Sin disponibilidad',
-                    style: GoogleFonts.exo2(fontSize: 12))
-              else ...[
-                SizedBox(
-                  height: 36,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: sortedDates.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 6),
-                    itemBuilder: (_, i) {
-                      final d = sortedDates[i];
-                      final sel = selectedDate == d;
-                      return GestureDetector(
-                        onTap: () => setSt(() {
-                          selectedDate = d;
-                          selectedSlot = null;
-                        }),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            gradient: sel ? AdminTheme.primaryGradient : null,
-                            color: sel
-                                ? null
-                                : isDark
-                                    ? Colors.white.withValues(alpha: 0.06)
-                                    : Colors.white.withValues(alpha: 0.7),
-                          ),
-                          child: Text(d.substring(5),
-                              style: GoogleFonts.exo2(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: sel ? Colors.white : null)),
+            _label('Fecha y horario${slotsNeeded > 1 ? ' ($slotsNeeded hrs)' : ''}'),
+            const SizedBox(height: 6),
+            if (sortedDates.isEmpty)
+              Text('Sin disponibilidad', style: GoogleFonts.exo2(fontSize: 12))
+            else ...[
+              SizedBox(
+                height: 34,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: sortedDates.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  itemBuilder: (_, i) {
+                    final d = sortedDates[i];
+                    final sel = selectedDate == d;
+                    return GestureDetector(
+                      onTap: () => setSt(() { selectedDate = d; selectedSlot = null; }),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          gradient: sel ? AdminTheme.primaryGradient : null,
+                          color: sel ? null : isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.7),
                         ),
-                      );
-                    },
-                  ),
-                ),
-                if (dateSlots.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: dateSlots.map((s) {
-                      final sel = selectedSlot == s;
-                      return GestureDetector(
-                        onTap: () => setSt(() => selectedSlot = s),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: sel
-                                ? AdminTheme.primaryColor.withValues(alpha: 0.2)
-                                : isDark
-                                    ? Colors.white.withValues(alpha: 0.04)
-                                    : Colors.white.withValues(alpha: 0.5),
-                            border: sel
-                                ? Border.all(color: AdminTheme.primaryColor)
-                                : null,
-                          ),
-                          child: Text(s,
-                              style: GoogleFonts.exo2(
-                                  fontSize: 11,
-                                  color: sel
-                                      ? AdminTheme.primaryColor
-                                      : null)),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ],
-              const SizedBox(height: 12),
-              sheetInput(notesCtrl, 'Notas (opcional)', isDark),
-              const SizedBox(height: 20),
-              sheetGradientButton('Agendar Cita', () async {
-                if (nameCtrl.text.trim().isEmpty ||
-                    selectedServiceType == null ||
-                    selectedDate == null ||
-                    selectedSlot == null) return;
-
-                final serviceLabels = {
-                  'installation': 'Instalación',
-                  'maintenance': 'Mantenimiento',
-                  'removal': 'Retiro',
-                  'relocation': 'Reubicación',
-                };
-
-                final eqList = equipmentList
-                    .where((e) => e.brandCtrl.text.trim().isNotEmpty)
-                    .map((e) => {
-                          'brand': e.brandCtrl.text.trim(),
-                          'name': e.modelCtrl.text.trim(),
-                          'btuCapacity':
-                              int.tryParse(e.btuCtrl.text) ?? 0,
-                          'location': '',
-                          'type': 'Mini Split',
-                          'price': 0,
-                        })
-                    .toList();
-
-                final aptId = 'manual-${DateTime.now().millisecondsSinceEpoch}';
-
-                await FirebaseFirestore.instance
-                    .collection('appointments')
-                    .add({
-                  'appointmentId': aptId,
-                  'userId': null,
-                  'status': 'confirmed',
-                  'date': selectedDate,
-                  'timeSlots': [selectedSlot],
-                  'timeSlotDisplay': selectedSlot,
-                  'serviceType': selectedServiceType,
-                  'serviceTypeDisplay':
-                      serviceLabels[selectedServiceType] ?? selectedServiceType,
-                  'notes': notesCtrl.text.trim(),
-                  'createdAt': FieldValue.serverTimestamp(),
-                  'equipmentCount': eqList.length,
-                  'customer': {
-                    'name': nameCtrl.text.trim(),
-                    'phone': phoneCtrl.text.trim(),
-                    'email': emailCtrl.text.trim(),
-                    'address': addressCtrl.text.trim(),
+                        child: Text(d.substring(5), style: GoogleFonts.exo2(fontSize: 12, fontWeight: FontWeight.w500, color: sel ? Colors.white : null)),
+                      ),
+                    );
                   },
-                  'equipment': eqList,
-                  'totalUserEquipment': eqList.length,
-                  'isManual': true,
-                });
-
-                final schedRef = FirebaseFirestore.instance
-                    .collection('schedule')
-                    .doc(selectedDate);
-                final schedDoc = await schedRef.get();
-                if (schedDoc.exists) {
-                  final existing =
-                      (schedDoc.data()?['slots'] as List?)?.cast<String>() ??
-                          [];
-                  existing.remove(selectedSlot);
-                  if (existing.isEmpty) {
-                    await schedRef.delete();
-                  } else {
-                    await schedRef.update({'slots': existing});
-                  }
-                }
-
-                await FirebaseFirestore.instance
-                    .collection('bookedSlots')
-                    .add({
-                  'date': selectedDate,
-                  'slot': selectedSlot,
-                  'userId': 'manual',
-                  'bookedAt': FieldValue.serverTimestamp(),
-                });
-
-                if (ctx.mounted) Navigator.pop(ctx);
-              }),
+                ),
+              ),
+              if (windows.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6, runSpacing: 6,
+                  children: windows.map((w) {
+                    final display = w['display'] as String;
+                    final sel = selectedSlot == display;
+                    return GestureDetector(
+                      onTap: () => setSt(() => selectedSlot = display),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: sel ? AdminTheme.primaryColor.withValues(alpha: 0.2) : isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white.withValues(alpha: 0.5),
+                          border: sel ? Border.all(color: AdminTheme.primaryColor) : null,
+                        ),
+                        child: Text(display, style: GoogleFonts.exo2(fontSize: 11, color: sel ? AdminTheme.primaryColor : null)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
-          ),
-        );
+            const SizedBox(height: 10),
+            sheetInput(notesCtrl, 'Notas (opcional)', isDark),
+            const SizedBox(height: 16),
+            sheetGradientButton('Agendar Cita', () async {
+              if (nameCtrl.text.trim().isEmpty || selectedServiceType == null || selectedDate == null || selectedSlot == null) return;
+
+              final sLabels = {'installation': 'Instalación', 'maintenance': 'Mantenimiento', 'removal': 'Retiro', 'relocation': 'Reubicación'};
+              final eqList = equipmentList.where((e) => e.selectedBrand != null).map((e) => {
+                'brand': e.selectedBrand ?? '', 'name': e.selectedModel ?? '', 'btuCapacity': e.selectedBtu ?? 0,
+                'location': '', 'type': 'Mini Split', 'price': 0,
+              }).toList();
+
+              final selectedWindow = windows.where((w) => w['display'] == selectedSlot).firstOrNull;
+              final slotsToBook = (selectedWindow?['slots'] as List?)?.cast<String>() ?? [selectedSlot!];
+
+              final aptId = 'apt-${DateTime.now().millisecondsSinceEpoch}';
+              await FirebaseFirestore.instance.collection('appointments').add({
+                'appointmentId': aptId, 'userId': null, 'status': 'confirmed',
+                'date': selectedDate, 'timeSlots': slotsToBook, 'timeSlotDisplay': selectedSlot,
+                'serviceType': selectedServiceType, 'serviceTypeDisplay': sLabels[selectedServiceType] ?? selectedServiceType,
+                'notes': notesCtrl.text.trim(), 'createdAt': FieldValue.serverTimestamp(),
+                'equipmentCount': eqList.length,
+                'customer': {'name': nameCtrl.text.trim(), 'phone': phoneCtrl.text.trim(), 'email': emailCtrl.text.trim(), 'address': addressCtrl.text.trim()},
+                'equipment': eqList, 'totalUserEquipment': eqList.length, 'isManual': true,
+              });
+
+              final schedRef = FirebaseFirestore.instance.collection('schedule').doc(selectedDate);
+              final schedDoc = await schedRef.get();
+              if (schedDoc.exists) {
+                final existing = (schedDoc.data()?['slots'] as List?)?.cast<String>() ?? [];
+                for (final s in slotsToBook) { existing.remove(s); }
+                if (existing.isEmpty) { await schedRef.delete(); } else { await schedRef.update({'slots': existing}); }
+              }
+              for (final s in slotsToBook) {
+                await FirebaseFirestore.instance.collection('bookedSlots').add({
+                  'date': selectedDate, 'slot': s, 'userId': 'manual', 'bookedAt': FieldValue.serverTimestamp(),
+                });
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+            }),
+          ],
+        ));
       },
     ),
   );
 }
 
-class _ManualEquipment {
-  final brandCtrl = TextEditingController();
-  final modelCtrl = TextEditingController();
-  final btuCtrl = TextEditingController();
+Widget _label(String text) => Text(text, style: GoogleFonts.exo2(fontSize: 13, fontWeight: FontWeight.w600, color: AdminTheme.primaryColor));
+
+class _EquipmentEntry {
+  String? selectedBrand;
+  String? selectedModel;
+  int? selectedBtu;
 }
