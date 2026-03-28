@@ -19,8 +19,8 @@ Widget frostedSheet(
         ),
         decoration: BoxDecoration(
           color: isDark
-              ? const Color(0xFF0B0D14).withValues(alpha: 0.92)
-              : Colors.white.withValues(alpha: 0.92),
+              ? const Color(0xFF0B0D14).withValues(alpha: 0.88)
+              : const Color(0xFFF0F2F8).withValues(alpha: 0.85),
           borderRadius:
               const BorderRadius.vertical(top: Radius.circular(24)),
         ),

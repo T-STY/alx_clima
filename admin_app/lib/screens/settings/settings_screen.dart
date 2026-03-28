@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
 import 'package:alx_clima_admin/config/theme.dart';
 import 'package:alx_clima_admin/widgets/glass_card.dart';
+import 'package:alx_clima_admin/widgets/sheet_widgets.dart';
 import 'all_invoices_page.dart';
 import 'settings_company.dart';
 import 'settings_pricing.dart';
@@ -224,26 +225,63 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) => showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text('Cerrar sesión', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
-      content: Text('¿Estás seguro?', style: GoogleFonts.exo2()),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: Text('Cancelar', style: GoogleFonts.exo2()),
+  void _showLogoutDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => frostedSheet(
+        ctx,
+        isDark,
+        'Cerrar Sesión',
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '¿Estás seguro de que deseas cerrar sesión?',
+              style: GoogleFonts.exo2(fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: sheetGlassButton(ctx, isDark, 'Cancelar', () => Navigator.pop(ctx)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      FirebaseAuth.instance.signOut();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        color: AdminTheme.errorColor,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Cerrar sesión',
+                          style: GoogleFonts.exo2(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        TextButton(
-          onPressed: () {
-            Navigator.pop(ctx);
-            FirebaseAuth.instance.signOut();
-          },
-          child: Text('Cerrar sesión', style: GoogleFonts.exo2(color: AdminTheme.errorColor)),
-        ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 
   void _showMetricsTargets(BuildContext context) async {
     final ref = FirebaseFirestore.instance.collection('config').doc('metricsTargets');
@@ -251,50 +289,33 @@ class SettingsScreen extends StatelessWidget {
     final monthlyCtrl = TextEditingController(text: '${data['monthly'] ?? 50000}');
     final yearlyCtrl = TextEditingController(text: '${data['yearly'] ?? 500000}');
     if (!context.mounted) return;
-    showDialog(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Metas de Ingresos', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
-        content: Column(
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => frostedSheet(
+        ctx,
+        isDark,
+        'Metas de Ingresos',
+        Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: monthlyCtrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Meta mensual',
-                prefixText: '\$ ',
-                prefixStyle: GoogleFonts.exo2(fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: yearlyCtrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Meta anual',
-                prefixText: '\$ ',
-                prefixStyle: GoogleFonts.exo2(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar', style: GoogleFonts.exo2()),
-          ),
-          TextButton(
-            onPressed: () async {
+            sheetInput(monthlyCtrl, 'Meta mensual (\$)', isDark,
+                keyboard: TextInputType.number),
+            const SizedBox(height: 14),
+            sheetInput(yearlyCtrl, 'Meta anual (\$)', isDark,
+                keyboard: TextInputType.number),
+            const SizedBox(height: 20),
+            sheetGradientButton('Guardar', () async {
               await ref.set({
                 'monthly': num.tryParse(monthlyCtrl.text) ?? 50000,
                 'yearly': num.tryParse(yearlyCtrl.text) ?? 500000,
               });
               if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: Text('Guardar', style: GoogleFonts.exo2(color: AdminTheme.primaryColor)),
-          ),
-        ],
+            }),
+          ],
+        ),
       ),
     );
   }
