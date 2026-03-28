@@ -77,7 +77,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  String _titleCase(String text) {
+    return text.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
+    }).join(' ');
+  }
+
   Widget _buildWelcomeHeader(BuildContext context) {
+    final name = context.read<DashboardProvider>().profile?.name ?? '';
+    final displayName = name.isNotEmpty ? _titleCase(name) : '';
+
     return Row(
       children: [
         Container(
@@ -100,18 +110,19 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'ALX-Clima',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+                'Bienvenido',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
                     ),
               ),
-              const SizedBox(height: 1),
-              Text(
-                'Tu solución en climatización',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondary,
-                      fontSize: 11,
-                    ),
+              if (displayName.isNotEmpty)
+                Text(
+                  displayName,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
