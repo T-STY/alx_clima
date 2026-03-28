@@ -50,6 +50,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   bool _isBooking = false;
 
   List<QuoteItem> _quoteItems = [];
+  double _cachedQuoteTotal = 0;
 
   Map<String, dynamic>? _pricingConfig;
 
@@ -68,6 +69,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     if (widget.fromQuote) {
       final quote = context.read<QuoteProvider>();
       _quoteItems = [...quote.items];
+      _cachedQuoteTotal = quote.grandTotal;
       _selectedEquipmentIds =
           _quoteItems.map((i) => i.equipment.id).toList();
       _selectedServiceType = ServiceType.installation;
@@ -987,7 +989,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Costo estimado: \$${widget.fromQuote ? context.read<QuoteProvider>().grandTotal.toStringAsFixed(0) : _calculateEstimatedCost(dashboard).toStringAsFixed(0)}',
+                  'Costo estimado: \$${widget.fromQuote ? _cachedQuoteTotal.toStringAsFixed(0) : _calculateEstimatedCost(dashboard).toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppTheme.primaryColor,
@@ -1138,11 +1140,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
 
     final quoteProvider = context.read<QuoteProvider>();
-    final hasDiscount = quoteProvider.items.length > 1;
+    final hasDiscount = _quoteItems.length > 1 || quoteProvider.items.length > 1;
+
+    double totalEquipCost = 0;
+    double totalInstallCost = 0;
+    for (final qi in _quoteItems) {
+      totalEquipCost += qi.equipment.price;
+      totalInstallCost += quoteProvider.getInstallCostForItem(qi);
+    }
+    if (_quoteItems.isEmpty) {
+      totalEquipCost = quoteProvider.totalEquipmentCost;
+      totalInstallCost = quoteProvider.totalInstallCost;
+    }
+    final grandTotal = totalEquipCost + totalInstallCost;
+
     final quoteBreakdown = <String, dynamic>{
-      'equipmentPrice': quoteProvider.totalEquipmentCost,
-      'installationPrice': quoteProvider.totalInstallCost,
-      'totalPrice': quoteProvider.grandTotal,
+      'equipmentPrice': totalEquipCost,
+      'installationPrice': totalInstallCost,
+      'totalPrice': widget.fromQuote ? grandTotal : quoteProvider.grandTotal,
       'multiUnitDiscount': hasDiscount,
       'installationType': quoteProvider.installationType.name,
       'perEquipment': resolvedIds.map((id) {
@@ -1188,7 +1203,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       'equipment': equipmentList,
       'totalUserEquipment': dashboard.totalEquipment,
       'estimatedCost': widget.fromQuote
-          ? quoteProvider.grandTotal
+          ? grandTotal
           : _calculateEstimatedCost(dashboard),
       'quoteBreakdown': quoteBreakdown,
     });
