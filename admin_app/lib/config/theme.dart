@@ -37,6 +37,7 @@ class AdminTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         titleTextStyle: GoogleFonts.exo2(
           fontSize: 20,
           fontWeight: FontWeight.w600,
@@ -95,6 +96,7 @@ class AdminTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         titleTextStyle: GoogleFonts.exo2(
           fontSize: 20,
           fontWeight: FontWeight.w600,
