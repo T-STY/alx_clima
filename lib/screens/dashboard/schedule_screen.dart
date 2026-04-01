@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -7,24 +9,158 @@ import 'package:provider/provider.dart';
 
 import 'package:alx_clima/config/theme.dart';
 import 'package:alx_clima/models/appointment.dart';
+import 'package:alx_clima/models/customer_equipment.dart';
+import 'package:alx_clima/models/equipment.dart';
+import 'package:alx_clima/models/installation.dart';
 import 'package:alx_clima/models/service_record.dart';
 import 'package:alx_clima/providers/appointment_provider.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
+import 'package:alx_clima/providers/quote_provider.dart';
+import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/futuristic_button.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key});
+  final List<String>? prefilledEquipmentIds;
+  final bool fromQuote;
+  final String? rescheduleId;
+
+  const ScheduleScreen({
+    super.key,
+    this.prefilledEquipmentIds,
+    this.fromQuote = false,
+    this.rescheduleId,
+  });
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  String? _selectedEquipmentId;
+  final FirebaseService _firebaseService = FirebaseService();
+
+  List<String> _selectedEquipmentIds = [];
   ServiceType _selectedServiceType = ServiceType.maintenance;
   DateTime? _selectedDate;
-  TimeSlot _selectedTimeSlot = TimeSlot.morning;
+  String? _selectedTimeSlot;
   final _notesController = TextEditingController();
+
+  Map<String, List<String>> _availableSlots = {};
+  Set<String> _bookedSlots = {};
+  bool _isLoadingSlots = true;
+  bool _isBooking = false;
+
+  List<QuoteItem> _quoteItems = [];
+  double _cachedQuoteTotal = 0;
+  double _cachedEquipCost = 0;
+  double _cachedInstallCost = 0;
+  Map<String, double> _cachedPerItemInstall = {};
+  String _cachedInstallationType = 'fullPackage';
+
+  Map<String, dynamic>? _pricingConfig;
+
+  late final List<ServiceType> _serviceTypes;
+
+  DateTime _calendarMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+  );
+
+  int get _slotsNeeded => _selectedEquipmentIds.isEmpty ? 1 : _selectedEquipmentIds.length;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.fromQuote) {
+      final quote = context.read<QuoteProvider>();
+      _quoteItems = [...quote.items];
+      _cachedQuoteTotal = quote.grandTotal;
+      _cachedEquipCost = quote.totalEquipmentCost;
+      _cachedInstallCost = quote.totalInstallCost;
+      _cachedInstallationType = quote.installationType.name;
+      for (final qi in _quoteItems) {
+        _cachedPerItemInstall[qi.equipment.id] =
+            quote.getInstallCostForItem(qi);
+      }
+      _selectedEquipmentIds =
+          _quoteItems.map((i) => i.equipment.id).toList();
+      _selectedServiceType = ServiceType.installation;
+      _serviceTypes = [
+        ServiceType.installation,
+      ];
+    } else {
+      _serviceTypes = [
+        ServiceType.maintenance,
+        ServiceType.removal,
+        ServiceType.relocation,
+      ];
+      if (widget.prefilledEquipmentIds != null) {
+        _selectedEquipmentIds = [...widget.prefilledEquipmentIds!];
+      }
+    }
+    _loadAvailableSlots();
+    _loadPricing();
+  }
+
+  Future<void> _loadPricing() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('config')
+          .doc('pricing')
+          .get();
+      if (doc.exists && mounted) {
+        setState(() => _pricingConfig = doc.data());
+      }
+    } catch (_) {}
+  }
+
+  num _calculateEstimatedCost(DashboardProvider dashboard) {
+    if (_pricingConfig == null) return 0;
+
+    if (_selectedServiceType == ServiceType.maintenance) {
+      final maintenanceMap =
+          _pricingConfig!['maintenance'] as Map<String, dynamic>? ?? {};
+      num total = 0;
+      for (final id in _selectedEquipmentIds) {
+        final eq = dashboard.getEquipmentById(id);
+        final btu = eq?.btuCapacity ?? 0;
+        final price = maintenanceMap['$btu'] as num? ?? 0;
+        total += price;
+      }
+      if (_selectedEquipmentIds.length > 1) {
+        final discount =
+            _pricingConfig!['multiUnitDiscount'] as num? ?? 0;
+        total = (total * (1.0 - discount.toDouble())).round();
+      }
+      return total;
+    }
+
+    if (_selectedServiceType == ServiceType.installation) {
+      if (widget.fromQuote) {
+        return _cachedQuoteTotal;
+      }
+      final quoteProvider = context.read<QuoteProvider>();
+      final isSolo =
+          quoteProvider.installationType == InstallationType.installOnly;
+      final priceKey = isSolo ? 'installOnly' : 'fullPackage';
+      final priceMap =
+          _pricingConfig![priceKey] as Map<String, dynamic>? ?? {};
+      num total = 0;
+      for (final id in _selectedEquipmentIds) {
+        final eq = dashboard.getEquipmentById(id);
+        final qi =
+            _quoteItems.where((q) => q.equipment.id == id).firstOrNull;
+        final btu = eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0;
+        final price = priceMap['$btu'] as num? ?? 0;
+        total += price;
+        if (!isSolo) {
+          total += qi?.equipment.price ?? eq?.btuCapacity.toDouble() ?? 0;
+        }
+      }
+      return total;
+    }
+
+    return 0;
+  }
 
   @override
   void dispose() {
@@ -32,10 +168,104 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     super.dispose();
   }
 
+  Future<void> _loadAvailableSlots() async {
+    try {
+      final results = await Future.wait([
+        _firebaseService.getAvailableSlots(),
+        _firebaseService.getBookedSlots(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _availableSlots = results[0] as Map<String, List<String>>;
+          _bookedSlots = results[1] as Set<String>;
+          _isLoadingSlots = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingSlots = false);
+    }
+  }
+
+  Set<DateTime> get _availableDates {
+    final dateFormat = DateFormat('yyyy-MM-dd');
+    final dates = <DateTime>{};
+    for (final key in _availableSlots.keys) {
+      final parsed = dateFormat.tryParse(key);
+      if (parsed != null && parsed.isAfter(DateTime.now())) {
+        dates.add(DateTime(parsed.year, parsed.month, parsed.day));
+      }
+    }
+    return dates;
+  }
+
+  List<String> get _slotsForSelectedDate {
+    if (_selectedDate == null) return [];
+    final key = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    final allSlots = _availableSlots[key] ?? [];
+    return allSlots
+        .where((slot) => !_bookedSlots.contains('$key|$slot'))
+        .toList();
+  }
+
+  List<Map<String, dynamic>> get _availableTimeWindows {
+    final rawSlots = _slotsForSelectedDate;
+    if (rawSlots.isEmpty) return [];
+    if (_slotsNeeded <= 1) {
+      return rawSlots
+          .map((s) => {'display': s, 'slots': [s]})
+          .toList();
+    }
+
+    final windows = <Map<String, dynamic>>[];
+    for (var i = 0; i <= rawSlots.length - _slotsNeeded; i++) {
+      bool consecutive = true;
+      for (var j = 0; j < _slotsNeeded - 1; j++) {
+        final currentEnd = rawSlots[i + j].split(' - ').last.trim();
+        final nextStart = rawSlots[i + j + 1].split(' - ').first.trim();
+        if (currentEnd != nextStart) {
+          consecutive = false;
+          break;
+        }
+      }
+      if (consecutive) {
+        final start = rawSlots[i].split(' - ').first.trim();
+        final end = rawSlots[i + _slotsNeeded - 1].split(' - ').last.trim();
+        windows.add({
+          'display': '$start - $end',
+          'slots': rawSlots.sublist(i, i + _slotsNeeded),
+        });
+      }
+    }
+    return windows;
+  }
+
+  List<String> get _selectedSlotGroup {
+    if (_selectedTimeSlot == null) return [];
+    final window = _availableTimeWindows.where(
+        (w) => w['display'] == _selectedTimeSlot).firstOrNull;
+    if (window == null) return [];
+    return (window['slots'] as List).cast<String>();
+  }
+
+  bool get _canConfirm =>
+      _selectedEquipmentIds.isNotEmpty &&
+      _selectedDate != null &&
+      _selectedTimeSlot != null &&
+      _selectedSlotGroup.length == _slotsNeeded;
+
+  String _capitalizeFirst(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+
+  void _selectServiceType(ServiceType type) {
+    setState(() {
+      _selectedServiceType = type;
+      _serviceTypes.remove(type);
+      _serviceTypes.insert(0, type);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('dd/MM/yyyy');
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agendar Servicio'),
@@ -46,6 +276,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
       body: Consumer<DashboardProvider>(
         builder: (context, dashboard, _) {
+          final theme = Theme.of(context);
           return Column(
             children: [
               Expanded(
@@ -55,46 +286,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Equipo (opcional)',
-                        style: Theme.of(context).textTheme.titleMedium,
+                        'Equipos (${_selectedEquipmentIds.length})',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '1 hora por equipo. Selecciona los equipos que necesitan servicio.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontSize: 11,
+                            ),
                       ),
                       const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceColor,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedEquipmentId,
-                            hint: const Text('Seleccionar equipo'),
-                            isExpanded: true,
-                            icon: const Icon(Iconsax.arrow_down_1),
-                            items: [
-                              const DropdownMenuItem<String>(
-                                value: null,
-                                child: Text('Ninguno / General'),
-                              ),
-                              ...dashboard.equipment.map(
-                                (e) => DropdownMenuItem(
-                                  value: e.id,
-                                  child: Text(
-                                    e.equipmentName,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              setState(() => _selectedEquipmentId = value);
-                            },
-                          ),
-                        ),
-                      )
-                          .animate()
-                          .fadeIn(duration: 400.ms),
+                      ...List.generate(
+                        _selectedEquipmentIds.length + 1,
+                        (i) {
+                          if (i < _selectedEquipmentIds.length) {
+                            return _buildEquipmentRow(dashboard, i);
+                          }
+                          return _buildAddEquipmentButton(dashboard);
+                        },
+                      ),
 
                       const SizedBox(height: 24),
 
@@ -103,17 +315,40 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildServiceTypeChip(
-                              'Mantenimiento', ServiceType.maintenance),
-                          _buildServiceTypeChip(
-                              'Reparación', ServiceType.repair),
-                          _buildServiceTypeChip(
-                              'Inspección', ServiceType.inspection),
-                        ],
+                      SizedBox(
+                        height: 40,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _serviceTypes.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final type = _serviceTypes[index];
+                            final isSelected =
+                                _selectedServiceType == type;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                              child: FilterChip(
+                                label: Text(type.displayName),
+                                selected: isSelected,
+                                onSelected: (_) =>
+                                    _selectServiceType(type),
+                                selectedColor: AppTheme.primaryColor
+                                    .withValues(alpha: 0.12),
+                                checkmarkColor: AppTheme.primaryColor,
+                                labelStyle: TextStyle(
+                                  color: isSelected
+                                      ? AppTheme.primaryColor
+                                      : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       )
                           .animate()
                           .fadeIn(duration: 400.ms, delay: 100.ms),
@@ -121,92 +356,30 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       const SizedBox(height: 24),
 
                       Text(
-                        'Fecha Preferida',
+                        'Fecha Disponible',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 10),
-                      GestureDetector(
-                        onTap: () => _pickDate(context),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: AppTheme.surfaceColor,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _selectedDate != null
-                                  ? AppTheme.primaryColor
-                                  : Colors.transparent,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Iconsax.calendar_1,
-                                color: _selectedDate != null
-                                    ? AppTheme.primaryColor
-                                    : AppTheme.textSecondary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                _selectedDate != null
-                                    ? dateFormat.format(_selectedDate!)
-                                    : 'Seleccionar fecha',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: _selectedDate != null
-                                          ? AppTheme.textPrimary
-                                          : AppTheme.textSecondary,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
+                      _buildCalendar()
                           .animate()
                           .fadeIn(duration: 400.ms, delay: 200.ms),
 
                       const SizedBox(height: 24),
 
-                      Text(
-                        'Horario Preferido',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTimeSlotCard(
-                              context,
-                              'Mañana',
-                              '8AM - 12PM',
-                              Iconsax.sun_1,
-                              TimeSlot.morning,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildTimeSlotCard(
-                              context,
-                              'Tarde',
-                              '1PM - 5PM',
-                              Iconsax.moon,
-                              TimeSlot.afternoon,
-                            ),
-                          ),
-                        ],
-                      )
-                          .animate()
-                          .fadeIn(duration: 400.ms, delay: 300.ms),
-
-                      const SizedBox(height: 24),
+                      if (_selectedDate != null) ...[
+                        Text(
+                          'Horario Disponible${_slotsNeeded > 1 ? ' ($_slotsNeeded hrs necesarias)' : ''}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildTimeSlots()
+                            .animate()
+                            .fadeIn(duration: 400.ms),
+                        const SizedBox(height: 24),
+                      ],
 
                       Text(
-                        'Notas',
+                        'Notas (opcional)',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 10),
@@ -218,69 +391,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         ),
                       )
                           .animate()
-                          .fadeIn(duration: 400.ms, delay: 400.ms),
+                          .fadeIn(duration: 400.ms, delay: 300.ms),
 
                       const SizedBox(height: 24),
 
-                      if (_selectedDate != null)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: AppTheme.primaryColor.withValues(alpha: 0.15),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Iconsax.document_text,
-                                      size: 18,
-                                      color: AppTheme.primaryColor),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Resumen de tu cita',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleSmall
-                                        ?.copyWith(
-                                          color: AppTheme.primaryColor,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'Servicio: ${_selectedServiceType.displayName}',
-                                style:
-                                    Theme.of(context).textTheme.bodySmall,
-                              ),
-                              Text(
-                                'Fecha: ${dateFormat.format(_selectedDate!)}',
-                                style:
-                                    Theme.of(context).textTheme.bodySmall,
-                              ),
-                              Text(
-                                'Horario: ${_selectedTimeSlot.displayName}',
-                                style:
-                                    Theme.of(context).textTheme.bodySmall,
-                              ),
-                              if (_selectedEquipmentId != null) ...[
-                                Text(
-                                  'Equipo: ${dashboard.getEquipmentById(_selectedEquipmentId!)?.equipmentName ?? 'N/A'}',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall,
-                                ),
-                              ],
-                            ],
-                          ),
-                        )
+                      if (_canConfirm)
+                        _buildSummary(context, dashboard)
                             .animate()
                             .fadeIn(duration: 300.ms),
                     ],
@@ -291,10 +407,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppTheme.backgroundColor,
+                  color: theme.scaffoldBackgroundColor,
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                      color:
+                          AppTheme.primaryColor.withValues(alpha: 0.06),
                       blurRadius: 16,
                       offset: const Offset(0, -4),
                     ),
@@ -303,8 +420,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 child: FuturisticButton(
                   text: 'Confirmar Cita',
                   icon: Iconsax.tick_circle,
+                  isLoading: _isBooking,
                   onPressed:
-                      _selectedDate != null ? () => _confirmAppointment() : null,
+                      _canConfirm && !_isBooking ? () => _confirmAppointment() : null,
                 ),
               ),
             ],
@@ -314,71 +432,88 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Widget _buildServiceTypeChip(String label, ServiceType type) {
-    final isSelected = _selectedServiceType == type;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => setState(() => _selectedServiceType = type),
-      selectedColor: AppTheme.primaryColor.withValues(alpha: 0.12),
-      checkmarkColor: AppTheme.primaryColor,
-      labelStyle: TextStyle(
-        color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+  Widget _buildEquipmentRow(DashboardProvider dashboard, int index) {
+    final theme = Theme.of(context);
+    final eqId = _selectedEquipmentIds[index];
+    final equip = dashboard.getEquipmentById(eqId);
+    final quoteItem = _quoteItems.where((q) => q.equipment.id == eqId).firstOrNull;
+    final name = equip?.equipmentName ?? quoteItem?.equipment.name ?? 'Equipo desconocido';
+    final loc = equip?.location ?? quoteItem?.location ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Iconsax.cpu_setting, size: 18, color: AppTheme.primaryColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                      overflow: TextOverflow.ellipsis),
+                  if (loc.isNotEmpty)
+                    Text(loc,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            )),
+                ],
+              ),
+            ),
+            if (_selectedEquipmentIds.length > 1)
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedEquipmentIds.removeAt(index);
+                    _selectedTimeSlot = null;
+                  });
+                },
+                icon: const Icon(Iconsax.close_circle, size: 18, color: AppTheme.errorColor),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTimeSlotCard(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-    TimeSlot slot,
-  ) {
-    final isSelected = _selectedTimeSlot == slot;
+  Widget _buildAddEquipmentButton(DashboardProvider dashboard) {
     return GestureDetector(
-      onTap: () => setState(() => _selectedTimeSlot = slot),
+      onTap: () => _showEquipmentPicker(dashboard),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppTheme.primaryColor.withValues(alpha: 0.1)
-              : AppTheme.surfaceColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor,
-            width: isSelected ? 2 : 1,
-          ),
+          color: AppTheme.primaryColor.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
         ),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: isSelected
-                  ? AppTheme.primaryColor
-                  : AppTheme.textSecondary,
-              size: 24,
-            ),
-            const SizedBox(height: 8),
+            const Icon(Iconsax.add_circle, color: AppTheme.primaryColor, size: 18),
+            const SizedBox(width: 8),
             Text(
-              title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: isSelected
-                        ? AppTheme.primaryColor
-                        : AppTheme.textPrimary,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.w500,
-                  ),
-            ),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: isSelected
-                        ? AppTheme.primaryColor.withValues(alpha: 0.7)
-                        : AppTheme.textSecondary,
-                    fontSize: 11,
-                  ),
+              _selectedEquipmentIds.isEmpty
+                  ? 'Seleccionar equipo'
+                  : 'Agregar otro equipo',
+              style: TextStyle(
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -386,51 +521,707 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Future<void> _pickDate(BuildContext context) async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
+  void _showEquipmentPicker(DashboardProvider dashboard) {
+    showModalBottomSheet(
       context: context,
-      initialDate: now.add(const Duration(days: 1)),
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 90)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppTheme.primaryColor,
-              onPrimary: Colors.white,
-              surface: AppTheme.backgroundColor,
-            ),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final sheetTheme = Theme.of(ctx);
+        final available = dashboard.equipment
+            .where((e) => !_selectedEquipmentIds.contains(e.id))
+            .toList();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: sheetTheme.dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Seleccionar Equipo',
+                  style: Theme.of(ctx)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              if (available.isEmpty && dashboard.equipment.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text('No tienes equipos registrados',
+                      style: Theme.of(ctx).textTheme.bodyMedium),
+                )
+              else if (available.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text('Todos tus equipos ya fueron agregados',
+                      style: Theme.of(ctx).textTheme.bodyMedium),
+                )
+              else
+                ...available.map((e) {
+                  return ListTile(
+                    leading: const Icon(Iconsax.cpu_setting, color: AppTheme.primaryColor),
+                    title: Text(e.equipmentName),
+                    subtitle: e.location != null && e.location!.isNotEmpty
+                        ? Text(e.location!)
+                        : null,
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      setState(() {
+                        _selectedEquipmentIds.add(e.id);
+                        _selectedTimeSlot = null;
+                      });
+                    },
+                  );
+                }),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _showAddEquipmentSheet(context, dashboard);
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Iconsax.add_circle, color: AppTheme.primaryColor, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Registrar nuevo equipo',
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w600,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: child!,
         );
       },
     );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
   }
 
-  void _confirmAppointment() {
-    if (_selectedDate == null) return;
+  Widget _buildCalendar() {
+    final theme = Theme.of(context);
+    if (_isLoadingSlots) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
-    final appointment = Appointment(
-      id: 'apt-${DateTime.now().millisecondsSinceEpoch}',
-      equipmentId: _selectedEquipmentId,
-      preferredDate: _selectedDate!,
-      preferredTimeSlot: _selectedTimeSlot,
-      serviceType: _selectedServiceType,
-      notes: _notesController.text.trim(),
-      status: AppointmentStatus.pending,
+    if (_availableSlots.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Iconsax.calendar_remove,
+              size: 36,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'No hay fechas disponibles por el momento',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Contáctanos para solicitar una cita',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final now = DateTime.now();
+    final firstDay =
+        DateTime(_calendarMonth.year, _calendarMonth.month, 1);
+    final lastDay =
+        DateTime(_calendarMonth.year, _calendarMonth.month + 1, 0);
+    final startWeekday = firstDay.weekday;
+    final daysInMonth = lastDay.day;
+
+    final canGoPrev =
+        _calendarMonth.isAfter(DateTime(now.year, now.month));
+    final canGoNext =
+        _calendarMonth.isBefore(DateTime(now.year, now.month + 3));
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: canGoPrev
+                    ? () => setState(() {
+                          _calendarMonth = DateTime(
+                            _calendarMonth.year,
+                            _calendarMonth.month - 1,
+                          );
+                        })
+                    : null,
+                icon: Icon(
+                  Iconsax.arrow_left_2,
+                  size: 20,
+                  color: canGoPrev
+                      ? theme.colorScheme.onSurface
+                      : theme.dividerColor,
+                ),
+              ),
+              Text(
+                _capitalizeFirst(DateFormat('MMMM yyyy', 'es').format(_calendarMonth)),
+                style:
+                    theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+              ),
+              IconButton(
+                onPressed: canGoNext
+                    ? () => setState(() {
+                          _calendarMonth = DateTime(
+                            _calendarMonth.year,
+                            _calendarMonth.month + 1,
+                          );
+                        })
+                    : null,
+                icon: Icon(
+                  Iconsax.arrow_right_3,
+                  size: 20,
+                  color: canGoNext
+                      ? theme.colorScheme.onSurface
+                      : theme.dividerColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: ['L', 'M', 'Mi', 'J', 'V', 'S', 'D']
+                .map((d) => Expanded(
+                      child: Center(
+                        child: Text(
+                          d,
+                          style: theme
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 8),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 4,
+            ),
+            itemCount: ((startWeekday - 1) + daysInMonth),
+            itemBuilder: (context, index) {
+              if (index < startWeekday - 1) {
+                return const SizedBox();
+              }
+
+              final day = index - (startWeekday - 1) + 1;
+              final date = DateTime(
+                _calendarMonth.year,
+                _calendarMonth.month,
+                day,
+              );
+              final isAvailable = _availableDates.contains(date);
+              final isSelected = _selectedDate != null &&
+                  _selectedDate!.year == date.year &&
+                  _selectedDate!.month == date.month &&
+                  _selectedDate!.day == date.day;
+              final isPast = date.isBefore(
+                DateTime(now.year, now.month, now.day),
+              );
+
+              return GestureDetector(
+                onTap: isAvailable && !isPast
+                    ? () => setState(() {
+                          _selectedDate = date;
+                          _selectedTimeSlot = null;
+                        })
+                    : null,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : isAvailable && !isPast
+                            ? AppTheme.primaryColor
+                                .withValues(alpha: 0.1)
+                            : null,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$day',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isSelected || isAvailable
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: isSelected
+                            ? Colors.white
+                            : isAvailable && !isPast
+                                ? AppTheme.primaryColor
+                                : isPast
+                                    ? theme.dividerColor
+                                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Disponible',
+                style:
+                    Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                        ),
+              ),
+              const SizedBox(width: 16),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Seleccionado',
+                style:
+                    Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                        ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
+  }
 
-    context.read<AppointmentProvider>().scheduleAppointment(appointment);
+  Widget _buildTimeSlots() {
+    final theme = Theme.of(context);
+    final windows = _availableTimeWindows;
+
+    if (windows.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          _slotsNeeded > 1
+              ? 'No hay $_slotsNeeded horas consecutivas disponibles'
+              : 'No hay horarios disponibles para esta fecha',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: windows.map((window) {
+        final display = window['display'] as String;
+        final isSelected = _selectedTimeSlot == display;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedTimeSlot = display),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppTheme.primaryColor.withValues(alpha: 0.12)
+                  : theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected
+                    ? AppTheme.primaryColor
+                    : theme.dividerColor,
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Iconsax.clock,
+                  size: 16,
+                  color: isSelected
+                      ? AppTheme.primaryColor
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  display,
+                  style: TextStyle(
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : theme.colorScheme.onSurface,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildSummary(
+      BuildContext context, DashboardProvider dashboard) {
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Iconsax.document_text,
+                  size: 18, color: AppTheme.primaryColor),
+              const SizedBox(width: 8),
+              Text(
+                'Resumen de tu cita',
+                style:
+                    Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: AppTheme.primaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ..._selectedEquipmentIds.map((id) {
+            final eq = dashboard.getEquipmentById(id);
+            final qi = _quoteItems.where((q) => q.equipment.id == id).firstOrNull;
+            final name = eq?.equipmentName ?? qi?.equipment.name ?? 'N/A';
+            return Text(
+              'Equipo: $name',
+              style: Theme.of(context).textTheme.bodySmall,
+            );
+          }),
+          Text(
+            'Servicio: ${_selectedServiceType.displayName}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (_selectedDate != null)
+            Text(
+              'Fecha: ${dateFormat.format(_selectedDate!)}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          if (_selectedTimeSlot != null)
+            Text(
+              'Horario: $_selectedTimeSlot',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          if (_pricingConfig != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(
+                  Iconsax.dollar_circle,
+                  size: 16,
+                  color: AppTheme.primaryColor,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Costo estimado: \$${widget.fromQuote ? _cachedQuoteTotal.toStringAsFixed(0) : _calculateEstimatedCost(dashboard).toStringAsFixed(0)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryColor,
+                      ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showAddEquipmentSheet(
+      BuildContext context, DashboardProvider dashboard) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return _AddEquipmentSheet(
+          dashboard: dashboard,
+          onAdded: (equipment) {
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (!mounted) return;
+              final latest = dashboard.equipment.lastWhere(
+                (e) => e.equipmentName == equipment.equipmentName &&
+                    e.brand == equipment.brand,
+                orElse: () => equipment,
+              );
+              setState(() {
+                _selectedEquipmentIds.add(latest.id);
+                _selectedTimeSlot = null;
+              });
+            });
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmAppointment() async {
+    if (!_canConfirm) return;
+
+    setState(() => _isBooking = true);
+
+    final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    final slotsToBook = _selectedSlotGroup;
+    final dashboard = context.read<DashboardProvider>();
+    final appointmentProvider = context.read<AppointmentProvider>();
+    final profile = dashboard.profile;
+
+    final booked =
+        await _firebaseService.bookSlotsAtomically(dateKey, slotsToBook);
+
+    if (!booked) {
+      if (mounted) {
+        setState(() => _isBooking = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('El horario ya no está disponible. Selecciona otro.'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+        _loadAvailableSlots();
+      }
+      return;
+    }
+
+    final addedIds = <String, String>{};
+    if (_quoteItems.isNotEmpty) {
+      for (final item in _quoteItems) {
+        final existing = dashboard.getEquipmentById(item.equipment.id);
+        if (existing == null) {
+          final now = DateTime.now();
+          final isSolo = context.read<QuoteProvider>().installationType ==
+              InstallationType.installOnly;
+          final ce = CustomerEquipment(
+            id: item.equipment.id,
+            equipmentName: item.equipment.name,
+            brand: item.equipment.brand,
+            type: item.equipment.type,
+            btuCapacity: item.equipment.btuCapacity,
+            installDate: now,
+            nextServiceDate: DateTime(now.year, now.month + 6, now.day),
+            installationType: isSolo
+                ? InstallationType.installOnly
+                : InstallationType.fullPackage,
+            location: item.location ?? '',
+            isUserAdded: isSolo,
+            warrantyDetails:
+                item.equipment.manufacturerWarrantyDetails,
+          );
+          await dashboard.addEquipment(ce);
+          final saved = dashboard.equipment.lastWhere(
+            (e) => e.equipmentName == item.equipment.name &&
+                e.brand == item.equipment.brand,
+          );
+          addedIds[item.equipment.id] = saved.id;
+        }
+      }
+    }
+
+    final resolvedIds = _selectedEquipmentIds
+        .map((id) => addedIds[id] ?? id)
+        .toList();
+
+    final reverseIds = <String, String>{};
+    for (final entry in addedIds.entries) {
+      reverseIds[entry.value] = entry.key;
+    }
+
+    final equipmentList = resolvedIds.map((id) {
+      final eq = dashboard.getEquipmentById(id);
+      final originalId = reverseIds[id] ?? id;
+      final qi = _quoteItems.where((q) => q.equipment.id == originalId || q.equipment.id == id).firstOrNull;
+      return {
+        'id': eq?.id ?? id,
+        'name': eq?.equipmentName ?? qi?.equipment.name ?? '',
+        'brand': eq?.brand ?? qi?.equipment.brand ?? '',
+        'btuCapacity': eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0,
+        'location': eq?.location ?? qi?.location ?? '',
+        'type': eq?.type.displayName ?? qi?.equipment.type.displayName ?? '',
+        'price': qi?.equipment.price ?? 0,
+        'manufacturerWarrantyDetails': qi?.equipment.manufacturerWarrantyDetails ?? eq?.warrantyDetails ?? '',
+      };
+    }).toList();
+
+    final timeLabel = slotsToBook.join(' + ');
+
+    final mainAptId = 'apt-${DateTime.now().millisecondsSinceEpoch}';
+
+    for (final eqId in resolvedIds) {
+      final appointment = Appointment(
+        id: '$mainAptId-$eqId',
+        equipmentId: eqId,
+        preferredDate: _selectedDate!,
+        preferredTimeSlot: TimeSlot.morning,
+        preferredTimeLabel: timeLabel,
+        serviceType: _selectedServiceType,
+        notes: _notesController.text.trim(),
+        status: AppointmentStatus.pending,
+      );
+      appointmentProvider.scheduleAppointment(appointment);
+    }
+
+    final hasDiscount = _quoteItems.length > 1;
+
+    final quoteBreakdown = <String, dynamic>{
+      'equipmentPrice': _cachedEquipCost,
+      'installationPrice': _cachedInstallCost,
+      'totalPrice': _cachedQuoteTotal,
+      'multiUnitDiscount': hasDiscount,
+      'installationType': _cachedInstallationType,
+      'perEquipment': resolvedIds.map((id) {
+        final eq = dashboard.getEquipmentById(id);
+        final origId = reverseIds[id] ?? id;
+        final qi =
+            _quoteItems.where((q) => q.equipment.id == origId || q.equipment.id == id).firstOrNull;
+        return {
+          'id': eq?.id ?? id,
+          'name': eq?.equipmentName ?? qi?.equipment.name ?? '',
+          'brand': eq?.brand ?? qi?.equipment.brand ?? '',
+          'btuCapacity':
+              eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0,
+          'equipmentCost': qi?.equipment.price ?? 0,
+          'installCost': _cachedPerItemInstall[origId] ??
+              _cachedPerItemInstall[id] ?? 0,
+          'floorLevel': qi?.installationDetails.floorLevel.name ?? 'first',
+          'compressorSameFloor': qi?.installationDetails.compressorSameFloor ?? true,
+          'location': qi?.location ?? eq?.location ?? '',
+        };
+      }).toList(),
+    };
+
+    await _firebaseService.createGlobalAppointment({
+      'appointmentId': mainAptId,
+      'userId': FirebaseAuth.instance.currentUser?.uid,
+      'status': 'pending',
+      'date': dateKey,
+      'timeSlots': slotsToBook,
+      'timeSlotDisplay': timeLabel,
+      'serviceType': _selectedServiceType.name,
+      'serviceTypeDisplay': _selectedServiceType.displayName,
+      'notes': _notesController.text.trim(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'equipmentCount': _selectedEquipmentIds.length,
+      'customer': {
+        'name': profile?.name ?? '',
+        'phone': profile?.phone ?? '',
+        'email': profile?.email ?? '',
+        'address': profile?.displayAddress ?? '',
+      },
+      'equipment': equipmentList,
+      'totalUserEquipment': dashboard.totalEquipment,
+      'estimatedCost': widget.fromQuote
+          ? _cachedQuoteTotal
+          : _calculateEstimatedCost(dashboard),
+      'quoteBreakdown': quoteBreakdown,
+    });
+
+    if (widget.rescheduleId != null) {
+      await appointmentProvider
+          .restoreSlotsForAppointment(widget.rescheduleId!);
+    }
+
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            const Icon(Iconsax.tick_circle, color: Colors.white, size: 20),
+            const Icon(Iconsax.tick_circle,
+                color: Colors.white, size: 20),
             const SizedBox(width: 10),
             const Expanded(
               child: Text('Cita agendada exitosamente'),
@@ -441,6 +1232,312 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
     );
 
-    context.pop();
+    context.go('/home');
+  }
+}
+
+class _AddEquipmentSheet extends StatefulWidget {
+  final DashboardProvider dashboard;
+  final ValueChanged<CustomerEquipment> onAdded;
+
+  const _AddEquipmentSheet({
+    required this.dashboard,
+    required this.onAdded,
+  });
+
+  @override
+  State<_AddEquipmentSheet> createState() => _AddEquipmentSheetState();
+}
+
+class _AddEquipmentSheetState extends State<_AddEquipmentSheet> {
+  final FirebaseService _firebaseService = FirebaseService();
+  final _locationCtrl = TextEditingController();
+
+  List<Map<String, dynamic>> _brands = [];
+  bool _isLoadingBrands = true;
+
+  String? _selectedBrand;
+  List<String> _modelsForBrand = [];
+  String? _selectedModel;
+  int? _selectedBtu;
+
+  static const List<int> _btuOptions = [
+    12000,
+    18000,
+    24000,
+    36000,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBrands();
+  }
+
+  @override
+  void dispose() {
+    _locationCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadBrands() async {
+    try {
+      final brands = await _firebaseService.getEquipmentBrands();
+      if (mounted) {
+        setState(() {
+          _brands = brands;
+          _isLoadingBrands = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingBrands = false);
+    }
+  }
+
+  void _onBrandSelected(String? brand) {
+    setState(() {
+      _selectedBrand = brand;
+      _selectedModel = null;
+      _modelsForBrand = [];
+    });
+    if (brand != null) {
+      final brandData = _brands.firstWhere(
+        (b) => b['name'] == brand,
+        orElse: () => <String, dynamic>{},
+      );
+      final models = brandData['models'];
+      if (models is List) {
+        setState(() {
+          _modelsForBrand = models.cast<String>();
+        });
+      }
+    }
+  }
+
+  void _addEquipment() {
+    if (_selectedBrand == null || _selectedModel == null || _selectedBtu == null) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final newEquipment = CustomerEquipment(
+      id: 'ce-${now.millisecondsSinceEpoch}',
+      equipmentName: _selectedModel!,
+      brand: _selectedBrand!,
+      type: EquipmentType.miniSplit,
+      btuCapacity: _selectedBtu!,
+      installDate: now,
+      nextServiceDate: DateTime(now.year, now.month + 6, now.day),
+      installationType: InstallationType.installOnly,
+      location: _locationCtrl.text.trim(),
+      isUserAdded: true,
+    );
+
+    widget.dashboard.addEquipment(newEquipment);
+    Navigator.of(context).pop();
+    widget.onAdded(newEquipment);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Equipo agregado'),
+        backgroundColor: AppTheme.successColor,
+      ),
+    );
+  }
+
+  bool get _canAdd =>
+      _selectedBrand != null &&
+      _selectedModel != null &&
+      _selectedBtu != null;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.dividerColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Agregar Equipo',
+              style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 20),
+
+            if (_isLoadingBrands)
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(),
+              )
+            else ...[
+              _buildDropdown(
+                label: 'Marca',
+                icon: Iconsax.tag,
+                value: _selectedBrand,
+                hint: 'Seleccionar marca',
+                items: _brands.map((b) {
+                  final name = b['name'] as String;
+                  return DropdownMenuItem(
+                    value: name,
+                    child: Text(name),
+                  );
+                }).toList(),
+                onChanged: _onBrandSelected,
+              ),
+
+              const SizedBox(height: 12),
+
+              _buildDropdown(
+                label: 'Modelo',
+                icon: Iconsax.cpu_setting,
+                value: _selectedModel,
+                hint: _selectedBrand == null
+                    ? 'Selecciona una marca primero'
+                    : 'Seleccionar modelo',
+                items: _modelsForBrand
+                    .map((m) => DropdownMenuItem(
+                          value: m,
+                          child: Text(m),
+                        ))
+                    .toList(),
+                onChanged: _selectedBrand == null
+                    ? null
+                    : (val) =>
+                        setState(() => _selectedModel = val),
+              ),
+
+              const SizedBox(height: 16),
+
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Capacidad (BTU)',
+                  style: theme
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _btuOptions.map((btu) {
+                  final isSelected = _selectedBtu == btu;
+                  final label =
+                      '${(btu / 1000).toStringAsFixed(0)}K BTU';
+                  return GestureDetector(
+                    onTap: () =>
+                        setState(() => _selectedBtu = btu),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppTheme.primaryColor
+                                .withValues(alpha: 0.12)
+                            : theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppTheme.primaryColor
+                              : theme.dividerColor,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: isSelected
+                              ? AppTheme.primaryColor
+                              : theme.colorScheme.onSurface,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 12),
+
+              TextField(
+                controller: _locationCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Ubicación (ej. Sala, Recámara)',
+                  prefixIcon: Icon(Iconsax.location, size: 20),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              FuturisticButton(
+                text: 'Agregar',
+                icon: Iconsax.add_circle,
+                onPressed: _canAdd ? _addEquipment : null,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required IconData icon,
+    required String? value,
+    required String hint,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?>? onChanged,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          hint: Row(
+            children: [
+              Icon(icon, size: 20, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+              const SizedBox(width: 10),
+              Text(hint),
+            ],
+          ),
+          isExpanded: true,
+          icon: const Icon(Iconsax.arrow_down_1),
+          items: items,
+          onChanged: onChanged,
+        ),
+      ),
+    );
   }
 }

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:alx_clima/config/theme.dart';
 import 'package:alx_clima/models/customer_profile.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
+import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/futuristic_button.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -17,19 +18,30 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late final TextEditingController _nameController;
-  late final TextEditingController _phoneController;
-  late final TextEditingController _emailController;
-  late final TextEditingController _addressController;
-  bool _initialized = false;
+  final FirebaseService _firebaseService = FirebaseService();
+
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _streetController = TextEditingController();
+  final _exteriorController = TextEditingController();
+  final _interiorController = TextEditingController();
+  final _coloniaController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _postalCodeController = TextEditingController();
+  final _stateController = TextEditingController();
+
+  bool _isLoading = true;
+  bool _isSaving = false;
+  bool _isEditingAddress = false;
+  int _equipmentCount = 0;
+  int _servicesCount = 0;
+  DateTime? _memberSince;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
-    _phoneController = TextEditingController();
-    _emailController = TextEditingController();
-    _addressController = TextEditingController();
+    _loadProfile();
   }
 
   @override
@@ -37,17 +49,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _addressController.dispose();
+    _streetController.dispose();
+    _exteriorController.dispose();
+    _interiorController.dispose();
+    _coloniaController.dispose();
+    _cityController.dispose();
+    _postalCodeController.dispose();
+    _stateController.dispose();
     super.dispose();
   }
 
-  void _initializeControllers(CustomerProfile? profile) {
-    if (!_initialized && profile != null) {
-      _nameController.text = profile.name;
-      _phoneController.text = profile.phone;
-      _emailController.text = profile.email ?? '';
-      _addressController.text = profile.address ?? '';
-      _initialized = true;
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await _firebaseService.getUserProfile();
+      final stats = await _firebaseService.getUserStats();
+
+      if (profile != null && mounted) {
+        _nameController.text = profile.name;
+        _phoneController.text = profile.phone;
+        _emailController.text = profile.email ?? '';
+        _streetController.text = profile.street ?? '';
+        _exteriorController.text = profile.exteriorNumber ?? '';
+        _interiorController.text = profile.interiorNumber ?? '';
+        _coloniaController.text = profile.colonia ?? '';
+        _cityController.text = profile.city ?? '';
+        _postalCodeController.text = profile.postalCode ?? '';
+        _stateController.text = profile.state ?? '';
+      }
+
+      if (mounted) {
+        setState(() {
+          _equipmentCount = stats['equipmentCount'] ?? 0;
+          _servicesCount = stats['servicesCount'] ?? 0;
+          _memberSince = stats['memberSince'];
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String get _displayAddress {
+    final profile = CustomerProfile(
+      name: '',
+      phone: '',
+      street: _streetController.text.trim(),
+      exteriorNumber: _exteriorController.text.trim(),
+      interiorNumber: _interiorController.text.trim(),
+      colonia: _coloniaController.text.trim(),
+      city: _cityController.text.trim(),
+      postalCode: _postalCodeController.text.trim(),
+      state: _stateController.text.trim(),
+    );
+    return profile.displayAddress;
+  }
+
+  bool get _hasAddress => _displayAddress.isNotEmpty;
+
+  Future<void> _saveProfile() async {
+    setState(() => _isSaving = true);
+    try {
+      final updated = CustomerProfile(
+        name: _nameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        email: _emailController.text.trim(),
+        street: _streetController.text.trim(),
+        exteriorNumber: _exteriorController.text.trim(),
+        interiorNumber: _interiorController.text.trim(),
+        colonia: _coloniaController.text.trim(),
+        city: _cityController.text.trim(),
+        postalCode: _postalCodeController.text.trim(),
+        state: _stateController.text.trim(),
+        memberSince: _memberSince,
+      );
+
+      await _firebaseService.saveUserProfile(updated);
+      context.read<DashboardProvider>().updateProfile(updated);
+
+      if (mounted) {
+        setState(() => _isEditingAddress = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Perfil actualizado correctamente'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al guardar. Intenta de nuevo'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -61,186 +159,322 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: Consumer<DashboardProvider>(
-        builder: (context, dashboard, _) {
-          _initializeControllers(dashboard.profile);
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Center(
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: 90,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              AppTheme.primaryColor.withValues(alpha: 0.15),
-                              AppTheme.secondaryColor.withValues(alpha: 0.15),
-                            ],
-                          ),
-                          border: Border.all(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.2),
-                            width: 2,
-                          ),
-                        ),
-                        child: const Icon(
-                          Iconsax.user,
-                          size: 40,
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Iconsax.camera,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 400.ms)
-                    .scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)),
-
-                const SizedBox(height: 32),
-
-                _buildTextField(
-                  controller: _nameController,
-                  label: 'Nombre',
-                  icon: Iconsax.user,
-                ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
-
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  controller: _phoneController,
-                  label: 'Teléfono',
-                  icon: Iconsax.call,
-                  keyboardType: TextInputType.phone,
-                ).animate().fadeIn(duration: 400.ms, delay: 150.ms),
-
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  controller: _emailController,
-                  label: 'Correo Electrónico',
-                  icon: Iconsax.sms,
-                  keyboardType: TextInputType.emailAddress,
-                ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
-
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  controller: _addressController,
-                  label: 'Dirección',
-                  icon: Iconsax.location,
-                  maxLines: 2,
-                ).animate().fadeIn(duration: 400.ms, delay: 250.ms),
-
-                const SizedBox(height: 28),
-
-                FuturisticButton(
-                  text: 'Guardar Cambios',
-                  icon: Iconsax.tick_circle,
-                  onPressed: () {
-                    final updated = CustomerProfile(
-                      name: _nameController.text.trim(),
-                      phone: _phoneController.text.trim(),
-                      email: _emailController.text.trim(),
-                      address: _addressController.text.trim(),
-                    );
-                    context.read<DashboardProvider>().updateProfile(updated);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Perfil actualizado correctamente'),
-                        backgroundColor: AppTheme.successColor,
-                      ),
-                    );
-                  },
-                )
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 300.ms),
-
-                const SizedBox(height: 32),
-
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceColor,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Mis Estadísticas',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _StatItem(
-                              icon: Iconsax.cpu_setting,
-                              value: '${dashboard.totalEquipment}',
-                              label: 'Equipos',
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 40,
-                            color: AppTheme.dividerColor,
-                          ),
-                          Expanded(
-                            child: _StatItem(
-                              icon: Iconsax.document_text,
-                              value: '${dashboard.serviceHistory.length}',
-                              label: 'Servicios',
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 40,
-                            color: AppTheme.dividerColor,
-                          ),
-                          Expanded(
-                            child: _StatItem(
-                              icon: Iconsax.calendar_1,
-                              value: '2023',
-                              label: 'Miembro',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 400.ms),
-
-                const SizedBox(height: 24),
-              ],
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
+                  _buildTextField(
+                    controller: _nameController,
+                    label: 'Nombre',
+                    icon: Iconsax.user,
+                  ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _phoneController,
+                    label: 'Teléfono',
+                    icon: Iconsax.call,
+                    keyboardType: TextInputType.phone,
+                  ).animate().fadeIn(duration: 400.ms, delay: 150.ms),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _emailController,
+                    label: 'Correo Electrónico',
+                    icon: Iconsax.sms,
+                    keyboardType: TextInputType.emailAddress,
+                  ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
+                  const SizedBox(height: 24),
+                  _buildAddressSection()
+                      .animate()
+                      .fadeIn(duration: 400.ms, delay: 250.ms),
+                  const SizedBox(height: 28),
+                  FuturisticButton(
+                    text: 'Guardar Cambios',
+                    icon: Iconsax.tick_circle,
+                    isLoading: _isSaving,
+                    onPressed: _isSaving ? null : _saveProfile,
+                  )
+                      .animate()
+                      .fadeIn(duration: 400.ms, delay: 300.ms),
+                  const SizedBox(height: 24),
+                  _buildThemeToggle(context)
+                      .animate()
+                      .fadeIn(duration: 400.ms, delay: 350.ms),
+                  const SizedBox(height: 24),
+                  _buildStatsSection()
+                      .animate()
+                      .fadeIn(duration: 400.ms, delay: 400.ms),
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
-          );
-        },
+    );
+  }
+
+  Widget _buildAddressSection() {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Iconsax.location,
+                color: AppTheme.primaryColor,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Dirección',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () =>
+                    setState(() => _isEditingAddress = !_isEditingAddress),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _isEditingAddress ? Iconsax.arrow_up_2 : Iconsax.edit_2,
+                        size: 14,
+                        color: AppTheme.primaryColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _isEditingAddress ? 'Colapsar' : 'Editar',
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_isEditingAddress)
+            _buildAddressFields()
+          else
+            GestureDetector(
+              onTap: () => setState(() => _isEditingAddress = true),
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: theme.scaffoldBackgroundColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Iconsax.location, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _hasAddress
+                            ? _displayAddress
+                            : 'Toca para agregar tu dirección',
+                        style:
+                            theme.textTheme.bodyMedium?.copyWith(
+                                  color: _hasAddress
+                                      ? theme.colorScheme.onSurface
+                                      : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddressFields() {
+    return Column(
+      children: [
+        _buildTextField(
+          controller: _streetController,
+          label: 'Calle',
+          icon: Iconsax.routing,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _exteriorController,
+                label: 'No. Exterior',
+                icon: Iconsax.home_2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTextField(
+                controller: _interiorController,
+                label: 'No. Interior',
+                icon: Iconsax.home_1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(
+          controller: _coloniaController,
+          label: 'Colonia',
+          icon: Iconsax.building,
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(
+          controller: _cityController,
+          label: 'Ciudad / Municipio',
+          icon: Iconsax.buildings,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _postalCodeController,
+                label: 'Código Postal',
+                icon: Iconsax.hashtag,
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTextField(
+                controller: _stateController,
+                label: 'Estado',
+                icon: Iconsax.map,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildThemeToggle(BuildContext context) {
+    final themeProvider = context.watch<ClientThemeProvider>();
+    final isDark = themeProvider.isDark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isDark ? Iconsax.moon : Iconsax.sun_1,
+            color: AppTheme.primaryColor,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              isDark ? 'Modo oscuro' : 'Modo claro',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ),
+          Switch.adaptive(
+            value: isDark,
+            onChanged: (_) => themeProvider.toggle(),
+            activeColor: AppTheme.primaryColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsSection() {
+    final theme = Theme.of(context);
+    final memberYear = _memberSince?.year.toString() ?? '-';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Mis Estadísticas',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _StatItem(
+                  icon: Iconsax.cpu_setting,
+                  value: '$_equipmentCount',
+                  label: 'Equipos',
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: theme.dividerColor,
+              ),
+              Expanded(
+                child: _StatItem(
+                  icon: Iconsax.document_text,
+                  value: '$_servicesCount',
+                  label: 'Servicios',
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: theme.dividerColor,
+              ),
+              Expanded(
+                child: _StatItem(
+                  icon: Iconsax.calendar_1,
+                  value: memberYear,
+                  label: 'Miembro',
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -277,15 +511,16 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Icon(icon, color: AppTheme.primaryColor, size: 20),
         const SizedBox(height: 6),
         Text(
           value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+                color: theme.colorScheme.onSurface,
               ),
         ),
         Text(

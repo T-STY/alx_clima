@@ -19,12 +19,13 @@ class FloorSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '¿En qué piso se instalará?',
-          style: Theme.of(context).textTheme.titleMedium,
+          style: theme.textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
         Row(
@@ -42,12 +43,12 @@ class FloorSelector extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppTheme.primaryColor.withValues(alpha: 0.1)
-                        : AppTheme.surfaceColor,
+                        : theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: isSelected
                           ? AppTheme.primaryColor
-                          : AppTheme.dividerColor,
+                          : theme.dividerColor,
                       width: isSelected ? 2 : 1,
                     ),
                   ),
@@ -59,17 +60,17 @@ class FloorSelector extends StatelessWidget {
                             : Iconsax.building_4,
                         color: isSelected
                             ? AppTheme.primaryColor
-                            : AppTheme.textSecondary,
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         size: 28,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         floor.displayName,
                         style:
-                            Theme.of(context).textTheme.titleSmall?.copyWith(
+                            theme.textTheme.titleSmall?.copyWith(
                                   color: isSelected
                                       ? AppTheme.primaryColor
-                                      : AppTheme.textSecondary,
+                                      : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                   fontWeight: isSelected
                                       ? FontWeight.w600
                                       : FontWeight.w500,
@@ -85,7 +86,7 @@ class FloorSelector extends StatelessWidget {
         const SizedBox(height: 24),
         Text(
           '¿El compresor estará en el mismo piso?',
-          style: Theme.of(context).textTheme.titleMedium,
+          style: theme.textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
         Row(
@@ -121,6 +122,7 @@ class FloorSelector extends StatelessWidget {
     double marginLeft = 0,
     double marginRight = 0,
   }) {
+    final theme = Theme.of(context);
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -130,10 +132,10 @@ class FloorSelector extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? AppTheme.primaryColor.withValues(alpha: 0.1)
-                : AppTheme.surfaceColor,
+                : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor,
+              color: isSelected ? AppTheme.primaryColor : theme.dividerColor,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -143,17 +145,17 @@ class FloorSelector extends StatelessWidget {
                 icon,
                 color: isSelected
                     ? AppTheme.primaryColor
-                    : AppTheme.textSecondary,
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 size: 24,
               ),
               const SizedBox(height: 8),
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                style: theme.textTheme.titleSmall?.copyWith(
                       color: isSelected
                           ? AppTheme.primaryColor
-                          : AppTheme.textSecondary,
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w500,
                       fontSize: 13,

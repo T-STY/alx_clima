@@ -112,16 +112,17 @@ class _QuoteTypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppTheme.cardColor,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: AppTheme.dividerColor,
+            color: theme.dividerColor,
           ),
           boxShadow: [
             BoxShadow(
@@ -147,7 +148,7 @@ class _QuoteTypeCard extends StatelessWidget {
                 const Spacer(),
                 Icon(
                   Iconsax.arrow_right_3,
-                  color: AppTheme.textSecondary.withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   size: 22,
                 ),
               ],

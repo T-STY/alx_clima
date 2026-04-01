@@ -1,12 +1,25 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:alx_clima/models/appointment.dart';
 import 'package:alx_clima/models/service_record.dart';
 
 class AppointmentProvider extends ChangeNotifier {
   List<Appointment> _appointments = [];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  StreamSubscription? _appointmentsSub;
+  StreamSubscription? _authSub;
 
   AppointmentProvider() {
-    _initializeDemoData();
+    _listenToAuth();
+  }
+
+  @override
+  void dispose() {
+    _appointmentsSub?.cancel();
+    _authSub?.cancel();
+    super.dispose();
   }
 
   List<Appointment> get appointments => List.unmodifiable(_appointments);
@@ -17,9 +30,40 @@ class AppointmentProvider extends ChangeNotifier {
         .where((a) =>
             a.preferredDate.isAfter(now) &&
             (a.status == AppointmentStatus.pending ||
-                a.status == AppointmentStatus.confirmed))
+                a.status == AppointmentStatus.confirmed ||
+                a.status == AppointmentStatus.modified))
         .toList()
       ..sort((a, b) => a.preferredDate.compareTo(b.preferredDate));
+  }
+
+  int get pendingAppointmentCount => upcomingAppointments.length;
+
+  void _listenToAuth() {
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      _appointmentsSub?.cancel();
+      if (user != null) {
+        _listenToAppointments(user.uid);
+      } else {
+        _appointments = [];
+        notifyListeners();
+      }
+    });
+  }
+
+  void _listenToAppointments(String uid) {
+    _appointmentsSub = _firestore
+        .collection('appointments')
+        .where('userId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .listen((snap) {
+      _appointments = [];
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        _appointments.addAll(_appointmentsFromMap(data, doc.id));
+      }
+      notifyListeners();
+    });
   }
 
   void scheduleAppointment(Appointment appointment) {
@@ -27,49 +71,147 @@ class AppointmentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void cancelAppointment(String appointmentId) {
+  Future<void> cancelAppointment(String appointmentId) async {
     _appointments = _appointments.map((a) {
-      if (a.id == appointmentId) {
+      if (a.id == appointmentId || a.id.startsWith('$appointmentId-')) {
         return a.copyWith(status: AppointmentStatus.cancelled);
       }
       return a;
     }).toList();
     notifyListeners();
+
+    await restoreSlotsForAppointment(appointmentId);
   }
 
-  List<Appointment> getUpcomingAppointments() => upcomingAppointments;
+  Future<void> restoreSlotsForAppointment(String appointmentId) async {
+    try {
+      QuerySnapshot<Map<String, dynamic>> snap;
+      snap = await _firestore
+          .collection('appointments')
+          .where('appointmentId', isEqualTo: appointmentId)
+          .limit(1)
+          .get();
 
-  void _initializeDemoData() {
-    final now = DateTime.now();
+      if (snap.docs.isEmpty) {
+        final parts = appointmentId.split('-');
+        if (parts.length > 1) {
+          final baseId = parts.sublist(0, parts.length - 1).join('-');
+          snap = await _firestore
+              .collection('appointments')
+              .where('appointmentId', isEqualTo: baseId)
+              .limit(1)
+              .get();
+        }
+      }
 
-    _appointments = [
-      Appointment(
-        id: 'apt-001',
-        equipmentId: 'ce-002',
-        preferredDate: DateTime(now.year, now.month, now.day + 5),
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        await doc.reference.update({'status': 'cancelled'});
+
+        final date = data['date'] as String?;
+        final timeSlots = data['timeSlots'] as List?;
+        final timeSlot = data['timeSlot'] as String?;
+
+        final slotsToRestore = <String>[];
+        if (timeSlots != null) {
+          slotsToRestore.addAll(timeSlots.cast<String>());
+        } else if (timeSlot != null) {
+          slotsToRestore.add(timeSlot);
+        }
+
+        if (date != null && slotsToRestore.isNotEmpty) {
+          final schedRef = _firestore.collection('schedule').doc(date);
+          final schedDoc = await schedRef.get();
+          if (schedDoc.exists) {
+            final existing =
+                (schedDoc.data()?['slots'] as List?)?.cast<String>() ?? [];
+            final merged = {...existing, ...slotsToRestore}.toList()..sort();
+            await schedRef.update({'slots': merged});
+          } else {
+            final sorted = [...slotsToRestore]..sort();
+            await schedRef.set({'slots': sorted});
+          }
+
+          for (final slot in slotsToRestore) {
+            final bookedSnap = await _firestore
+                .collection('bookedSlots')
+                .where('date', isEqualTo: date)
+                .where('slot', isEqualTo: slot)
+                .limit(1)
+                .get();
+            for (final d in bookedSnap.docs) {
+              await d.reference.delete();
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  List<Appointment> _appointmentsFromMap(
+      Map<String, dynamic> data, String docId) {
+    final date = data['date'] as String? ?? '';
+    final parsed = DateTime.tryParse(date) ?? DateTime.now();
+    final mainId = data['appointmentId'] as String? ?? docId;
+
+    final serviceTypeStr = data['serviceType'] as String? ?? 'maintenance';
+    final serviceType = ServiceType.values.firstWhere(
+      (e) => e.name == serviceTypeStr,
+      orElse: () => ServiceType.maintenance,
+    );
+
+    final statusStr = data['status'] as String? ?? 'pending';
+    final status = AppointmentStatus.values.firstWhere(
+      (e) => e.name == statusStr,
+      orElse: () => AppointmentStatus.pending,
+    );
+
+    final timeSlots = data['timeSlots'] as List?;
+    final timeSlot = data['timeSlot'] as String?;
+    final timeLabel = data['timeSlotDisplay'] as String? ??
+        (timeSlots != null ? timeSlots.cast<String>().join(' + ') : timeSlot) ??
+        '';
+
+    final equipField = data['equipment'];
+    final equipmentIds = <String>[];
+
+    if (equipField is List) {
+      for (final e in equipField) {
+        if (e is Map) {
+          final id = e['id'] as String?;
+          if (id != null) equipmentIds.add(id);
+        }
+      }
+    } else if (equipField is Map) {
+      final id = equipField['id'] as String?;
+      if (id != null) equipmentIds.add(id);
+    }
+
+    if (equipmentIds.isEmpty) {
+      return [
+        Appointment(
+          id: mainId,
+          preferredDate: parsed,
+          preferredTimeSlot: TimeSlot.morning,
+          preferredTimeLabel: timeLabel,
+          serviceType: serviceType,
+          notes: data['notes'] as String?,
+          status: status,
+        ),
+      ];
+    }
+
+    return equipmentIds.map((eqId) {
+      return Appointment(
+        id: '$mainId-$eqId',
+        equipmentId: eqId,
+        preferredDate: parsed,
         preferredTimeSlot: TimeSlot.morning,
-        serviceType: ServiceType.maintenance,
-        notes: 'Limpieza profunda solicitada. Equipo presenta mal olor.',
-        status: AppointmentStatus.confirmed,
-      ),
-      Appointment(
-        id: 'apt-002',
-        equipmentId: 'ce-001',
-        preferredDate: DateTime(now.year, now.month + 1, 12),
-        preferredTimeSlot: TimeSlot.afternoon,
-        serviceType: ServiceType.maintenance,
-        notes: 'Servicio preventivo programado cada 6 meses.',
-        status: AppointmentStatus.pending,
-      ),
-      Appointment(
-        id: 'apt-003',
-        equipmentId: 'ce-003',
-        preferredDate: DateTime(now.year, now.month - 1, 8),
-        preferredTimeSlot: TimeSlot.morning,
-        serviceType: ServiceType.installation,
-        notes: 'Instalaci\u00f3n completada exitosamente.',
-        status: AppointmentStatus.completed,
-      ),
-    ];
+        preferredTimeLabel: timeLabel,
+        serviceType: serviceType,
+        notes: data['notes'] as String?,
+        status: status,
+      );
+    }).toList();
   }
 }

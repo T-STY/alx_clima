@@ -18,7 +18,8 @@ enum AppointmentStatus {
   pending,
   confirmed,
   completed,
-  cancelled;
+  cancelled,
+  modified;
 
   String get displayName {
     switch (this) {
@@ -30,6 +31,8 @@ enum AppointmentStatus {
         return 'Completada';
       case AppointmentStatus.cancelled:
         return 'Cancelada';
+      case AppointmentStatus.modified:
+        return 'Cita Modificada';
     }
   }
 }
@@ -39,6 +42,7 @@ class Appointment {
   final String? equipmentId;
   final DateTime preferredDate;
   final TimeSlot preferredTimeSlot;
+  final String? preferredTimeLabel;
   final ServiceType serviceType;
   final String? notes;
   final AppointmentStatus status;
@@ -48,6 +52,7 @@ class Appointment {
     this.equipmentId,
     required this.preferredDate,
     required this.preferredTimeSlot,
+    this.preferredTimeLabel,
     required this.serviceType,
     this.notes,
     this.status = AppointmentStatus.pending,
@@ -58,6 +63,7 @@ class Appointment {
     String? equipmentId,
     DateTime? preferredDate,
     TimeSlot? preferredTimeSlot,
+    String? preferredTimeLabel,
     ServiceType? serviceType,
     String? notes,
     AppointmentStatus? status,
@@ -67,6 +73,7 @@ class Appointment {
       equipmentId: equipmentId ?? this.equipmentId,
       preferredDate: preferredDate ?? this.preferredDate,
       preferredTimeSlot: preferredTimeSlot ?? this.preferredTimeSlot,
+      preferredTimeLabel: preferredTimeLabel ?? this.preferredTimeLabel,
       serviceType: serviceType ?? this.serviceType,
       notes: notes ?? this.notes,
       status: status ?? this.status,

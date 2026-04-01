@@ -24,6 +24,7 @@ class Equipment {
   final double price;
   final String description;
   final String imageAsset;
+  final String imageUrl;
   final double manufacturerWarrantyYears;
   final String manufacturerWarrantyDetails;
 
@@ -36,6 +37,7 @@ class Equipment {
     required this.price,
     required this.description,
     this.imageAsset = '',
+    this.imageUrl = '',
     this.manufacturerWarrantyYears = 1.0,
     this.manufacturerWarrantyDetails = 'Garantía estándar del fabricante',
   });
@@ -49,6 +51,7 @@ class Equipment {
     double? price,
     String? description,
     String? imageAsset,
+    String? imageUrl,
     double? manufacturerWarrantyYears,
     String? manufacturerWarrantyDetails,
   }) {
@@ -61,6 +64,7 @@ class Equipment {
       price: price ?? this.price,
       description: description ?? this.description,
       imageAsset: imageAsset ?? this.imageAsset,
+      imageUrl: imageUrl ?? this.imageUrl,
       manufacturerWarrantyYears:
           manufacturerWarrantyYears ?? this.manufacturerWarrantyYears,
       manufacturerWarrantyDetails:

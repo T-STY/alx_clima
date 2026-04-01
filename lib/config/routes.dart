@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:alx_clima/providers/auth_provider.dart';
+import 'package:alx_clima/screens/auth/login_screen.dart';
 import 'package:alx_clima/screens/contact/contact_screen.dart';
 import 'package:alx_clima/screens/dashboard/dashboard_screen.dart';
 import 'package:alx_clima/screens/dashboard/equipment_detail_screen.dart';
@@ -13,99 +15,147 @@ import 'package:alx_clima/screens/quote/installation_details_screen.dart';
 import 'package:alx_clima/screens/quote/quote_summary_screen.dart';
 import 'package:alx_clima/screens/quote/quote_type_screen.dart';
 import 'package:alx_clima/screens/shell_screen.dart';
+import 'package:alx_clima/screens/suspended/suspended_screen.dart';
+import 'package:alx_clima/screens/invoices/invoices_screen.dart';
 import 'package:alx_clima/screens/tips/care_tips_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-final GoRouter appRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
-  initialLocation: '/home',
-  routes: [
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) =>
-          ShellScreen(navigationShell: navigationShell),
-      branches: [
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/home',
-              builder: (context, state) => const HomeScreen(),
-            ),
-          ],
-        ),
+GoRouter buildRouter(AuthProvider authProvider) {
+  return GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: '/home',
+    refreshListenable: authProvider,
+    redirect: (context, state) {
+      final isLoading = authProvider.isLoading;
+      final isOnLogin = state.matchedLocation == '/login';
+      final isOnSuspended = state.matchedLocation == '/suspended';
+      final hasUser = authProvider.user != null;
+      final isSuspended = authProvider.isSuspended;
 
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/quote',
-              builder: (context, state) => const QuoteTypeScreen(),
-            ),
-          ],
-        ),
+      if (isLoading) return null;
 
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/dashboard',
-              builder: (context, state) => const DashboardScreen(),
-            ),
-          ],
-        ),
+      if (!hasUser && !isOnLogin) return '/login';
+      if (hasUser && isSuspended && !isOnSuspended) return '/suspended';
+      if (hasUser && !isSuspended && isOnSuspended) return '/home';
+      if (hasUser && !isSuspended && isOnLogin) return '/home';
 
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/services',
-              builder: (context, state) => const FutureServicesScreen(),
-            ),
-          ],
-        ),
-      ],
-    ),
-
-    GoRoute(
-      parentNavigatorKey: _rootNavigatorKey,
-      path: '/quote/equipment',
-      builder: (context, state) => const EquipmentSelectScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootNavigatorKey,
-      path: '/quote/installation',
-      builder: (context, state) => const InstallationDetailsScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootNavigatorKey,
-      path: '/quote/summary',
-      builder: (context, state) => const QuoteSummaryScreen(),
-    ),
-
-    GoRoute(
-      parentNavigatorKey: _rootNavigatorKey,
-      path: '/dashboard/equipment/:id',
-      builder: (context, state) => EquipmentDetailScreen(
-        equipmentId: state.pathParameters['id']!,
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
       ),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootNavigatorKey,
-      path: '/dashboard/schedule',
-      builder: (context, state) => const ScheduleScreen(),
-    ),
+      GoRoute(
+        path: '/suspended',
+        builder: (context, state) => const SuspendedScreen(),
+      ),
 
-    GoRoute(
-      parentNavigatorKey: _rootNavigatorKey,
-      path: '/profile',
-      builder: (context, state) => const ProfileScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootNavigatorKey,
-      path: '/contact',
-      builder: (context, state) => const ContactScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootNavigatorKey,
-      path: '/tips',
-      builder: (context, state) => const CareTipsScreen(),
-    ),
-  ],
-);
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            ShellScreen(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home',
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/quote',
+                builder: (context, state) => const QuoteTypeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/dashboard',
+                builder: (context, state) => const DashboardScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/services',
+                builder: (context, state) => const FutureServicesScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/quote/equipment',
+        builder: (context, state) => const EquipmentSelectScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/quote/installation',
+        builder: (context, state) => const InstallationDetailsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/quote/summary',
+        builder: (context, state) => const QuoteSummaryScreen(),
+      ),
+
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/dashboard/equipment/:id',
+        builder: (context, state) => EquipmentDetailScreen(
+          equipmentId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/dashboard/schedule',
+        builder: (context, state) {
+          final equipmentIds = state.uri.queryParameters['equipmentIds'];
+          final equipmentId = state.uri.queryParameters['equipmentId'];
+          final fromQuote = state.uri.queryParameters['fromQuote'] == 'true';
+          final rescheduleId = state.uri.queryParameters['rescheduleId'];
+          List<String>? ids;
+          if (equipmentIds != null && equipmentIds.isNotEmpty) {
+            ids = equipmentIds.split(',');
+          } else if (equipmentId != null && equipmentId.isNotEmpty) {
+            ids = [equipmentId];
+          }
+          return ScheduleScreen(
+            prefilledEquipmentIds: ids,
+            fromQuote: fromQuote,
+            rescheduleId: rescheduleId,
+          );
+        },
+      ),
+
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/contact',
+        builder: (context, state) => const ContactScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/tips',
+        builder: (context, state) => const CareTipsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/invoices',
+        builder: (context, state) => const InvoicesScreen(),
+      ),
+    ],
+  );
+}

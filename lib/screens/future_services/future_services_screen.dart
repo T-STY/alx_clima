@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:provider/provider.dart';
 
 import 'package:alx_clima/config/theme.dart';
+import 'package:alx_clima/providers/auth_provider.dart';
 import 'package:alx_clima/widgets/status_badge.dart';
 
 class FutureServicesScreen extends StatelessWidget {
@@ -85,6 +87,19 @@ class FutureServicesScreen extends StatelessWidget {
                   .fadeIn(duration: 400.ms, delay: 290.ms)
                   .slideX(begin: 0.05, end: 0),
 
+              const SizedBox(height: 10),
+
+              _ServiceCard(
+                icon: Iconsax.document_text,
+                title: 'Mis Facturas',
+                subtitle: 'Consulta y descarga tus facturas de servicio',
+                color: AppTheme.warningColor,
+                onTap: () => context.push('/invoices'),
+              )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 360.ms)
+                  .slideX(begin: 0.05, end: 0),
+
               const SizedBox(height: 32),
 
               Text(
@@ -126,54 +141,77 @@ class FutureServicesScreen extends StatelessWidget {
                   .animate()
                   .fadeIn(duration: 400.ms, delay: 520.ms),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primaryColor.withValues(alpha: 0.05),
-                      AppTheme.secondaryColor.withValues(alpha: 0.05),
+              GestureDetector(
+                onTap: () => _showSignOutDialog(context),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.errorColor.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Iconsax.logout,
+                        color: AppTheme.errorColor,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Cerrar Sesión',
+                        style:
+                            Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  color: AppTheme.errorColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                      ),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
-                      ).createShader(bounds),
-                      child: const Icon(
-                        Iconsax.magic_star,
-                        size: 32,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Estamos trabajando en nuevos servicios para ti',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                  ],
                 ),
               )
                   .animate()
-                  .fadeIn(duration: 500.ms, delay: 600.ms),
+                  .fadeIn(duration: 400.ms, delay: 700.ms),
 
               const SizedBox(height: 32),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showSignOutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cerrar Sesión'),
+        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              context.read<AuthProvider>().signOut();
+            },
+            child: Text(
+              'Cerrar Sesión',
+              style: TextStyle(color: AppTheme.errorColor),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -196,14 +234,15 @@ class _ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.cardColor,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.dividerColor),
+          border: Border.all(color: theme.dividerColor),
           boxShadow: [
             BoxShadow(
               color: color.withValues(alpha: 0.06),
@@ -229,15 +268,15 @@ class _ServiceCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textPrimary,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -246,7 +285,7 @@ class _ServiceCard extends StatelessWidget {
             ),
             Icon(
               Iconsax.arrow_right_3,
-              color: AppTheme.textSecondary.withValues(alpha: 0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               size: 20,
             ),
           ],
@@ -269,24 +308,26 @@ class _ComingSoonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final secondaryText = theme.colorScheme.onSurface.withValues(alpha: 0.6);
     return Opacity(
       opacity: 0.55,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceColor,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.dividerColor),
+          border: Border.all(color: theme.dividerColor),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.textSecondary.withValues(alpha: 0.08),
+                color: secondaryText.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: AppTheme.textSecondary, size: 24),
+              child: Icon(icon, color: secondaryText, size: 24),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -295,24 +336,24 @@ class _ComingSoonCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textPrimary,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            const StatusBadge(
+            StatusBadge(
               text: 'Próximamente',
-              color: AppTheme.textSecondary,
+              color: secondaryText,
             ),
           ],
         ),

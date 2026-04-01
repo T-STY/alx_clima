@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+
 import 'package:alx_clima/models/customer_equipment.dart';
 import 'package:alx_clima/models/customer_profile.dart';
 import 'package:alx_clima/models/equipment.dart';
@@ -9,14 +13,25 @@ class DashboardProvider extends ChangeNotifier {
   List<CustomerEquipment> _equipment = [];
   List<ServiceRecord> _serviceHistory = [];
   CustomerProfile? _profile;
+  bool _isLoading = false;
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  StreamSubscription? _historySub;
 
   DashboardProvider() {
-    _initializeDemoData();
+    _listenToAuthChanges();
+  }
+
+  @override
+  void dispose() {
+    _historySub?.cancel();
+    super.dispose();
   }
 
   List<CustomerEquipment> get equipment => List.unmodifiable(_equipment);
   List<ServiceRecord> get serviceHistory => List.unmodifiable(_serviceHistory);
   CustomerProfile? get profile => _profile;
+  bool get isLoading => _isLoading;
 
   int get totalEquipment => _equipment.length;
 
@@ -48,9 +63,124 @@ class DashboardProvider extends ChangeNotifier {
     }
   }
 
-  void addEquipment(CustomerEquipment item) {
+  void _listenToAuthChanges() {
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      _historySub?.cancel();
+      if (user != null) {
+        loadUserData();
+        _listenToServiceHistory(user.uid);
+      } else {
+        _equipment = [];
+        _serviceHistory = [];
+        _profile = null;
+        notifyListeners();
+      }
+    });
+  }
+
+  void _listenToServiceHistory(String uid) {
+    _historySub = _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('serviceHistory')
+        .snapshots()
+        .listen((snap) {
+      _serviceHistory = snap.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return _serviceRecordFromMap(data);
+      }).toList();
+      notifyListeners();
+    });
+  }
+
+  Future<void> loadUserData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      if (userDoc.exists && userDoc.data() != null) {
+        _profile = CustomerProfile.fromMap(userDoc.data()!);
+      }
+
+      final equipSnap = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('equipment')
+          .get();
+      _equipment = equipSnap.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return _equipmentFromMap(data);
+      }).toList();
+
+      final servicesSnap = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('serviceHistory')
+          .get();
+      _serviceHistory = servicesSnap.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return _serviceRecordFromMap(data);
+      }).toList();
+    } catch (_) {
+      // Network errors handled silently, data stays empty
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> addEquipment(CustomerEquipment item) async {
     _equipment = [..._equipment, item];
     notifyListeners();
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final docRef = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('equipment')
+          .add({
+        'equipmentName': item.equipmentName,
+        'brand': item.brand,
+        'type': item.type.name,
+        'btuCapacity': item.btuCapacity,
+        'installDate': Timestamp.fromDate(item.installDate),
+        'nextServiceDate': Timestamp.fromDate(item.nextServiceDate),
+        'installationType': item.installationType.name,
+        'notes': item.notes ?? '',
+        'location': item.location ?? '',
+        'isUserAdded': item.isUserAdded,
+        'warrantyDetails': item.warrantyDetails ?? '',
+      });
+      final updated = item.copyWith(id: docRef.id);
+      _equipment = _equipment.map((e) => e.id == item.id ? updated : e).toList();
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  void updateEquipment(CustomerEquipment updated) {
+    _equipment = _equipment.map((e) {
+      if (e.id == updated.id) return updated;
+      return e;
+    }).toList();
+    notifyListeners();
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('equipment')
+        .doc(updated.id)
+        .update({'location': updated.location ?? ''}).catchError((_) {});
   }
 
   void removeEquipment(String equipmentId) {
@@ -58,6 +188,16 @@ class DashboardProvider extends ChangeNotifier {
     _serviceHistory =
         _serviceHistory.where((s) => s.equipmentId != equipmentId).toList();
     notifyListeners();
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('equipment')
+        .doc(equipmentId)
+        .delete()
+        .catchError((_) {});
   }
 
   void addServiceRecord(ServiceRecord record) {
@@ -70,90 +210,69 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _initializeDemoData() {
-    final now = DateTime.now();
-
-    _profile = const CustomerProfile(
-      name: 'Carlos Mendoza',
-      phone: '+52 614 555 1234',
-      email: 'carlos.mendoza@email.com',
-      address: 'Av. Tecnol\u00f3gico 1234, Col. Centro, Chihuahua, Chih.',
-      notes: 'Cliente desde 2023',
+  CustomerEquipment _equipmentFromMap(Map<String, dynamic> data) {
+    return CustomerEquipment(
+      id: data['id'] ?? '',
+      equipmentName: data['equipmentName'] ?? '',
+      brand: data['brand'] ?? '',
+      type: _parseEquipmentType(data['type']),
+      btuCapacity: data['btuCapacity'] ?? 12000,
+      installDate: _parseDate(data['installDate']),
+      lastServiceDate: _parseDate(data['lastServiceDate']),
+      nextServiceDate: _parseDate(data['nextServiceDate']),
+      installationType: _parseInstallationType(data['installationType']),
+      notes: data['notes'] ?? '',
+      location: data['location'] ?? '',
+      isUserAdded: data['isUserAdded'] ?? false,
+      warrantyDetails: data['warrantyDetails'] ?? '',
     );
+  }
 
-    _equipment = [
-      CustomerEquipment(
-        id: 'ce-001',
-        equipmentName: 'Minisplit Mirage Absolut X 12000 BTU',
-        brand: 'Mirage',
-        type: EquipmentType.miniSplit,
-        btuCapacity: 12000,
-        installDate: DateTime(2023, 6, 15),
-        lastServiceDate: DateTime(now.year, now.month - 2, 10),
-        nextServiceDate: DateTime(now.year, now.month + 4, 10),
-        installationType: InstallationType.fullPackage,
-        notes: 'Funcionando correctamente',
-        location: 'Sala',
-      ),
-      CustomerEquipment(
-        id: 'ce-002',
-        equipmentName: 'Minisplit Hisense Inverter 12000 BTU',
-        brand: 'Hisense',
-        type: EquipmentType.miniSplit,
-        btuCapacity: 12000,
-        installDate: DateTime(2024, 1, 20),
-        lastServiceDate: DateTime(now.year - 1, 11, 5),
-        nextServiceDate: DateTime(now.year, now.month - 1, 5),
-        installationType: InstallationType.fullPackage,
-        notes: 'Requiere limpieza profunda',
-        location: 'Rec\u00e1mara Principal',
-      ),
-      CustomerEquipment(
-        id: 'ce-003',
-        equipmentName: 'Minisplit Carrier Xpower 18000 BTU',
-        brand: 'Carrier',
-        type: EquipmentType.miniSplit,
-        btuCapacity: 18000,
-        installDate: DateTime(2024, 8, 3),
-        lastServiceDate: DateTime(now.year, now.month - 1, 15),
-        nextServiceDate: DateTime(now.year, now.month + 5, 15),
-        installationType: InstallationType.installOnly,
-        notes: '',
-        location: 'Oficina',
-      ),
-    ];
+  ServiceRecord _serviceRecordFromMap(Map<String, dynamic> data) {
+    return ServiceRecord(
+      id: data['id'] ?? '',
+      equipmentId: data['equipmentId'] ?? '',
+      serviceDate: _parseDate(data['serviceDate']),
+      serviceType: _parseServiceType(data['serviceType']),
+      description: data['description'] ?? '',
+      technicianNotes: data['technicianNotes'] ?? '',
+      cost: (data['cost'] ?? 0).toDouble(),
+    );
+  }
 
-    _serviceHistory = [
-      ServiceRecord(
-        id: 'sr-001',
-        equipmentId: 'ce-001',
-        serviceDate: DateTime(now.year, now.month - 2, 10),
-        serviceType: ServiceType.maintenance,
-        description: 'Servicio preventivo completo: limpieza de filtros, '
-            'revisi\u00f3n de gas refrigerante y verificaci\u00f3n el\u00e9ctrica.',
-        technicianNotes: 'Equipo en buen estado general.',
-        cost: 850.0,
-      ),
-      ServiceRecord(
-        id: 'sr-002',
-        equipmentId: 'ce-002',
-        serviceDate: DateTime(now.year - 1, 11, 5),
-        serviceType: ServiceType.inspection,
-        description: 'Limpieza general de unidad interior y exterior.',
-        technicianNotes:
-            'Se recomienda servicio preventivo completo en la pr\u00f3xima visita.',
-        cost: 600.0,
-      ),
-      ServiceRecord(
-        id: 'sr-003',
-        equipmentId: 'ce-003',
-        serviceDate: DateTime(now.year, now.month - 1, 15),
-        serviceType: ServiceType.installation,
-        description: 'Instalaci\u00f3n de equipo proporcionado por el cliente. '
-            'Segundo piso, compresor en mismo nivel.',
-        technicianNotes: 'Instalaci\u00f3n exitosa. Pruebas de funcionamiento OK.',
-        cost: 3500.0,
-      ),
-    ];
+  DateTime _parseDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+    return DateTime.now();
+  }
+
+  EquipmentType _parseEquipmentType(dynamic value) {
+    if (value is String) {
+      return EquipmentType.values.firstWhere(
+        (e) => e.name == value,
+        orElse: () => EquipmentType.miniSplit,
+      );
+    }
+    return EquipmentType.miniSplit;
+  }
+
+  InstallationType _parseInstallationType(dynamic value) {
+    if (value is String) {
+      return InstallationType.values.firstWhere(
+        (e) => e.name == value,
+        orElse: () => InstallationType.fullPackage,
+      );
+    }
+    return InstallationType.fullPackage;
+  }
+
+  ServiceType _parseServiceType(dynamic value) {
+    if (value is String) {
+      return ServiceType.values.firstWhere(
+        (e) => e.name == value,
+        orElse: () => ServiceType.maintenance,
+      );
+    }
+    return ServiceType.maintenance;
   }
 }

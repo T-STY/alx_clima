@@ -6,9 +6,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:alx_clima/config/theme.dart';
-import 'package:alx_clima/data/equipment_catalog.dart';
 import 'package:alx_clima/models/equipment.dart';
 import 'package:alx_clima/providers/quote_provider.dart';
+import 'package:alx_clima/services/firebase_service.dart';
 import 'package:alx_clima/widgets/futuristic_button.dart';
 
 class EquipmentSelectScreen extends StatefulWidget {
@@ -19,14 +19,55 @@ class EquipmentSelectScreen extends StatefulWidget {
 }
 
 class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
-  EquipmentType? _selectedType;
+  final FirebaseService _firebaseService = FirebaseService();
+  final _currencyFormat =
+      NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+
+  List<Map<String, dynamic>> _catalog = [];
+  List<String> _types = [];
+  bool _isLoading = true;
+
+  String? _selectedType;
   int? _selectedBtu;
-  final _currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final results = await Future.wait([
+        _firebaseService.getQuoteCatalog(),
+        _firebaseService.getEquipmentTypes(),
+        _firebaseService.getPricingConfig(),
+      ]);
+
+      final catalog = results[0] as List<Map<String, dynamic>>;
+      final types = results[1] as List<String>;
+      final pricing = results[2] as Map<String, dynamic>?;
+
+      if (pricing != null && mounted) {
+        context.read<QuoteProvider>().setPricingConfig(pricing);
+      }
+
+      if (mounted) {
+        setState(() {
+          _catalog = catalog;
+          _types = types;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   List<Equipment> get _filteredEquipment {
-    var items = EquipmentCatalog.items;
+    var items = _catalog.map(_mapToEquipment).toList();
     if (_selectedType != null) {
-      items = items.where((e) => e.type == _selectedType).toList();
+      items = items.where((e) => e.type.displayName == _selectedType).toList();
     }
     if (_selectedBtu != null) {
       items = items.where((e) => e.btuCapacity == _selectedBtu).toList();
@@ -34,8 +75,32 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
     return items;
   }
 
+  Equipment _mapToEquipment(Map<String, dynamic> data) {
+    final typeStr = (data['type'] ?? 'miniSplit') as String;
+    final type = EquipmentType.values.firstWhere(
+      (e) => e.name == typeStr || e.displayName == typeStr,
+      orElse: () => EquipmentType.miniSplit,
+    );
+
+    return Equipment(
+      id: data['id'] ?? '',
+      name: data['name'] ?? '',
+      brand: data['brand'] ?? '',
+      type: type,
+      btuCapacity: data['btuCapacity'] ?? 12000,
+      price: (data['price'] ?? 0).toDouble(),
+      description: data['description'] ?? '',
+      imageUrl: data['imageUrl'] ?? '',
+      manufacturerWarrantyYears:
+          (data['manufacturerWarrantyYears'] ?? 1).toDouble(),
+      manufacturerWarrantyDetails:
+          data['manufacturerWarrantyDetails'] ?? '',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Selecciona tu Equipo'),
@@ -44,89 +109,99 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildTypeChip('Todos', null),
-                  const SizedBox(width: 8),
-                  _buildTypeChip('Mini Split', EquipmentType.miniSplit),
-                  const SizedBox(width: 8),
-                  _buildTypeChip('AC Central', EquipmentType.centralAC),
-                  const SizedBox(width: 8),
-                  _buildTypeChip('Bomba de Calor', EquipmentType.heatPump),
-                ],
-              ),
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildBtuChip('Todos', null),
-                  const SizedBox(width: 8),
-                  _buildBtuChip('12,000 BTU', 12000),
-                  const SizedBox(width: 8),
-                  _buildBtuChip('18,000 BTU', 18000),
-                  const SizedBox(width: 8),
-                  _buildBtuChip('24,000 BTU', 24000),
-                  const SizedBox(width: 8),
-                  _buildBtuChip('36,000 BTU', 36000),
-                ],
-              ),
-            ),
-          ),
-
-          Expanded(
-            child: _filteredEquipment.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                if (_types.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildTypeChip('Todos', null),
+                          const SizedBox(width: 8),
+                          ..._types.map((t) => Padding(
+                                padding:
+                                    const EdgeInsets.only(right: 8),
+                                child: _buildTypeChip(t, t),
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
                       children: [
-                        Icon(
-                          Iconsax.search_normal,
-                          size: 48,
-                          color: AppTheme.textSecondary.withValues(alpha: 0.4),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No se encontraron equipos',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
+                        _buildBtuChip('Todos', null),
+                        const SizedBox(width: 8),
+                        _buildBtuChip('12,000 BTU', 12000),
+                        const SizedBox(width: 8),
+                        _buildBtuChip('18,000 BTU', 18000),
+                        const SizedBox(width: 8),
+                        _buildBtuChip('24,000 BTU', 24000),
+                        const SizedBox(width: 8),
+                        _buildBtuChip('36,000 BTU', 36000),
                       ],
                     ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                    itemCount: _filteredEquipment.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final equipment = _filteredEquipment[index];
-                      return _EquipmentCard(
-                        equipment: equipment,
-                        currencyFormat: _currencyFormat,
-                        onTap: () => _showEquipmentDetail(context, equipment),
-                      )
-                          .animate()
-                          .fadeIn(duration: 400.ms, delay: (index * 80).ms)
-                          .slideY(begin: 0.1, end: 0);
-                    },
                   ),
-          ),
-        ],
-      ),
+                ),
+                Expanded(
+                  child: _filteredEquipment.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Iconsax.search_normal,
+                                size: 48,
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.24),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No se encontraron equipos',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium,
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          padding:
+                              const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                          itemCount: _filteredEquipment.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final equipment = _filteredEquipment[index];
+                            return _EquipmentCard(
+                              equipment: equipment,
+                              currencyFormat: _currencyFormat,
+                              onTap: () => _showEquipmentDetail(
+                                  context, equipment),
+                            )
+                                .animate()
+                                .fadeIn(
+                                    duration: 400.ms,
+                                    delay: (index * 80).ms)
+                                .slideY(begin: 0.1, end: 0);
+                          },
+                        ),
+                ),
+              ],
+            ),
     );
   }
 
-  Widget _buildTypeChip(String label, EquipmentType? type) {
+  Widget _buildTypeChip(String label, String? type) {
     final isSelected = _selectedType == type;
+    final theme = Theme.of(context);
     return FilterChip(
       label: Text(label),
       selected: isSelected,
@@ -134,7 +209,9 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
       selectedColor: AppTheme.primaryColor.withValues(alpha: 0.12),
       checkmarkColor: AppTheme.primaryColor,
       labelStyle: TextStyle(
-        color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
+        color: isSelected
+            ? AppTheme.primaryColor
+            : theme.colorScheme.onSurface,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
         fontSize: 13,
       ),
@@ -143,6 +220,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
 
   Widget _buildBtuChip(String label, int? btu) {
     final isSelected = _selectedBtu == btu;
+    final theme = Theme.of(context);
     return FilterChip(
       label: Text(label),
       selected: isSelected,
@@ -150,28 +228,31 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
       selectedColor: AppTheme.secondaryColor.withValues(alpha: 0.12),
       checkmarkColor: AppTheme.secondaryColor,
       labelStyle: TextStyle(
-        color: isSelected ? AppTheme.secondaryColor : AppTheme.textSecondary,
+        color: isSelected
+            ? AppTheme.secondaryColor
+            : theme.colorScheme.onSurface.withValues(alpha: 0.6),
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
         fontSize: 13,
       ),
     );
   }
 
-  void _showEquipmentDetail(BuildContext context, Equipment equipment) {
-    final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
-
+  void _showEquipmentDetail(
+      BuildContext context, Equipment equipment) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
+        final theme = Theme.of(ctx);
         return Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.75,
           ),
-          decoration: const BoxDecoration(
-            color: AppTheme.backgroundColor,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -184,30 +265,34 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppTheme.dividerColor,
+                      color: theme.dividerColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                Container(
-                  height: 120,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.dividerColor),
+                if (equipment.imageUrl.isNotEmpty)
+                  Container(
+                    height: 140,
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        equipment.imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Iconsax.cpu_setting,
+                          size: 48,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ),
                   ),
-                  child: const Icon(
-                    Iconsax.cpu_setting,
-                    size: 48,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
                 Text(
                   equipment.name,
                   style: Theme.of(context).textTheme.titleLarge,
@@ -215,90 +300,109 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                 const SizedBox(height: 4),
                 Text(
                   equipment.brand,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(
                         color: AppTheme.primaryColor,
                         fontWeight: FontWeight.w600,
                       ),
                 ),
                 const SizedBox(height: 12),
-
                 Row(
                   children: [
-                    _specBadge(context, Iconsax.wind, equipment.btuFormatted),
-                    const SizedBox(width: 8),
                     _specBadge(
-                        context, Iconsax.category, equipment.type.displayName),
+                        context, Iconsax.wind, equipment.btuFormatted),
+                    const SizedBox(width: 8),
+                    _specBadge(context, Iconsax.category,
+                        equipment.type.displayName),
                   ],
                 ),
-
                 const SizedBox(height: 16),
-
-                Text(
-                  equipment.description,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-
-                const SizedBox(height: 16),
-
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.successColor.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppTheme.successColor.withValues(alpha: 0.2),
+                if (equipment.description.isNotEmpty)
+                  Text(
+                    equipment.description,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                if (equipment.manufacturerWarrantyDetails.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.successColor
+                          .withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.successColor
+                            .withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Iconsax.shield_tick,
+                            color: AppTheme.successColor, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            equipment.manufacturerWarrantyDetails,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: AppTheme.successColor,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Iconsax.shield_tick,
-                          color: AppTheme.successColor, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          equipment.manufacturerWarrantyDetails,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.successColor,
-                                  ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
+                ],
                 const SizedBox(height: 20),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      'Precio del equipo',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Precio del equipo',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        Text(
+                          'Precio aproximado',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                fontSize: 11,
+                              ),
+                        ),
+                      ],
                     ),
                     Text(
-                      currencyFormat.format(equipment.price),
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.w700,
-                              ),
+                      _currencyFormat.format(equipment.price),
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 20),
-
                 FuturisticButton(
                   text: 'Seleccionar',
                   icon: Iconsax.tick_circle,
                   onPressed: () {
-                    context.read<QuoteProvider>().selectEquipment(equipment);
+                    context
+                        .read<QuoteProvider>()
+                        .selectEquipment(equipment);
                     Navigator.of(ctx).pop();
                     context.push('/quote/installation');
                   },
                 ),
-
                 const SizedBox(height: 8),
               ],
             ),
@@ -308,11 +412,14 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
     );
   }
 
-  Widget _specBadge(BuildContext context, IconData icon, String text) {
+  Widget _specBadge(
+      BuildContext context, IconData icon, String text) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -322,10 +429,11 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
           const SizedBox(width: 6),
           Text(
             text,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
-                ),
+            style:
+                theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ),
           ),
         ],
       ),
@@ -346,36 +454,66 @@ class _EquipmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.dividerColor),
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: theme.dividerColor),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryColor.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color:
+                  AppTheme.primaryColor.withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 68,
+              height: 68,
               decoration: BoxDecoration(
-                color: AppTheme.surfaceColor,
-                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.surface,
+                    theme.dividerColor.withValues(alpha: 0.3),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(
-                Iconsax.cpu_setting,
-                color: AppTheme.primaryColor,
-                size: 28,
-              ),
+              child: equipment.imageUrl.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Image.network(
+                        equipment.imageUrl,
+                        fit: BoxFit.contain,
+                        width: 68,
+                        height: 68,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Iconsax.cpu_setting,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          size: 28,
+                        ),
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Image.network(
+                        'https://img.icons8.com/ios/100/air-conditioner.png',
+                        errorBuilder: (_, __, ___) => Icon(
+                          Iconsax.cpu_setting,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          size: 28,
+                        ),
+                      ),
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -383,18 +521,14 @@ class _EquipmentCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    equipment.brand,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
                     equipment.name,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w600,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
                         ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -402,32 +536,69 @@ class _EquipmentCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Text(
-                        equipment.btuFormatted,
-                        style: Theme.of(context).textTheme.bodySmall,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor
+                              .withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          equipment.brand,
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '\u00b7',
-                        style: Theme.of(context).textTheme.bodySmall,
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryColor
+                              .withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          equipment.btuFormatted,
+                          style: TextStyle(
+                            color: AppTheme.secondaryColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
                         currencyFormat.format(equipment.price),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(
                               color: AppTheme.primaryColor,
                               fontWeight: FontWeight.w700,
                             ),
                       ),
-                    ],
-                  ),
                 ],
               ),
             ),
-            Icon(
-              Iconsax.arrow_right_3,
-              color: AppTheme.textSecondary.withValues(alpha: 0.5),
-              size: 20,
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Iconsax.arrow_right_3,
+                color:
+                    theme.colorScheme.onSurface.withValues(alpha: 0.36),
+                size: 16,
+              ),
             ),
           ],
         ),
