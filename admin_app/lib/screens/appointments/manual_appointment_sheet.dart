@@ -12,7 +12,7 @@ void showManualAppointmentSheet(BuildContext context) {
   final emailCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
   final notesCtrl = TextEditingController();
-  String? selectedServiceType;
+  String? selectedServiceType = 'maintenance';
   String? selectedDate;
   String? selectedSlot;
   Map<String, List<String>> availableSlots = {};
@@ -39,8 +39,10 @@ void showManualAppointmentSheet(BuildContext context) {
               final s = (doc.data()['slots'] as List?)?.cast<String>() ?? [];
               if (s.isNotEmpty) slots[doc.id] = s;
             }
+            final sortedKeys = slots.keys.toList()..sort();
             setSt(() {
               availableSlots = slots;
+              if (sortedKeys.isNotEmpty) selectedDate = sortedKeys.first;
               brands = brandSnap.docs.map((d) {
                 final data = d.data();
                 data['id'] = d.id;
@@ -85,6 +87,53 @@ void showManualAppointmentSheet(BuildContext context) {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _label('Buscar cliente existente'),
+            const SizedBox(height: 6),
+            Autocomplete<Map<String, dynamic>>(
+              displayStringForOption: (opt) => opt['name'] ?? '',
+              optionsBuilder: (textEditingValue) async {
+                if (textEditingValue.text.length < 2) return [];
+                final snap = await FirebaseFirestore.instance.collection('users').get();
+                final query = textEditingValue.text.toLowerCase();
+                return snap.docs
+                    .map((d) => d.data()..['uid'] = d.id)
+                    .where((u) => (u['name'] ?? '').toString().toLowerCase().contains(query))
+                    .take(5);
+              },
+              onSelected: (client) {
+                setSt(() {
+                  nameCtrl.text = client['name'] ?? '';
+                  phoneCtrl.text = client['phone'] ?? '';
+                  emailCtrl.text = client['email'] ?? '';
+                  final parts = <String>[];
+                  if ((client['street'] ?? '').toString().isNotEmpty) {
+                    var line = client['street'];
+                    if ((client['exteriorNumber'] ?? '').toString().isNotEmpty) line += ' #${client['exteriorNumber']}';
+                    parts.add(line);
+                  }
+                  if ((client['colonia'] ?? '').toString().isNotEmpty) parts.add('Col. ${client['colonia']}');
+                  if ((client['city'] ?? '').toString().isNotEmpty) parts.add(client['city']);
+                  if ((client['state'] ?? '').toString().isNotEmpty) parts.add(client['state']);
+                  if ((client['postalCode'] ?? '').toString().isNotEmpty) parts.add('C.P. ${client['postalCode']}');
+                  addressCtrl.text = parts.join(', ');
+                });
+              },
+              fieldViewBuilder: (ctx2, ctrl, focusNode, onSubmit) {
+                return TextField(
+                  controller: ctrl,
+                  focusNode: focusNode,
+                  style: GoogleFonts.exo2(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Buscar por nombre...',
+                    hintStyle: GoogleFonts.exo2(fontSize: 13),
+                    prefixIcon: const Icon(Iconsax.search_normal, size: 16),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
             _label('Datos del cliente'),
             const SizedBox(height: 6),
             sheetInput(nameCtrl, 'Nombre completo', isDark),

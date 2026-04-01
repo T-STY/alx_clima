@@ -1,3 +1,4 @@
+import 'package:alx_clima_admin/widgets/frosted_app_bar.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -18,13 +19,7 @@ class AllInvoicesPage extends StatelessWidget {
     final fmt = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Facturas', style: GoogleFonts.exo2(fontWeight: FontWeight.w600)),
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_left),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: const FrostedAppBar(title: 'Facturas'),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('invoices')

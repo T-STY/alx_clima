@@ -9,7 +9,9 @@ import 'package:alx_clima/config/theme.dart';
 import 'package:alx_clima/data/care_tips.dart';
 import 'package:alx_clima/providers/appointment_provider.dart';
 import 'package:alx_clima/providers/auth_provider.dart';
+import 'package:alx_clima/models/installation.dart';
 import 'package:alx_clima/providers/dashboard_provider.dart';
+import 'package:alx_clima/providers/quote_provider.dart';
 import 'package:alx_clima/widgets/section_header.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -340,13 +342,19 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Iconsax.cpu_setting,
         title: 'Cotizar Equipo\n+ Instalación',
         gradient: const [AppTheme.primaryColor, Color(0xFF3B9FFF)],
-        onTap: () => context.go('/quote'),
+        onTap: () {
+          context.read<QuoteProvider>().setInstallationType(InstallationType.fullPackage);
+          context.push('/quote/equipment');
+        },
       ),
       _ActionItem(
         icon: Iconsax.setting_54,
         title: 'Solo\nInstalación',
         gradient: const [AppTheme.secondaryColor, Color(0xFF40E0FF)],
-        onTap: () => context.go('/quote'),
+        onTap: () {
+          context.read<QuoteProvider>().setInstallationType(InstallationType.installOnly);
+          context.push('/quote/installation');
+        },
       ),
       _ActionItem(
         icon: Iconsax.chart_21,

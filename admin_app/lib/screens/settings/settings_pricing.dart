@@ -1,3 +1,4 @@
+import 'package:alx_clima_admin/widgets/frosted_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -112,16 +113,7 @@ class _PricingPageState extends State<PricingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Precios',
-          style: GoogleFonts.exo2(fontWeight: FontWeight.w600),
-        ),
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_left),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: const FrostedAppBar(title: 'Precios'),
       body: FutureBuilder(
         future: _load(),
         builder: (context, _) {
