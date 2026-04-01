@@ -84,7 +84,6 @@ class _CompanyInfoPageState extends State<CompanyInfoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const FrostedAppBar(title: 'Empresa'),
-      ),
       body: FutureBuilder(
         future: _load(),
         builder: (context, _) {
