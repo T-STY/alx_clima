@@ -65,6 +65,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final bool hasHeader =
         widget.headerIcon != null || widget.headerTitle != null;
 
@@ -94,9 +95,9 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                   Expanded(
                     child: Text(
                       widget.headerTitle!,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                            color: theme.colorScheme.onSurface,
                           ),
                     ),
                   ),
@@ -140,7 +141,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
               padding: const EdgeInsets.all(1.5),
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.cardColor,
+                  color: theme.cardColor,
                   borderRadius: BorderRadius.circular(14.5),
                 ),
                 child: cardContent,
@@ -148,7 +149,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
             )
           : Container(
               decoration: BoxDecoration(
-                color: AppTheme.cardColor,
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(

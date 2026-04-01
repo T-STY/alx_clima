@@ -15,6 +15,7 @@ class EquipmentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final needsService = equipment.needsService;
 
     return GestureDetector(
@@ -22,12 +23,12 @@ class EquipmentTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppTheme.cardColor,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: needsService
                 ? AppTheme.warningColor.withValues(alpha: 0.4)
-                : AppTheme.dividerColor,
+                : theme.dividerColor,
           ),
           boxShadow: [
             BoxShadow(
@@ -47,8 +48,8 @@ class EquipmentTile extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppTheme.surfaceColor,
-                    AppTheme.dividerColor.withValues(alpha: 0.3),
+                    theme.colorScheme.surface,
+                    theme.dividerColor.withValues(alpha: 0.3),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(14),
@@ -59,7 +60,7 @@ class EquipmentTile extends StatelessWidget {
                   'https://img.icons8.com/ios/100/air-conditioner.png',
                   errorBuilder: (_, __, ___) => const Icon(
                     Iconsax.cpu_setting,
-                    color: AppTheme.textSecondary,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     size: 24,
                   ),
                 ),
@@ -75,8 +76,8 @@ class EquipmentTile extends StatelessWidget {
                       Expanded(
                         child: Text(
                           equipment.equipmentName,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: AppTheme.textPrimary,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                                color: theme.colorScheme.onSurface,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,
                               ),
@@ -89,13 +90,13 @@ class EquipmentTile extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppTheme.textSecondary.withValues(alpha: 0.1),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           equipment.tonnageLabel,
                           style: TextStyle(
-                            color: AppTheme.textSecondary,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                           ),
@@ -127,13 +128,13 @@ class EquipmentTile extends StatelessWidget {
                           equipment.location!.isNotEmpty) ...[
                         const SizedBox(width: 6),
                         Icon(Iconsax.location,
-                            size: 10, color: AppTheme.textSecondary),
+                            size: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                         const SizedBox(width: 2),
                         Text(
                           equipment.location!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 10,
-                                color: AppTheme.textSecondary,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                         ),
                       ],
@@ -169,12 +170,12 @@ class EquipmentTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceColor,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 Iconsax.arrow_right_3,
-                color: AppTheme.textSecondary.withValues(alpha: 0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.36),
                 size: 16,
               ),
             ),

@@ -129,6 +129,7 @@ class _InstallationDetailsScreenState
       ),
       body: Consumer<QuoteProvider>(
         builder: (context, quote, _) {
+          final theme = Theme.of(context);
           final isSolo =
               quote.installationType == InstallationType.installOnly;
           final hasItems = quote.items.isNotEmpty;
@@ -165,7 +166,7 @@ class _InstallationDetailsScreenState
                         width: double.infinity,
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceColor,
+                          color: theme.colorScheme.surface,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
@@ -184,7 +185,7 @@ class _InstallationDetailsScreenState
                                         .titleSmall
                                         ?.copyWith(
                                           fontWeight: FontWeight.w600,
-                                          color: AppTheme.textPrimary,
+                                          color: theme.colorScheme.onSurface,
                                         ),
                                   ),
                                   Text(
@@ -199,7 +200,7 @@ class _InstallationDetailsScreenState
                                           .textTheme
                                           .bodySmall
                                           ?.copyWith(
-                                            color: AppTheme.textSecondary,
+                                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                             fontSize: 11,
                                           ),
                                     ),
@@ -275,7 +276,7 @@ class _InstallationDetailsScreenState
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall
-                                      ?.copyWith(color: AppTheme.textPrimary),
+                                      ?.copyWith(color: theme.colorScheme.onSurface),
                                 ),
                               if (!details.compressorSameFloor)
                                 Text(
@@ -283,7 +284,7 @@ class _InstallationDetailsScreenState
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall
-                                      ?.copyWith(color: AppTheme.textPrimary),
+                                      ?.copyWith(color: theme.colorScheme.onSurface),
                                 ),
                             ],
                           ),
@@ -355,6 +356,7 @@ class _InstallationDetailsScreenState
   }
 
   Widget _buildBtuStep(BuildContext context) {
+    final theme = Theme.of(context);
     const btuOptions = [12000, 18000, 24000, 36000];
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -413,11 +415,11 @@ class _InstallationDetailsScreenState
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppTheme.primaryColor.withValues(alpha: 0.1)
-                        : AppTheme.surfaceColor,
+                        : theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color:
-                          isSelected ? AppTheme.primaryColor : AppTheme.dividerColor,
+                          isSelected ? AppTheme.primaryColor : theme.dividerColor,
                       width: isSelected ? 2 : 1,
                     ),
                   ),
@@ -427,13 +429,13 @@ class _InstallationDetailsScreenState
                           size: 20,
                           color: isSelected
                               ? AppTheme.primaryColor
-                              : AppTheme.textSecondary),
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                       const SizedBox(width: 12),
                       Text(label,
                           style: TextStyle(
                             color: isSelected
                                 ? AppTheme.primaryColor
-                                : AppTheme.textPrimary,
+                                : theme.colorScheme.onSurface,
                             fontWeight:
                                 isSelected ? FontWeight.w600 : FontWeight.w500,
                             fontSize: 16,
@@ -441,7 +443,7 @@ class _InstallationDetailsScreenState
                       const SizedBox(width: 8),
                       Text(_btuTonnage[btu] ?? '',
                           style: TextStyle(
-                              color: AppTheme.textSecondary, fontSize: 13)),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 13)),
                       const Spacer(),
                       if (isSelected)
                         const Icon(Iconsax.tick_circle,
@@ -469,6 +471,7 @@ class _InstallationDetailsScreenState
   }
 
   Widget _buildBrandModelStep(BuildContext context) {
+    final theme = Theme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -486,7 +489,7 @@ class _InstallationDetailsScreenState
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceColor,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: DropdownButtonHideUnderline(
@@ -512,7 +515,7 @@ class _InstallationDetailsScreenState
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceColor,
+              color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
             ),
             child: DropdownButtonHideUnderline(
@@ -547,6 +550,7 @@ class _InstallationDetailsScreenState
   }
 
   Widget _buildItemTabs(BuildContext context, QuoteProvider quote) {
+    final theme = Theme.of(context);
     return SizedBox(
       height: 36,
       child: ListView.separated(
@@ -561,17 +565,17 @@ class _InstallationDetailsScreenState
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isActive ? AppTheme.primaryColor : AppTheme.surfaceColor,
+                color: isActive ? AppTheme.primaryColor : theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                     color: isActive
                         ? AppTheme.primaryColor
-                        : AppTheme.dividerColor),
+                        : theme.dividerColor),
               ),
               child: Text(
                 'Equipo ${index + 1}',
                 style: TextStyle(
-                  color: isActive ? Colors.white : AppTheme.textPrimary,
+                  color: isActive ? Colors.white : theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
@@ -599,10 +603,11 @@ class _InstallationDetailsScreenState
 
   Widget _buildBottomBar(
       BuildContext context, QuoteProvider quote, NumberFormat currencyFormat) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.backgroundColor,
+        color: theme.scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
             color: AppTheme.primaryColor.withValues(alpha: 0.06),

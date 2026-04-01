@@ -33,6 +33,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Panel Admin'),
@@ -44,7 +45,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen>
           controller: _tabController,
           isScrollable: true,
           labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: AppTheme.textSecondary,
+          unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           indicatorColor: AppTheme.primaryColor,
           tabs: const [
             Tab(icon: Icon(Iconsax.calendar_tick, size: 18), text: 'Citas'),
@@ -84,6 +85,7 @@ class _AppointmentsTab extends StatelessWidget {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
+        final theme = Theme.of(context);
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) {
           return Center(
@@ -92,10 +94,10 @@ class _AppointmentsTab extends StatelessWidget {
               children: [
                 Icon(Iconsax.calendar,
                     size: 48,
-                    color: AppTheme.textSecondary.withValues(alpha: 0.4)),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.24)),
                 const SizedBox(height: 12),
                 Text('Sin citas registradas',
-                    style: Theme.of(context).textTheme.bodyMedium),
+                    style: theme.textTheme.bodyMedium),
               ],
             ),
           );
@@ -131,7 +133,7 @@ class _AppointmentsTab extends StatelessWidget {
                 statusColor = AppTheme.errorColor;
                 break;
               case 'completed':
-                statusColor = AppTheme.textSecondary;
+                statusColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
                 break;
               case 'modified':
                 statusColor = AppTheme.primaryColor;
@@ -145,9 +147,9 @@ class _AppointmentsTab extends StatelessWidget {
               child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppTheme.cardColor,
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.dividerColor),
+                border: Border.all(color: theme.dividerColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,12 +159,12 @@ class _AppointmentsTab extends StatelessWidget {
                       Expanded(
                         child: Text(
                           customer['name'] ?? 'Sin nombre',
-                          style: Theme.of(context)
+                          style: theme
                               .textTheme
                               .titleSmall
                               ?.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary,
+                                color: theme.colorScheme.onSurface,
                               ),
                         ),
                       ),
@@ -297,7 +299,7 @@ class _AppointmentsTab extends StatelessWidget {
                         Expanded(
                           child: _SmallButton(
                             label: 'Eliminar',
-                            color: AppTheme.textSecondary,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             icon: Iconsax.trash,
                             onTap: () => ref.delete(),
                           ),
@@ -440,6 +442,7 @@ class _AppointmentsTab extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final sheetTheme = Theme.of(ctx);
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           child: Column(
@@ -451,14 +454,14 @@ class _AppointmentsTab extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppTheme.dividerColor,
+                    color: sheetTheme.dividerColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               Text('Detalle Completo',
-                  style: Theme.of(ctx)
+                  style: sheetTheme
                       .textTheme
                       .titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700)),
@@ -478,7 +481,7 @@ class _AppointmentsTab extends StatelessWidget {
                 _AdminDetailRow(Iconsax.note_text, data['notes']),
               const Divider(height: 20),
               Text('Equipos (${allEquipment.length})',
-                  style: Theme.of(ctx)
+                  style: sheetTheme
                       .textTheme
                       .titleSmall
                       ?.copyWith(fontWeight: FontWeight.w600)),
@@ -489,7 +492,7 @@ class _AppointmentsTab extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceColor,
+                      color: sheetTheme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
@@ -501,8 +504,8 @@ class _AppointmentsTab extends StatelessWidget {
                           child: Text(
                             '${eq['brand']} ${eq['name']} (${eq['btuCapacity']} BTU)',
                             style:
-                                Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.textPrimary,
+                                sheetTheme.textTheme.bodySmall?.copyWith(
+                                      color: sheetTheme.colorScheme.onSurface,
                                     ),
                           ),
                         ),
@@ -510,8 +513,8 @@ class _AppointmentsTab extends StatelessWidget {
                           Text(
                             eq['location'],
                             style:
-                                Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.textSecondary,
+                                sheetTheme.textTheme.bodySmall?.copyWith(
+                                      color: sheetTheme.colorScheme.onSurface.withValues(alpha: 0.6),
                                       fontSize: 11,
                                     ),
                           ),
@@ -550,17 +553,18 @@ class _AdminDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: AppTheme.textSecondary),
+          Icon(icon, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textPrimary,
+              style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface,
                   ),
             ),
           ),
@@ -661,24 +665,26 @@ class _ScheduleTabState extends State<_ScheduleTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final theme = Theme.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Horario de Trabajo',
-              style: Theme.of(context)
+              style: theme
                   .textTheme
                   .titleMedium
                   ?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Text(
             'Configura tus días y horario laboral. Se generarán bloques de 1 hora automáticamente.',
-            style: Theme.of(context).textTheme.bodySmall,
+            style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: 16),
           Text('Días laborales',
-              style: Theme.of(context)
+              style: theme
                   .textTheme
                   .bodyMedium
                   ?.copyWith(fontWeight: FontWeight.w500)),
@@ -705,12 +711,12 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppTheme.primaryColor
-                        : AppTheme.surfaceColor,
+                        : theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
                           ? AppTheme.primaryColor
-                          : AppTheme.dividerColor,
+                          : theme.dividerColor,
                     ),
                   ),
                   child: Center(
@@ -719,7 +725,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                       style: TextStyle(
                         color: isSelected
                             ? Colors.white
-                            : AppTheme.textPrimary,
+                            : theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -731,7 +737,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
           ),
           const SizedBox(height: 20),
           Text('Horario',
-              style: Theme.of(context)
+              style: theme
                   .textTheme
                   .bodyMedium
                   ?.copyWith(fontWeight: FontWeight.w500)),
@@ -742,7 +748,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceColor,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -765,13 +771,13 @@ class _ScheduleTabState extends State<_ScheduleTab> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text('a',
-                    style: Theme.of(context).textTheme.bodyMedium),
+                    style: theme.textTheme.bodyMedium),
               ),
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceColor,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -795,7 +801,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
           ),
           const SizedBox(height: 20),
           Text('Generar disponibilidad para',
-              style: Theme.of(context)
+              style: theme
                   .textTheme
                   .bodyMedium
                   ?.copyWith(fontWeight: FontWeight.w500)),
@@ -815,7 +821,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                 labelStyle: TextStyle(
                   color: isSelected
                       ? AppTheme.primaryColor
-                      : AppTheme.textPrimary,
+                      : theme.colorScheme.onSurface,
                   fontWeight: isSelected
                       ? FontWeight.w600
                       : FontWeight.w500,
@@ -885,7 +891,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
           ),
           const SizedBox(height: 28),
           Text('Disponibilidad Actual',
-              style: Theme.of(context)
+              style: theme
                   .textTheme
                   .titleMedium
                   ?.copyWith(fontWeight: FontWeight.w600)),
@@ -904,7 +910,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
               if (docs.isEmpty) {
                 return Text('Sin horarios configurados',
                     style:
-                        Theme.of(context).textTheme.bodyMedium);
+                        theme.textTheme.bodyMedium);
               }
               return Column(
                 children: docs.map((doc) {
@@ -917,7 +923,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceColor,
+                        color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -929,17 +935,17 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                               children: [
                                 Text(
                                   doc.id,
-                                  style: Theme.of(context)
+                                  style: theme
                                       .textTheme
                                       .titleSmall
                                       ?.copyWith(
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.textPrimary,
+                                        color: theme.colorScheme.onSurface,
                                       ),
                                 ),
                                 Text(
                                     '${slotsList.length} bloques \u00b7 Toca para editar',
-                                    style: Theme.of(context)
+                                    style: theme
                                         .textTheme
                                         .bodySmall),
                               ],
@@ -990,6 +996,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
+            final sheetTheme = Theme.of(ctx);
             return Padding(
               padding: EdgeInsets.fromLTRB(
                   20, 12, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
@@ -1002,7 +1009,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppTheme.dividerColor,
+                        color: sheetTheme.dividerColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -1010,7 +1017,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                   const SizedBox(height: 16),
                   Text(
                     'Editar $dateId',
-                    style: Theme.of(ctx)
+                    style: sheetTheme
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontWeight: FontWeight.w700),
@@ -1018,7 +1025,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                   const SizedBox(height: 4),
                   Text(
                     'Toca un bloque para eliminarlo',
-                    style: Theme.of(ctx).textTheme.bodySmall,
+                    style: sheetTheme.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 16),
                   Wrap(
@@ -1028,8 +1035,8 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                       return Chip(
                         label: Text(slot,
                             style: TextStyle(
-                                color: AppTheme.textPrimary)),
-                        backgroundColor: AppTheme.surfaceColor,
+                                color: sheetTheme.colorScheme.onSurface)),
+                        backgroundColor: sheetTheme.colorScheme.surface,
                         deleteIcon: const Icon(
                             Iconsax.close_circle, size: 16),
                         onDeleted: () {
@@ -1040,7 +1047,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                   ),
                   const SizedBox(height: 16),
                   Text('Agregar bloque',
-                      style: Theme.of(ctx)
+                      style: sheetTheme
                           .textTheme
                           .bodyMedium
                           ?.copyWith(fontWeight: FontWeight.w500)),
@@ -1062,7 +1069,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                             padding: const EdgeInsets.symmetric(
                                 vertical: 10, horizontal: 12),
                             decoration: BoxDecoration(
-                              color: AppTheme.surfaceColor,
+                              color: sheetTheme.colorScheme.surface,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -1092,7 +1099,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                             padding: const EdgeInsets.symmetric(
                                 vertical: 10, horizontal: 12),
                             decoration: BoxDecoration(
-                              color: AppTheme.surfaceColor,
+                              color: sheetTheme.colorScheme.surface,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -1397,6 +1404,7 @@ class _CatalogTabState extends State<_CatalogTab> {
                     style:
                         Theme.of(context).textTheme.bodyMedium);
               }
+              final catalogTheme = Theme.of(context);
               return Column(
                 children: docs.map((doc) {
                   final d = doc.data() as Map<String, dynamic>;
@@ -1407,7 +1415,7 @@ class _CatalogTabState extends State<_CatalogTab> {
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceColor,
+                      color: catalogTheme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -1419,12 +1427,12 @@ class _CatalogTabState extends State<_CatalogTab> {
                             children: [
                               Text(
                                 '${d['brand']} - ${d['name']}',
-                                style: Theme.of(context)
+                                style: catalogTheme
                                     .textTheme
                                     .titleSmall
                                     ?.copyWith(
                                       fontWeight: FontWeight.w600,
-                                      color: AppTheme.textPrimary,
+                                      color: catalogTheme.colorScheme.onSurface,
                                     ),
                               ),
                               Text(
@@ -1506,6 +1514,7 @@ class _CatalogTabState extends State<_CatalogTab> {
             BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final sheetTheme = Theme.of(ctx);
         return Padding(
           padding: EdgeInsets.fromLTRB(
               20, 12, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
@@ -1519,7 +1528,7 @@ class _CatalogTabState extends State<_CatalogTab> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppTheme.dividerColor,
+                      color: sheetTheme.dividerColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -1677,6 +1686,7 @@ class _AddCatalogEquipmentSheetState
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(
           20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
@@ -1690,7 +1700,7 @@ class _AddCatalogEquipmentSheetState
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppTheme.dividerColor,
+                  color: theme.dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1698,7 +1708,7 @@ class _AddCatalogEquipmentSheetState
             const SizedBox(height: 16),
             Center(
               child: Text('Agregar al Catálogo',
-                  style: Theme.of(context)
+                  style: theme
                       .textTheme
                       .titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700)),
@@ -1706,7 +1716,7 @@ class _AddCatalogEquipmentSheetState
             const SizedBox(height: 20),
 
             Text('Marca',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                     )),
             const SizedBox(height: 6),
@@ -1714,7 +1724,7 @@ class _AddCatalogEquipmentSheetState
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceColor,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: DropdownButtonHideUnderline(
@@ -1737,7 +1747,7 @@ class _AddCatalogEquipmentSheetState
             const SizedBox(height: 14),
 
             Text('Modelo',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                     )),
             const SizedBox(height: 6),
@@ -1745,7 +1755,7 @@ class _AddCatalogEquipmentSheetState
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceColor,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: DropdownButtonHideUnderline(
@@ -1770,7 +1780,7 @@ class _AddCatalogEquipmentSheetState
             const SizedBox(height: 14),
 
             Text('Capacidad',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                     )),
             const SizedBox(height: 6),
@@ -1787,12 +1797,12 @@ class _AddCatalogEquipmentSheetState
                     decoration: BoxDecoration(
                       color: isSelected
                           ? AppTheme.primaryColor.withValues(alpha: 0.12)
-                          : AppTheme.surfaceColor,
+                          : theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: isSelected
                             ? AppTheme.primaryColor
-                            : AppTheme.dividerColor,
+                            : theme.dividerColor,
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -1801,7 +1811,7 @@ class _AddCatalogEquipmentSheetState
                       style: TextStyle(
                         color: isSelected
                             ? AppTheme.primaryColor
-                            : AppTheme.textPrimary,
+                            : theme.colorScheme.onSurface,
                         fontWeight:
                             isSelected ? FontWeight.w600 : FontWeight.w500,
                         fontSize: 13,
@@ -1973,6 +1983,7 @@ class _BrandManagerState extends State<_BrandManager> {
               .snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const SizedBox();
+            final brandTheme = Theme.of(context);
             return Column(
               children: snapshot.data!.docs.map((doc) {
                 final d = doc.data() as Map<String, dynamic>;
@@ -1980,7 +1991,7 @@ class _BrandManagerState extends State<_BrandManager> {
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceColor,
+                    color: brandTheme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -1990,12 +2001,12 @@ class _BrandManagerState extends State<_BrandManager> {
                         children: [
                           Expanded(
                             child: Text(d['name'] ?? doc.id,
-                                style: Theme.of(context)
+                                style: brandTheme
                                     .textTheme
                                     .titleSmall
                                     ?.copyWith(
                                       fontWeight: FontWeight.w600,
-                                      color: AppTheme.textPrimary,
+                                      color: brandTheme.colorScheme.onSurface,
                                     )),
                           ),
                           IconButton(
@@ -2073,6 +2084,7 @@ class _BrandManagerState extends State<_BrandManager> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
+            final sheetTheme = Theme.of(ctx);
             return Padding(
               padding: EdgeInsets.fromLTRB(
                 20, 12, 20,
@@ -2085,14 +2097,14 @@ class _BrandManagerState extends State<_BrandManager> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppTheme.dividerColor,
+                      color: sheetTheme.dividerColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Editar ${data['name']}',
-                    style: Theme.of(ctx)
+                    style: sheetTheme
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontWeight: FontWeight.w700),
@@ -2105,8 +2117,8 @@ class _BrandManagerState extends State<_BrandManager> {
                         .map((m) => Chip(
                               label: Text(m,
                                   style: TextStyle(
-                                      color: AppTheme.textPrimary)),
-                              backgroundColor: AppTheme.surfaceColor,
+                                      color: sheetTheme.colorScheme.onSurface)),
+                              backgroundColor: sheetTheme.colorScheme.surface,
                               deleteIcon: const Icon(
                                   Iconsax.close_circle, size: 16),
                               onDeleted: () {
@@ -2228,14 +2240,15 @@ class _EquipmentTypesManagerState
                 snapshot.data!.data() as Map<String, dynamic>?;
             final types =
                 (data?['types'] as List?)?.cast<String>() ?? [];
+            final typesTheme = Theme.of(context);
             return Wrap(
               spacing: 8,
               runSpacing: 8,
               children: types.map((t) {
                 return Chip(
                   label: Text(t,
-                      style: TextStyle(color: AppTheme.textPrimary)),
-                  backgroundColor: AppTheme.surfaceColor,
+                      style: TextStyle(color: typesTheme.colorScheme.onSurface)),
+                  backgroundColor: typesTheme.colorScheme.surface,
                   deleteIcon: const Icon(Iconsax.close_circle,
                       size: 16),
                   onDeleted: () {

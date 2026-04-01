@@ -58,6 +58,7 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
       ),
       body: Consumer<QuoteProvider>(
         builder: (context, quoteProvider, _) {
+          final theme = Theme.of(context);
           final quote = quoteProvider.currentQuote;
 
           if (quote == null) {
@@ -65,8 +66,8 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Iconsax.document,
-                      size: 48, color: AppTheme.textSecondary),
+                  Icon(Iconsax.document,
+                      size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   const SizedBox(height: 12),
                   Text(
                     'No hay cotización disponible',
@@ -110,11 +111,11 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                             margin:
                                 const EdgeInsets.only(bottom: 10),
                             decoration: BoxDecoration(
-                              color: AppTheme.cardColor,
+                              color: theme.cardColor,
                               borderRadius:
                                   BorderRadius.circular(14),
                               border: Border.all(
-                                  color: AppTheme.dividerColor),
+                                  color: theme.dividerColor),
                             ),
                             child: Row(
                               children: [
@@ -122,7 +123,7 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                                   width: 48,
                                   height: 48,
                                   decoration: BoxDecoration(
-                                    color: AppTheme.surfaceColor,
+                                    color: theme.colorScheme.surface,
                                     borderRadius:
                                         BorderRadius.circular(12),
                                   ),
@@ -137,10 +138,10 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                                             height: 48,
                                             errorBuilder:
                                                 (_, __, ___) =>
-                                                    const Icon(
+                                                    Icon(
                                               Iconsax.cpu_setting,
-                                              color: AppTheme
-                                                  .textSecondary,
+                                              color: theme.colorScheme.onSurface
+                                                  .withValues(alpha: 0.6),
                                               size: 24,
                                             ),
                                           ),
@@ -151,10 +152,10 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                                           height: 32,
                                           errorBuilder:
                                               (_, __, ___) =>
-                                                  const Icon(
+                                                  Icon(
                                             Iconsax.cpu_setting,
-                                            color: AppTheme
-                                                .textSecondary,
+                                            color: theme.colorScheme.onSurface
+                                                .withValues(alpha: 0.6),
                                             size: 24,
                                           ),
                                         ),
@@ -171,8 +172,8 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                                             .textTheme
                                             .titleSmall
                                             ?.copyWith(
-                                              color: AppTheme
-                                                  .textPrimary,
+                                              color: theme
+                                                  .colorScheme.onSurface,
                                               fontWeight:
                                                   FontWeight.w600,
                                             ),
@@ -229,10 +230,10 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppTheme.cardColor,
+                          color: theme.cardColor,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                              color: AppTheme.dividerColor),
+                              color: theme.dividerColor),
                         ),
                         child: Column(
                           children: [
@@ -280,17 +281,17 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceColor,
+                          color: theme.colorScheme.surface,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
                           children: [
-                            const Icon(
+                            Icon(
                               Iconsax.info_circle,
                               size: 16,
-                              color: AppTheme.textSecondary,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -301,7 +302,7 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
                                     .bodySmall
                                     ?.copyWith(
                                       color:
-                                          AppTheme.textSecondary,
+                                          theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                       fontSize: 11,
                                     ),
                               ),
@@ -319,7 +320,7 @@ class _QuoteSummaryScreenState extends State<QuoteSummaryScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppTheme.backgroundColor,
+                  color: theme.scaffoldBackgroundColor,
                   boxShadow: [
                     BoxShadow(
                       color: AppTheme.primaryColor

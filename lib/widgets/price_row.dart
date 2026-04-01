@@ -17,6 +17,7 @@ class PriceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -25,18 +26,22 @@ class PriceRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
-                    color: isBold ? AppTheme.textPrimary : AppTheme.textSecondary,
+                    color: isBold
+                        ? theme.colorScheme.onSurface
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     fontSize: isBold ? 16 : 14,
                   ),
             ),
           ),
           Text(
             price,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-                  color: isBold ? AppTheme.primaryColor : AppTheme.textPrimary,
+                  color: isBold
+                      ? AppTheme.primaryColor
+                      : theme.colorScheme.onSurface,
                   fontSize: isBold ? 18 : 14,
                   decoration:
                       showStrikethrough ? TextDecoration.lineThrough : null,

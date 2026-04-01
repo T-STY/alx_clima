@@ -180,11 +180,13 @@ class _ContactScreenState extends State<ContactScreen> {
                       .fadeIn(duration: 400.ms, delay: 310.ms)
                       .slideX(begin: 0.05, end: 0),
                   const SizedBox(height: 28),
-                  Container(
+                  Builder(builder: (context) {
+                    final theme = Theme.of(context);
+                    return Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceColor,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
@@ -196,11 +198,11 @@ class _ContactScreenState extends State<ContactScreen> {
                             const SizedBox(width: 10),
                             Text(
                               'Horario de Atención',
-                              style: Theme.of(context)
+                              style: theme
                                   .textTheme
                                   .titleSmall
                                   ?.copyWith(
-                                    color: AppTheme.textPrimary,
+                                    color: theme.colorScheme.onSurface,
                                     fontWeight: FontWeight.w600,
                                   ),
                             ),
@@ -210,8 +212,8 @@ class _ContactScreenState extends State<ContactScreen> {
                         Text(
                           _businessHours,
                           style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppTheme.textPrimary,
+                              theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurface,
                                   ),
                         ),
                         const SizedBox(height: 8),
@@ -246,7 +248,8 @@ class _ContactScreenState extends State<ContactScreen> {
                         ),
                       ],
                     ),
-                  )
+                  );
+                  })
                       .animate()
                       .fadeIn(duration: 400.ms, delay: 400.ms),
                   const SizedBox(height: 24),
@@ -274,13 +277,14 @@ class _ContactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.cardColor,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withValues(alpha: 0.2)),
           boxShadow: [
@@ -308,15 +312,15 @@ class _ContactCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textPrimary,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall,
                   ),
                 ],
               ),

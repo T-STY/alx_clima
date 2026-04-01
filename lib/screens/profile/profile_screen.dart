@@ -214,11 +214,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAddressSection() {
+    final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -235,8 +236,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Expanded(
                 child: Text(
                   'Dirección',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppTheme.textPrimary,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                       ),
                 ),
@@ -285,7 +286,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: AppTheme.backgroundColor,
+                  color: theme.scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -298,10 +299,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ? _displayAddress
                             : 'Toca para agregar tu dirección',
                         style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            theme.textTheme.bodyMedium?.copyWith(
                                   color: _hasAddress
-                                      ? AppTheme.textPrimary
-                                      : AppTheme.textSecondary,
+                                      ? theme.colorScheme.onSurface
+                                      : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                       ),
                     ),
@@ -418,13 +419,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStatsSection() {
+    final theme = Theme.of(context);
     final memberYear = _memberSince?.year.toString() ?? '-';
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -449,7 +451,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 width: 1,
                 height: 40,
-                color: AppTheme.dividerColor,
+                color: theme.dividerColor,
               ),
               Expanded(
                 child: _StatItem(
@@ -461,7 +463,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 width: 1,
                 height: 40,
-                color: AppTheme.dividerColor,
+                color: theme.dividerColor,
               ),
               Expanded(
                 child: _StatItem(
@@ -509,15 +511,16 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Icon(icon, color: AppTheme.primaryColor, size: 20),
         const SizedBox(height: 6),
         Text(
           value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+                color: theme.colorScheme.onSurface,
               ),
         ),
         Text(

@@ -11,11 +11,12 @@ class ShellScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppTheme.backgroundColor,
+          color: theme.scaffoldBackgroundColor,
           boxShadow: [
             BoxShadow(
               color: AppTheme.primaryColor.withValues(alpha: 0.06),
@@ -25,7 +26,7 @@ class ShellScreen extends StatelessWidget {
           ],
           border: Border(
             top: BorderSide(
-              color: AppTheme.dividerColor.withValues(alpha: 0.5),
+              color: theme.dividerColor.withValues(alpha: 0.5),
               width: 0.5,
             ),
           ),

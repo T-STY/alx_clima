@@ -100,6 +100,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Selecciona tu Equipo'),
@@ -158,8 +159,8 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                               Icon(
                                 Iconsax.search_normal,
                                 size: 48,
-                                color: AppTheme.textSecondary
-                                    .withValues(alpha: 0.4),
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.24),
                               ),
                               const SizedBox(height: 12),
                               Text(
@@ -200,6 +201,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
 
   Widget _buildTypeChip(String label, String? type) {
     final isSelected = _selectedType == type;
+    final theme = Theme.of(context);
     return FilterChip(
       label: Text(label),
       selected: isSelected,
@@ -209,7 +211,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
       labelStyle: TextStyle(
         color: isSelected
             ? AppTheme.primaryColor
-            : AppTheme.textPrimary,
+            : theme.colorScheme.onSurface,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
         fontSize: 13,
       ),
@@ -218,6 +220,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
 
   Widget _buildBtuChip(String label, int? btu) {
     final isSelected = _selectedBtu == btu;
+    final theme = Theme.of(context);
     return FilterChip(
       label: Text(label),
       selected: isSelected,
@@ -227,7 +230,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
       labelStyle: TextStyle(
         color: isSelected
             ? AppTheme.secondaryColor
-            : AppTheme.textSecondary,
+            : theme.colorScheme.onSurface.withValues(alpha: 0.6),
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
         fontSize: 13,
       ),
@@ -241,14 +244,15 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
+        final theme = Theme.of(ctx);
         return Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.75,
           ),
-          decoration: const BoxDecoration(
-            color: AppTheme.backgroundColor,
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
             borderRadius:
-                BorderRadius.vertical(top: Radius.circular(24)),
+                const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -261,7 +265,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppTheme.dividerColor,
+                      color: theme.dividerColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -273,7 +277,7 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                     width: double.infinity,
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceColor,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: ClipRRect(
@@ -281,10 +285,10 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                       child: Image.network(
                         equipment.imageUrl,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const Icon(
+                        errorBuilder: (_, __, ___) => Icon(
                           Iconsax.cpu_setting,
                           size: 48,
-                          color: AppTheme.textSecondary,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ),
@@ -367,11 +371,9 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
                         ),
                         Text(
                           'Precio aproximado',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: theme.textTheme.bodySmall
                               ?.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 fontSize: 11,
                               ),
                         ),
@@ -412,11 +414,12 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
 
   Widget _specBadge(
       BuildContext context, IconData icon, String text) {
+    final theme = Theme.of(context);
     return Container(
       padding:
           const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -427,9 +430,9 @@ class _EquipmentSelectScreenState extends State<EquipmentSelectScreen> {
           Text(
             text,
             style:
-                Theme.of(context).textTheme.bodySmall?.copyWith(
+                theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: theme.colorScheme.onSurface,
                     ),
           ),
         ],
@@ -451,14 +454,15 @@ class _EquipmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.cardColor,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppTheme.dividerColor),
+          border: Border.all(color: theme.dividerColor),
           boxShadow: [
             BoxShadow(
               color:
@@ -478,8 +482,8 @@ class _EquipmentCard extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppTheme.surfaceColor,
-                    AppTheme.dividerColor.withValues(alpha: 0.3),
+                    theme.colorScheme.surface,
+                    theme.dividerColor.withValues(alpha: 0.3),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(14),
@@ -492,9 +496,9 @@ class _EquipmentCard extends StatelessWidget {
                         fit: BoxFit.contain,
                         width: 68,
                         height: 68,
-                        errorBuilder: (_, __, ___) => const Icon(
+                        errorBuilder: (_, __, ___) => Icon(
                           Iconsax.cpu_setting,
-                          color: AppTheme.textSecondary,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           size: 28,
                         ),
                       ),
@@ -503,9 +507,9 @@ class _EquipmentCard extends StatelessWidget {
                       padding: const EdgeInsets.all(12),
                       child: Image.network(
                         'https://img.icons8.com/ios/100/air-conditioner.png',
-                        errorBuilder: (_, __, ___) => const Icon(
+                        errorBuilder: (_, __, ___) => Icon(
                           Iconsax.cpu_setting,
-                          color: AppTheme.textSecondary,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           size: 28,
                         ),
                       ),
@@ -522,7 +526,7 @@ class _EquipmentCard extends StatelessWidget {
                         .textTheme
                         .titleSmall
                         ?.copyWith(
-                          color: AppTheme.textPrimary,
+                          color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                         ),
@@ -586,13 +590,13 @@ class _EquipmentCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceColor,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 Iconsax.arrow_right_3,
                 color:
-                    AppTheme.textSecondary.withValues(alpha: 0.6),
+                    theme.colorScheme.onSurface.withValues(alpha: 0.36),
                 size: 16,
               ),
             ),

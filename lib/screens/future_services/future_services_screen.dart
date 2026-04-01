@@ -234,14 +234,15 @@ class _ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.cardColor,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.dividerColor),
+          border: Border.all(color: theme.dividerColor),
           boxShadow: [
             BoxShadow(
               color: color.withValues(alpha: 0.06),
@@ -267,15 +268,15 @@ class _ServiceCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textPrimary,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -284,7 +285,7 @@ class _ServiceCard extends StatelessWidget {
             ),
             Icon(
               Iconsax.arrow_right_3,
-              color: AppTheme.textSecondary.withValues(alpha: 0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               size: 20,
             ),
           ],
@@ -307,24 +308,26 @@ class _ComingSoonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final secondaryText = theme.colorScheme.onSurface.withValues(alpha: 0.6);
     return Opacity(
       opacity: 0.55,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceColor,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.dividerColor),
+          border: Border.all(color: theme.dividerColor),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.textSecondary.withValues(alpha: 0.08),
+                color: secondaryText.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: AppTheme.textSecondary, size: 24),
+              child: Icon(icon, color: secondaryText, size: 24),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -333,24 +336,24 @@ class _ComingSoonCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textPrimary,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            const StatusBadge(
+            StatusBadge(
               text: 'Próximamente',
-              color: AppTheme.textSecondary,
+              color: secondaryText,
             ),
           ],
         ),

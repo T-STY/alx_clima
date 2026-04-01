@@ -238,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
               icon: Icon(
                 _obscurePassword ? Iconsax.eye_slash : Iconsax.eye,
                 size: 20,
-                color: AppTheme.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               onPressed: () =>
                   setState(() => _obscurePassword = !_obscurePassword),
@@ -265,7 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 icon: Icon(
                   _obscureConfirm ? Iconsax.eye_slash : Iconsax.eye,
                   size: 20,
-                  color: AppTheme.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 onPressed: () =>
                     setState(() => _obscureConfirm = !_obscureConfirm),

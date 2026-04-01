@@ -44,6 +44,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
@@ -123,7 +124,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
               estadoIcon = Iconsax.clock;
             } else {
               estadoText = 'Desconocido';
-              estadoColor = AppTheme.textSecondary;
+              estadoColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
               estadoIcon = Iconsax.info_circle;
             }
           } else {
@@ -152,7 +153,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppTheme.cardColor,
+                    color: theme.cardColor,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -174,8 +175,8 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              AppTheme.surfaceColor,
-                              AppTheme.dividerColor
+                              theme.colorScheme.surface,
+                              theme.dividerColor
                                   .withValues(alpha: 0.3),
                             ],
                           ),
@@ -188,9 +189,9 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                             'https://img.icons8.com/ios/100/air-conditioner.png',
                             height: 72,
                             errorBuilder: (_, __, ___) =>
-                                const Icon(
+                                Icon(
                               Iconsax.cpu_setting,
-                              color: AppTheme.textSecondary,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               size: 48,
                             ),
                           ),
@@ -301,7 +302,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                                       .bodySmall
                                       ?.copyWith(
                                         color:
-                                            AppTheme.textSecondary,
+                                            theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                       ),
                                 ),
                               ),
@@ -312,7 +313,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                                       .textTheme
                                       .bodySmall
                                       ?.copyWith(
-                                        color: AppTheme.textPrimary,
+                                        color: theme.colorScheme.onSurface,
                                         fontWeight: FontWeight.w500,
                                       ),
                                   decoration:
@@ -386,7 +387,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                           .textTheme
                           .titleSmall
                           ?.copyWith(
-                            color: AppTheme.textPrimary,
+                            color: theme.colorScheme.onSurface,
                             fontWeight: FontWeight.w600,
                           ),
                     ),
@@ -407,11 +408,11 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.textSecondary
+                      color: theme.colorScheme.onSurface
                           .withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppTheme.textSecondary
+                        color: theme.colorScheme.onSurface
                             .withValues(alpha: 0.15),
                       ),
                     ),
@@ -420,8 +421,8 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Iconsax.shield_cross,
-                                color: AppTheme.textSecondary,
+                            Icon(Iconsax.shield_cross,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 size: 18),
                             const SizedBox(width: 8),
                             Text(
@@ -430,7 +431,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                                   .textTheme
                                   .titleSmall
                                   ?.copyWith(
-                                    color: AppTheme.textSecondary,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                     fontWeight: FontWeight.w600,
                                   ),
                             ),
@@ -445,7 +446,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                               .textTheme
                               .bodySmall
                               ?.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                         ),
                       ],
@@ -566,7 +567,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceColor,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(
@@ -574,8 +575,8 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                         Icon(
                           Iconsax.document_text,
                           size: 36,
-                          color: AppTheme.textSecondary
-                              .withValues(alpha: 0.4),
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.3),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -599,10 +600,10 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                       return Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppTheme.cardColor,
+                          color: theme.cardColor,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                              color: AppTheme.dividerColor),
+                              color: theme.dividerColor),
                         ),
                         child: Row(
                           crossAxisAlignment:
@@ -635,8 +636,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                                             .textTheme
                                             .titleSmall
                                             ?.copyWith(
-                                              color: AppTheme
-                                                  .textPrimary,
+                                              color: theme.colorScheme.onSurface,
                                               fontWeight:
                                                   FontWeight.w600,
                                             ),
@@ -715,6 +715,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
 
   Widget _buildAppointmentsSection(
       BuildContext context, String equipmentId) {
+    final theme = Theme.of(context);
     final appointments = context.watch<AppointmentProvider>().appointments;
     final equipAppts = appointments
         .where((a) =>
@@ -736,7 +737,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceColor,
+              color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
@@ -745,8 +746,8 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                 Icon(
                   Iconsax.calendar,
                   size: 20,
-                  color: AppTheme.textSecondary
-                      .withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurface
+                      .withValues(alpha: 0.4),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -763,10 +764,10 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppTheme.cardColor,
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(14),
                 border:
-                    Border.all(color: AppTheme.dividerColor),
+                    Border.all(color: theme.dividerColor),
               ),
               child: Row(
                 children: [
@@ -795,7 +796,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen> {
                               .textTheme
                               .titleSmall
                               ?.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: theme.colorScheme.onSurface,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
@@ -885,6 +886,7 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -894,18 +896,16 @@ class _InfoRow extends StatelessWidget {
             width: 140,
             child: Text(
               label,
-              style:
-                  Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
+              style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style:
-                  Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textPrimary,
+              style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w500,
                       ),
             ),

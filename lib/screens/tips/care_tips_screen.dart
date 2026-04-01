@@ -43,10 +43,12 @@ class CareTipsScreen extends StatelessWidget {
             ),
           ),
 
-          Container(
+          Builder(builder: (context) {
+            final theme = Theme.of(context);
+            return Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppTheme.backgroundColor,
+              color: theme.scaffoldBackgroundColor,
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.primaryColor.withValues(alpha: 0.06),
@@ -60,8 +62,8 @@ class CareTipsScreen extends StatelessWidget {
               children: [
                 Text(
                   '¿Necesitas mantenimiento profesional?',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppTheme.textPrimary,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                       ),
                 ),
@@ -100,6 +102,7 @@ class _ExpandableTipCardState extends State<_ExpandableTipCard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: () => setState(() => _isExpanded = !_isExpanded),
       child: AnimatedContainer(
@@ -109,12 +112,12 @@ class _ExpandableTipCardState extends State<_ExpandableTipCard> {
         decoration: BoxDecoration(
           color: _isExpanded
               ? AppTheme.primaryColor.withValues(alpha: 0.04)
-              : AppTheme.cardColor,
+              : theme.cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _isExpanded
                 ? AppTheme.primaryColor.withValues(alpha: 0.2)
-                : AppTheme.dividerColor,
+                : theme.dividerColor,
           ),
           boxShadow: [
             if (_isExpanded)
@@ -146,8 +149,8 @@ class _ExpandableTipCardState extends State<_ExpandableTipCard> {
                 Expanded(
                   child: Text(
                     widget.title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textPrimary,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                   ),
@@ -159,7 +162,7 @@ class _ExpandableTipCardState extends State<_ExpandableTipCard> {
                     Iconsax.arrow_down_1,
                     color: _isExpanded
                         ? AppTheme.primaryColor
-                        : AppTheme.textSecondary,
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     size: 20,
                   ),
                 ),
@@ -171,8 +174,8 @@ class _ExpandableTipCardState extends State<_ExpandableTipCard> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   widget.description,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textPrimary,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
                         height: 1.5,
                       ),
                 ),

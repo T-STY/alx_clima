@@ -87,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWelcomeHeader(BuildContext context) {
+    final theme = Theme.of(context);
     final name = context.read<DashboardProvider>().profile?.name ?? '';
     final displayName = name.isNotEmpty ? _titleCase(name) : '';
 
@@ -113,14 +114,14 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Text(
                 'Bienvenido',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondary,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
               ),
               if (displayName.isNotEmpty)
                 Text(
                   displayName,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                   maxLines: 1,
@@ -135,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildNotificationBell(BuildContext context) {
+    final theme = Theme.of(context);
     final auth = context.watch<AuthProvider>();
     final unread = auth.unreadNotificationCount;
 
@@ -145,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceColor,
+              color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Iconsax.notification, size: 18),
@@ -185,6 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final theme = Theme.of(ctx);
         final notifications = auth.notifications;
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -197,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppTheme.dividerColor,
+                    color: theme.dividerColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -205,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
               Text(
                 'Notificaciones',
-                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
               ),
@@ -216,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Center(
                     child: Text(
                       'Sin notificaciones',
-                      style: Theme.of(ctx).textTheme.bodyMedium,
+                      style: theme.textTheme.bodyMedium,
                     ),
                   ),
                 )
@@ -234,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: isRead
-                            ? AppTheme.surfaceColor
+                            ? theme.colorScheme.surface
                             : AppTheme.primaryColor
                                 .withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
@@ -253,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 : Iconsax.notification,
                             size: 18,
                             color: isRead
-                                ? AppTheme.textSecondary
+                                ? theme.colorScheme.onSurface.withValues(alpha: 0.6)
                                 : AppTheme.primaryColor,
                           ),
                           const SizedBox(width: 10),
@@ -268,13 +271,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
                                     color: isRead
-                                        ? AppTheme.textSecondary
+                                        ? theme.colorScheme.onSurface.withValues(alpha: 0.6)
                                         : null,
                                   ),
                                 ),
                                 Text(
                                   n['message'] ?? '',
-                                  style: Theme.of(ctx)
+                                  style: theme
                                       .textTheme
                                       .bodySmall
                                       ?.copyWith(fontSize: 12),
@@ -306,6 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickStats(BuildContext context, DashboardProvider dashboard) {
+    final theme = Theme.of(context);
     final upcoming = context.watch<AppointmentProvider>().upcomingAppointments;
     final nextDateStr = upcoming.isNotEmpty
         ? DateFormat('dd/MM/yyyy').format(upcoming.first.preferredDate)
@@ -329,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
             value: nextDateStr,
             color: upcoming.isNotEmpty
                 ? AppTheme.secondaryColor
-                : AppTheme.textSecondary,
+                : theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -465,6 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTipsCarousel(BuildContext context) {
+    final theme = Theme.of(context);
     final tips = CareTips.items;
     final displayTips = tips.take(4).toList();
 
@@ -480,10 +485,10 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 220,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceColor,
+              color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: AppTheme.dividerColor.withValues(alpha: 0.5),
+                color: theme.dividerColor.withValues(alpha: 0.5),
               ),
             ),
             child: Column(
@@ -497,8 +502,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 6),
                 Text(
                   tip.title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppTheme.textPrimary,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                       ),
                   maxLines: 2,
@@ -508,7 +513,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: Text(
                     tip.description,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall,
                     maxLines: 4,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.justify,
@@ -539,6 +544,7 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -556,14 +562,14 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         fontSize: 11,
                       ),
                 ),
                 Text(
                   value,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: theme.textTheme.titleMedium?.copyWith(
                         color: color,
                         fontWeight: FontWeight.w700,
                       ),

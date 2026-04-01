@@ -51,6 +51,7 @@ class InvoicesScreen extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+          final theme = Theme.of(context);
           final docs = snapshot.data?.docs ?? [];
           if (docs.isEmpty) {
             return Center(
@@ -59,10 +60,10 @@ class InvoicesScreen extends StatelessWidget {
                 children: [
                   Icon(Iconsax.document,
                       size: 48,
-                      color: AppTheme.textSecondary.withValues(alpha: 0.4)),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.24)),
                   const SizedBox(height: 12),
                   Text('Sin facturas',
-                      style: Theme.of(context).textTheme.bodyMedium),
+                      style: theme.textTheme.bodyMedium),
                 ],
               ),
             );
@@ -84,9 +85,9 @@ class InvoicesScreen extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.cardColor,
+                    color: theme.cardColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.dividerColor),
+                    border: Border.all(color: theme.dividerColor),
                   ),
                   child: Row(
                     children: [
@@ -106,12 +107,12 @@ class InvoicesScreen extends StatelessWidget {
                           children: [
                             Text(
                               'Factura - $date',
-                              style: Theme.of(context)
+                              style: theme
                                   .textTheme
                                   .titleSmall
                                   ?.copyWith(
                                     fontWeight: FontWeight.w600,
-                                    color: AppTheme.textPrimary,
+                                    color: theme.colorScheme.onSurface,
                                   ),
                             ),
                             const SizedBox(height: 2),
@@ -164,6 +165,7 @@ class InvoicesScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final sheetTheme = Theme.of(ctx);
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           child: Column(
@@ -174,7 +176,7 @@ class InvoicesScreen extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppTheme.dividerColor,
+                    color: sheetTheme.dividerColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

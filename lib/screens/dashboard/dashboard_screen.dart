@@ -22,6 +22,7 @@ class DashboardScreen extends StatelessWidget {
       body: SafeArea(
         child: Consumer2<DashboardProvider, AppointmentProvider>(
           builder: (context, dashboard, appointments, _) {
+            final theme = Theme.of(context);
             final upcoming = appointments.upcomingAppointments;
             final needingService = dashboard.equipmentNeedingService;
 
@@ -37,7 +38,7 @@ class DashboardScreen extends StatelessWidget {
               nextServiceColor = AppTheme.secondaryColor;
             } else {
               nextServiceValue = '\u2014/\u2014';
-              nextServiceColor = AppTheme.textSecondary;
+              nextServiceColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
             }
 
             return SingleChildScrollView(
@@ -164,10 +165,10 @@ class DashboardScreen extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: AppTheme.cardColor,
+                              color: theme.cardColor,
                               borderRadius: BorderRadius.circular(14),
                               border:
-                                  Border.all(color: AppTheme.dividerColor),
+                                  Border.all(color: theme.dividerColor),
                             ),
                             child: Row(
                               children: [
@@ -193,11 +194,11 @@ class DashboardScreen extends StatelessWidget {
                                       Text(
                                         equip?.equipmentName ??
                                             'Servicio General',
-                                        style: Theme.of(context)
+                                        style: theme
                                             .textTheme
                                             .titleSmall
                                             ?.copyWith(
-                                              color: AppTheme.textPrimary,
+                                              color: theme.colorScheme.onSurface,
                                               fontWeight: FontWeight.w600,
                                             ),
                                         maxLines: 1,
@@ -316,6 +317,7 @@ class DashboardScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final sheetTheme = Theme.of(ctx);
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           child: Column(
@@ -325,7 +327,7 @@ class DashboardScreen extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppTheme.dividerColor,
+                  color: sheetTheme.dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -545,26 +547,27 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppTheme.textSecondary),
+          Icon(icon, size: 18, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
           const SizedBox(width: 10),
           SizedBox(
             width: 70,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
+              style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textPrimary,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
             ),
@@ -590,6 +593,7 @@ class _DashStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -603,7 +607,7 @@ class _DashStatCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            style: theme.textTheme.titleLarge?.copyWith(
                   color: color,
                   fontWeight: FontWeight.w700,
                 ),
@@ -612,9 +616,9 @@ class _DashStatCard extends StatelessWidget {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: theme.textTheme.bodySmall?.copyWith(
                   fontSize: 11,
-                  color: AppTheme.textSecondary,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
           ),
         ],
