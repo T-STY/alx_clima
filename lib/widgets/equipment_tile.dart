@@ -58,7 +58,7 @@ class EquipmentTile extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 child: Image.network(
                   'https://img.icons8.com/ios/100/air-conditioner.png',
-                  errorBuilder: (_, __, ___) => const Icon(
+                  errorBuilder: (_, __, ___) => Icon(
                     Iconsax.cpu_setting,
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     size: 24,

@@ -75,7 +75,7 @@ class CareTipsScreen extends StatelessWidget {
                 ),
               ],
             ),
-          ),
+          ); }),
         ],
       ),
     );
