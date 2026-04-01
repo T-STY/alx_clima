@@ -51,6 +51,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   List<QuoteItem> _quoteItems = [];
   double _cachedQuoteTotal = 0;
+  double _cachedEquipCost = 0;
+  double _cachedInstallCost = 0;
+  Map<String, double> _cachedPerItemInstall = {};
+  String _cachedInstallationType = 'fullPackage';
 
   Map<String, dynamic>? _pricingConfig;
 
@@ -70,6 +74,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final quote = context.read<QuoteProvider>();
       _quoteItems = [...quote.items];
       _cachedQuoteTotal = quote.grandTotal;
+      _cachedEquipCost = quote.totalEquipmentCost;
+      _cachedInstallCost = quote.totalInstallCost;
+      _cachedInstallationType = quote.installationType.name;
+      for (final qi in _quoteItems) {
+        _cachedPerItemInstall[qi.equipment.id] =
+            quote.getInstallCostForItem(qi);
+      }
       _selectedEquipmentIds =
           _quoteItems.map((i) => i.equipment.id).toList();
       _selectedServiceType = ServiceType.installation;
@@ -125,8 +136,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     if (_selectedServiceType == ServiceType.installation) {
       if (widget.fromQuote) {
-        final quoteProvider = context.read<QuoteProvider>();
-        return quoteProvider.grandTotal;
+        return _cachedQuoteTotal;
       }
       final quoteProvider = context.read<QuoteProvider>();
       final isSolo =
@@ -1139,27 +1149,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       appointmentProvider.scheduleAppointment(appointment);
     }
 
-    final quoteProvider = context.read<QuoteProvider>();
-    final hasDiscount = _quoteItems.length > 1 || quoteProvider.items.length > 1;
-
-    double totalEquipCost = 0;
-    double totalInstallCost = 0;
-    for (final qi in _quoteItems) {
-      totalEquipCost += qi.equipment.price;
-      totalInstallCost += quoteProvider.getInstallCostForItem(qi);
-    }
-    if (_quoteItems.isEmpty) {
-      totalEquipCost = quoteProvider.totalEquipmentCost;
-      totalInstallCost = quoteProvider.totalInstallCost;
-    }
-    final grandTotal = totalEquipCost + totalInstallCost;
+    final hasDiscount = _quoteItems.length > 1;
 
     final quoteBreakdown = <String, dynamic>{
-      'equipmentPrice': totalEquipCost,
-      'installationPrice': totalInstallCost,
-      'totalPrice': widget.fromQuote ? grandTotal : quoteProvider.grandTotal,
+      'equipmentPrice': _cachedEquipCost,
+      'installationPrice': _cachedInstallCost,
+      'totalPrice': _cachedQuoteTotal,
       'multiUnitDiscount': hasDiscount,
-      'installationType': quoteProvider.installationType.name,
+      'installationType': _cachedInstallationType,
       'perEquipment': resolvedIds.map((id) {
         final eq = dashboard.getEquipmentById(id);
         final origId = reverseIds[id] ?? id;
@@ -1172,9 +1169,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           'btuCapacity':
               eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0,
           'equipmentCost': qi?.equipment.price ?? 0,
-          'installCost': qi != null
-              ? quoteProvider.getInstallCostForItem(qi)
-              : 0,
+          'installCost': _cachedPerItemInstall[originalId] ??
+              _cachedPerItemInstall[id] ?? 0,
           'floorLevel': qi?.installationDetails.floorLevel.name ?? 'first',
           'compressorSameFloor': qi?.installationDetails.compressorSameFloor ?? true,
           'location': qi?.location ?? eq?.location ?? '',
@@ -1203,7 +1199,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       'equipment': equipmentList,
       'totalUserEquipment': dashboard.totalEquipment,
       'estimatedCost': widget.fromQuote
-          ? grandTotal
+          ? _cachedQuoteTotal
           : _calculateEstimatedCost(dashboard),
       'quoteBreakdown': quoteBreakdown,
     });

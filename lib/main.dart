@@ -30,11 +30,16 @@ void main() async {
     ),
   );
 
-  runApp(const ALXClimaApp());
+  final themeProvider = ClientThemeProvider();
+  await themeProvider.loadFromPrefs();
+
+  runApp(ALXClimaApp(themeProvider: themeProvider));
 }
 
 class ALXClimaApp extends StatefulWidget {
-  const ALXClimaApp({super.key});
+  final ClientThemeProvider themeProvider;
+
+  const ALXClimaApp({super.key, required this.themeProvider});
 
   @override
   State<ALXClimaApp> createState() => _ALXClimaAppState();
@@ -62,16 +67,21 @@ class _ALXClimaAppState extends State<ALXClimaApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: widget.themeProvider),
         ChangeNotifierProvider.value(value: _authProvider),
         ChangeNotifierProvider(create: (_) => QuoteProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => AppointmentProvider()),
       ],
-      child: MaterialApp.router(
-        title: 'ALX-Clima',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        routerConfig: _router,
+      child: Consumer<ClientThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp.router(
+            title: 'ALX-Clima',
+            debugShowCheckedModeBanner: false,
+            theme: themeProvider.theme,
+            routerConfig: _router,
+          );
+        },
       ),
     );
   }

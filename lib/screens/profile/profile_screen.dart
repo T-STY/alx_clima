@@ -198,7 +198,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   )
                       .animate()
                       .fadeIn(duration: 400.ms, delay: 300.ms),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+                  _buildThemeToggle(context)
+                      .animate()
+                      .fadeIn(duration: 400.ms, delay: 350.ms),
+                  const SizedBox(height: 24),
                   _buildStatsSection()
                       .animate()
                       .fadeIn(duration: 400.ms, delay: 400.ms),
@@ -372,6 +376,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildThemeToggle(BuildContext context) {
+    final themeProvider = context.watch<ClientThemeProvider>();
+    final isDark = themeProvider.isDark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isDark ? Iconsax.moon : Iconsax.sun_1,
+            color: AppTheme.primaryColor,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              isDark ? 'Modo oscuro' : 'Modo claro',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ),
+          Switch.adaptive(
+            value: isDark,
+            onChanged: (_) => themeProvider.toggle(),
+            activeColor: AppTheme.primaryColor,
+          ),
+        ],
+      ),
     );
   }
 
