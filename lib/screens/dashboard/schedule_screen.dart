@@ -1169,7 +1169,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           'btuCapacity':
               eq?.btuCapacity ?? qi?.equipment.btuCapacity ?? 0,
           'equipmentCost': qi?.equipment.price ?? 0,
-          'installCost': _cachedPerItemInstall[originalId] ??
+          'installCost': _cachedPerItemInstall[origId] ??
               _cachedPerItemInstall[id] ?? 0,
           'floorLevel': qi?.installationDetails.floorLevel.name ?? 'first',
           'compressorSameFloor': qi?.installationDetails.compressorSameFloor ?? true,
